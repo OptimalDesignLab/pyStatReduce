@@ -6,8 +6,8 @@ class QuantityOfInterest(object):
         assert nvariables > 0, "Quantity of Interest cannot have zero inputs"
         self.systemsize = nvariables
 
-    def eval_QoI(self, μ, ξ, tuple):
+    def eval_QoI(self, mu, xi):
         raise NotImplementedError
 
-    def eval_QoIHessian(self, μ, ξ, tuple):
+    def eval_QoIHessian(self, mu, xi):
         raise NotImplementedError

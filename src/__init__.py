@@ -1,1 +1,1 @@
-# init.pyc
+import examples
