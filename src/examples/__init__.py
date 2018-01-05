@@ -1,1 +1,1 @@
-from paraboloid import Paraboloid2D
+from paraboloid import Paraboloid2D, Paraboloid3D

@@ -31,7 +31,6 @@ class StochasticCollocationTest(unittest.TestCase):
 
         # Test against nested loops
         mu_j_hat = 0.0
-
         sqrt2 = np.sqrt(2)
         for i in xrange(0, collocation.q.size):
             for j in xrange(0, collocation.q.size):
@@ -43,6 +42,68 @@ class StochasticCollocationTest(unittest.TestCase):
         diff = abs(mu_j - mu_j_hat)
         self.assertTrue(diff < 1.e-15)
 
+    def test_stochasticCollocation3D(self):
+        systemsize = 3
+        x = np.zeros(systemsize)
+        sigma = 0.2*np.ones(systemsize)
+
+        # Create a Stochastic collocation object
+        collocation = StochasticCollocation(3, "Normal")
+
+        # Create a QoI object using ellpsoid
+        QoI = examples.Paraboloid3D(systemsize)
+
+        # Compute the expected value
+        mu_j = collocation.normal(x, sigma, QoI, collocation)
+
+        # Test against nested loops
+        mu_j_hat = 0.0
+        sqrt2 = np.sqrt(2)
+        for i in xrange(0, collocation.q.size):
+            for j in xrange(0, collocation.q.size):
+                for k in xrange(0, collocation.q.size):
+                    f_val = QoI.eval_QoI(x, sqrt2*sigma*[collocation.q[i],
+                            collocation.q[j], collocation.q[k]])
+                    mu_j_hat += collocation.w[i]*collocation.w[j]* \
+                                collocation.w[k]*f_val
+
+        mu_j_hat = mu_j_hat/(np.sqrt(np.pi)**systemsize)
+
+        diff = abs(mu_j - mu_j_hat)
+        self.assertTrue(diff < 1.e-15)
+
+    def test_stochasticCollocation5D(self):
+        systemsize = 5
+        x = np.random.rand(systemsize)
+        sigma = 0.2*np.ones(systemsize)
+
+        # Create a Stochastic collocation object
+        collocation = StochasticCollocation(3, "Normal")
+
+        # Create a QoI object using ellpsoid
+        QoI = examples.Paraboloid3D(systemsize)
+
+        # Compute the expected value
+        mu_j = collocation.normal(x, sigma, QoI, collocation)
+
+        # Test against nested loops
+        mu_j_hat = 0.0
+        sqrt2 = np.sqrt(2)
+        q = collocation.q
+        w = collocation.w
+        for i in xrange(0, collocation.q.size):
+            for j in xrange(0, collocation.q.size):
+                for k in xrange(0, collocation.q.size):
+                    for l in xrange(0, collocation.q.size):
+                        for m in xrange(0, collocation.q.size):
+                            fval = QoI.eval_QoI(x, sqrt2*sigma*[q[i], q[j], q[k],
+                                   q[l], q[m]])
+                            mu_j_hat += w[i]*w[j]*w[k]*w[l]*w[m]*fval
+
+        mu_j_hat = mu_j_hat/(np.sqrt(np.pi)**systemsize)
+
+        diff = abs(mu_j - mu_j_hat)
+        self.assertTrue(diff < 1.e-15)
 
 if __name__ == "__main__":
     unittest.main()
