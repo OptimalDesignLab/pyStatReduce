@@ -28,7 +28,6 @@ class StochasticCollocation(object):
                                        colloc_w_arr, idx)
         # print(idx)
         assert idx == -1
-        print("mu_j = ", mu_j)
         mu_j[0] = mu_j[0]/(np.sqrt(np.pi)**systemsize)
 
         return mu_j[0]
