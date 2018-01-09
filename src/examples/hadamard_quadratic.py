@@ -24,15 +24,18 @@ class HadamardQuadratic(QuantityOfInterest):
         return fval
 
     def eval_QoIHessian(self, mu, xi):
-        Hessian = matmul(self.eigen_vectors, self.eigen_vals*self.eigen_vectors.transpose)
+        Hessian = np.dot(self.eigen_vectors,
+                         (self.eigen_vals*self.eigen_vectors.T).T)
         return Hessian
 
     def eval_analytical_QoI_mean(self, mu, covariance_mat):
-        sysmat = np.matmul(self.eigen_vectors, self.eigen_vals*self.eigen_vectors)
-        mu_fval = np.trace(np.matmul(sysmat, covariance_mat)) \
+
+        sysmat = np.dot(self.eigen_vectors,
+                        (self.eigen_vals*self.eigen_vectors.T).T)
+        mu_fval = np.trace(np.matmul(sysmat, covariance_mat))  \
                   + mu.dot(sysmat.dot(mu))
 
-        return mu_fval[0]
+        return mu_fval
 
     def applyHadamard(self, x, y):
         n = np.size(x,0)
