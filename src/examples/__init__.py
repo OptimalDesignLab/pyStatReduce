@@ -1,1 +1,2 @@
 from paraboloid import Paraboloid2D, Paraboloid3D
+from hadamard_quadratic import HadamardQuadratic
