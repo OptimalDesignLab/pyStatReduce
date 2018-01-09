@@ -16,6 +16,7 @@ class HadamardQuadraticTest(unittest.TestCase):
         eigen_decayrate = 0.5
         # Create Hadmard Quadratic object
         QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
+
         true_value = np.array([1, 1/np.sqrt(2)])
         self.assertTrue((QoI.eigen_vals == true_value).all())
 
@@ -23,6 +24,7 @@ class HadamardQuadraticTest(unittest.TestCase):
         systemsize = 4
         eigen_decayrate = 0.5
         QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
+
         true_value = np.array([[0.5, 0.5, 0.5, 0.5],
                                [0.5, -0.5, 0.5, -0.5],
                                [0.5, 0.5, -0.5, -0.5],
@@ -35,12 +37,13 @@ class HadamardQuadraticTest(unittest.TestCase):
         eigen_decayrate = 2.0
 
         QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
-
         mu = np.ones(systemsize)
         xi = np.ones(systemsize)
-
         fval = QoI.eval_QoI(mu, xi)
-        print(fval)
+
+        true_value = 16.0
+        err = abs(fval - true_value)
+        self.assertTrue(err < 1.e-14)
 
 
 
