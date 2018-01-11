@@ -25,25 +25,25 @@ class DimensionReduction(object):
 
         # Compute the eigen modes of the Hessian of the Hadamard Quadratic
         Hessian_Product = np.matmul(sqrt_Sigma, np.matmul(Hessian, sqrt_Sigma))
-        eigen_vals, eigen_vectors = np.linalg.eig(Hessian_Product)
+        self.iso_eigen_vals, self.iso_eigen_vectors = np.linalg.eig(Hessian_Product)
 
         # Get the system energy of Hessian_Product
-        system_energy = np.sum(eigen_vals)
+        system_energy = np.sum(self.iso_eigen_vals)
         ind = []
 
         # get the indices of dominant eigenvalues in descending order
-        sort_ind = eigen_vals.argsort()[::-1] # np.argsort(eigen_vals)
+        sort_ind = self.iso_eigen_vals.argsort()[::-1] # np.argsort(iso_eigen_vals)
 
         # Check the threshold
         for i in xrange(0, QoI.systemsize):
             dominant_eigen_val_ind = sort_ind[0:i+1]
-            reduced_energy = np.sum(eigen_vals[dominant_eigen_val_ind])
+            reduced_energy = np.sum(self.iso_eigen_vals[dominant_eigen_val_ind])
             if reduced_energy <= self.threshold_factor*system_energy:
                 ind.append(dominant_eigen_val_ind[i])
             else:
                 break
 
         if len(ind) == 0:
-            ind.append(np.argmax(eigen_vals))
+            ind.append(np.argmax(iso_eigen_vals))
 
-        return eigen_vals, eigen_vectors, ind
+        self.dominant_indices = ind

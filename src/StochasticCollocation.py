@@ -17,8 +17,8 @@ class StochasticCollocation(object):
     def normal(self, x, sigma, QoI, collocation_obj):
 
         systemsize = x.size
-        ref_collocation_pts = collocation_obj.q
-        ref_collocation_w = collocation_obj.w
+        ref_collocation_pts = self.q
+        ref_collocation_w = self.w
         idx = 0
         colloc_xi_arr = np.zeros(systemsize)
         colloc_w_arr = np.zeros(systemsize)
@@ -26,12 +26,33 @@ class StochasticCollocation(object):
         idx = self.doNormalCollocation(x, sigma, mu_j, ref_collocation_pts,
                                        ref_collocation_w, QoI, colloc_xi_arr,
                                        colloc_w_arr, idx)
-        # print(idx)
         assert idx == -1
         mu_j[0] = mu_j[0]/(np.sqrt(np.pi)**systemsize)
 
         return mu_j[0]
 
+    def normalReduced(self, QoI, jdist, dominant_space):
+
+        x = cp.E(jdist)
+        covariance = cp.Cov(jdist)
+        n_quadrature_loops = len(dominant_space.dominant_indices)
+        dominant_dir = dominant_space.iso_eigen_vectors[:, dominant_space.dominant_indices]
+        ref_collocation_pts = self.q
+        ref_collocation_w = self.w
+        idx = 0
+        colloc_xi_arr = np.zeros(n_quadrature_loops)
+        colloc_w_arr = np.zeros(n_quadrature_loops)
+        mu_j = np.zeros(1)
+
+        idx = self.doReducedNormalCollocation(x, covariance, dominant_dir, mu_j,
+                                              ref_collocation_pts,
+                                              ref_collocation_w, QoI, colloc_xi_arr,
+                                              colloc_w_arr, idx)
+
+        assert idx == -1
+        mu_j[0] = mu_j[0]/(np.sqrt(np.pi)**n_quadrature_loops)
+
+        return mu_j[0]
 
     def uniform():
         raise NotImplementedError
@@ -53,4 +74,28 @@ class StochasticCollocation(object):
                 colloc_w_arr[idx] = w[i]
                 idx = self.doNormalCollocation(x, sigma, mu_j, xi, w, QoI, colloc_xi_arr,
                                     colloc_w_arr, idx+1)
+            return idx-1
+
+
+    def doReducedNormalCollocation(self, x, covariance, dominant_dir, mu_j, xi, w, QoI,
+                                   colloc_xi_arr, colloc_w_arr, idx):
+
+        if idx == np.size(dominant_dir,1)-1:  # x.size-1: # TODO: Change to nquadrature loops
+            sqrt2 = np.sqrt(2)
+            sqrt_Sigma = np.sqrt(covariance)
+            for i in xrange(0, xi.size):
+                colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
+                colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
+                q = sqrt2* np.matmul(sqrt_Sigma, dominant_dir.dot(colloc_xi_arr))
+                # fval = QoI.eval_QoI(x, sqrt2*sigma*dominant_dir.dot(colloc_xi_arr))
+                fval = QoI.eval_QoI(x, q)
+                mu_j[0] += np.prod(colloc_w_arr)*fval
+            return idx-1
+        else:
+            for i in xrange(0, xi.size):
+                colloc_xi_arr[idx] = xi[i]
+                colloc_w_arr[idx] = w[i]
+                idx = self.doReducedNormalCollocation(x, covariance,
+                      dominant_dir, mu_j, xi, w, QoI, colloc_xi_arr,
+                      colloc_w_arr, idx+1)
             return idx-1
