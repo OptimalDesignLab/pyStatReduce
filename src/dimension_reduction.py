@@ -7,6 +7,7 @@ class DimensionReduction(object):
 
     def __init__(self, threshold_factor):
         self.threshold_factor = threshold_factor
+        # TODO: Check if isoprobabilistic eigen modes can be initialized here
 
     def getDominantDirections(self, QoI, jdist):
 
@@ -32,7 +33,7 @@ class DimensionReduction(object):
         ind = []
 
         # get the indices of dominant eigenvalues in descending order
-        sort_ind = self.iso_eigen_vals.argsort()[::-1] # np.argsort(iso_eigen_vals)
+        sort_ind = self.iso_eigen_vals.argsort()[::-1]
 
         # Check the threshold
         for i in xrange(0, QoI.systemsize):
@@ -44,6 +45,6 @@ class DimensionReduction(object):
                 break
 
         if len(ind) == 0:
-            ind.append(np.argmax(iso_eigen_vals))
+            ind.append(np.argmax(self.iso_eigen_vals))
 
         self.dominant_indices = ind

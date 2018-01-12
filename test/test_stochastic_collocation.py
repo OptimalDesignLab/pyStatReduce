@@ -1,7 +1,7 @@
 # Test stochastic collocation module
 
 import sys
-sys.path.insert(0, '/Users/kinshuk/Documents/ODL/pyStatReduce/src')
+sys.path.insert(0, '../src')
 
 import unittest
 import numpy as np
@@ -24,10 +24,10 @@ class StochasticCollocationTest(unittest.TestCase):
         collocation = StochasticCollocation(3, "Normal")
 
         # Create a QoI object using ellpsoid
-        QoI = examples.Paraboloid2D(tuple)
+        QoI = examples.Paraboloid2D(systemsize, tuple)
 
         # Compute the expected value
-        mu_j = collocation.normal(x, sigma, QoI, collocation)
+        mu_j = collocation.normal(x, sigma, QoI)
 
         # Test against nested loops
         mu_j_hat = 0.0
@@ -54,7 +54,7 @@ class StochasticCollocationTest(unittest.TestCase):
         QoI = examples.Paraboloid3D(systemsize)
 
         # Compute the expected value
-        mu_j = collocation.normal(x, sigma, QoI, collocation)
+        mu_j = collocation.normal(x, sigma, QoI)
 
         # Test against nested loops
         mu_j_hat = 0.0
@@ -84,7 +84,7 @@ class StochasticCollocationTest(unittest.TestCase):
         QoI = examples.Paraboloid3D(systemsize)
 
         # Compute the expected value
-        mu_j = collocation.normal(x, sigma, QoI, collocation)
+        mu_j = collocation.normal(x, sigma, QoI)
 
         # Test against nested loops
         mu_j_hat = 0.0

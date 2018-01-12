@@ -1,6 +1,6 @@
 # Test dimension reduction
 import sys
-sys.path.insert(0, '/Users/kinshuk/Documents/ODL/pyStatReduce/src')
+sys.path.insert(0, '../src')
 
 import unittest
 import numpy as np
@@ -77,7 +77,7 @@ class DimensionReductionTest(unittest.TestCase):
         true_value_mu_j = 4.05
         err = abs(mu_j - true_value_mu_j)
         self.assertTrue(err < 1.e-15)
-        
+
 
 if __name__ == "__main__":
     unittest.main()

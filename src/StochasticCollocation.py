@@ -14,7 +14,7 @@ class StochasticCollocation(object):
         else:
             raise NotImplementedError
 
-    def normal(self, x, sigma, QoI, collocation_obj):
+    def normal(self, x, sigma, QoI):
 
         systemsize = x.size
         ref_collocation_pts = self.q

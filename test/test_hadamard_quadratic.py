@@ -1,5 +1,6 @@
 import sys
-sys.path.insert(0, '/Users/kinshuk/Documents/ODL/pyStatReduce/src')
+# sys.path.insert(0, '/Users/kinshuk/Documents/ODL/pyStatReduce/src')
+sys.path.insert(0, '../src')
 
 import unittest
 import numpy as np
