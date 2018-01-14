@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/OptimalDesignLab/pyStatReduce.svg?token=JPqRTsysF2SsyyyaMr8K&branch=master)
+[![Build Status](https://travis-ci.com/OptimalDesignLab/pyStatReduce.svg?token=JPqRTsysF2SsyyyaMr8K&branch=master)](https://travis-ci.com/OptimalDesignLab/pyStatReduce)
 
 # pyStatReduce
 
