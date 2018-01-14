@@ -10,6 +10,6 @@ install:
 
 # command to run tests
 script:
-  - python test_stochastic_collocation.py
-  - python test_hadamard_quadratic.py
-  - python test_dimension_reduction.py
+  - python ./test/test_stochastic_collocation.py
+  - python ./test/test_hadamard_quadratic.py
+  - python ./test/test_dimension_reduction.py
