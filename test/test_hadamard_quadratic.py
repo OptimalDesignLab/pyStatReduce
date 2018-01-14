@@ -1,6 +1,10 @@
 import sys
-# sys.path.insert(0, '/Users/kinshuk/Documents/ODL/pyStatReduce/src')
-sys.path.insert(0, '../src')
+import os
+
+# Get the directory of this file
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+SRC_DIR = TEST_DIR + '/../src'
+sys.path.insert(0, SRC_DIR)
 
 import unittest
 import numpy as np
