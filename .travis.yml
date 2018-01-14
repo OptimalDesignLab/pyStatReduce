@@ -6,6 +6,7 @@ python:
 install:
   - pip install numpy
   - pip install scipy
+  - pip install numdifftools
   - pip install chaospy
 
 # command to run tests
