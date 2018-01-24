@@ -4,12 +4,47 @@ import numpy as np
 import chaospy as cp
 
 class DimensionReduction(object):
+    """
+    Base class that comprises of all the dimension reduction strategies that are
+    provided by this package. Dominant directions for approximating expected
+    values of QoI can be obtained using member functions of this class.
+
+    **Class Members**
+
+    * `threshold_factor` : fraction of threshold energy that MUST be had by an
+                           approximation of the expected value of QoI.
+    * `iso_eigen_vals` : Eigenvalues of the Hessian of the QoI in the
+                         isoprobabilistic space
+    * `iso_eigen_vectors` : Eigenvectors of the Hessian of the QoI in the
+                            isoprobabilistic space
+    * `dominant_indices` : array of indices that correspond to the column number
+                           in iso_eigen_vectors, of the largest eigen values
+                           needed for approximation.
+
+    **Constructor Arguments**
+
+    * `threshold_factor` : fraction of threshold energy that MUST be had by an
+                           approximation of the expected value of QoI.
+
+    """
 
     def __init__(self, threshold_factor):
         self.threshold_factor = threshold_factor
         # TODO: Check if isoprobabilistic eigen modes can be initialized here
 
     def getDominantDirections(self, QoI, jdist):
+        """
+        Given a Quantity of Interest and a jpint distribution of the random
+        variables, this function computes the directions along which the
+        function is most nonlinear. We call these nonlinear directions as
+        dominant directions.
+
+        **Arguments**
+
+        * `QoI` : QuantityOfInterest object
+        * `jdist` : Joint distribution object
+
+        """
 
         mu = cp.E(jdist)
         covariance = cp.Cov(jdist)
