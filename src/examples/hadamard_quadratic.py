@@ -1,6 +1,6 @@
 # Hadamard quadratic
 import numpy as np
-from QuantityOfInterest import QuantityOfInterest
+from quantity_of_interest import QuantityOfInterest
 
 class HadamardQuadratic(QuantityOfInterest):
 

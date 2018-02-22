@@ -5,8 +5,8 @@
 
 import numpy as np
 import chaospy as cp
-from StochasticCollocation import StochasticCollocation
-from QuantityOfInterest import QuantityOfInterest
+from stochastic_collocation import StochasticCollocation
+from quantity_of_interest import QuantityOfInterest
 import examples
 
 

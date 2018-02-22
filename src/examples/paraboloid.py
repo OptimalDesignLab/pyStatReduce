@@ -2,7 +2,7 @@
 import math
 import numpy as np
 import numdifftools as nd
-from QuantityOfInterest import QuantityOfInterest
+from quantity_of_interest import QuantityOfInterest
 
 class Paraboloid2D(QuantityOfInterest):
 
