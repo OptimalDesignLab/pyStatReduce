@@ -9,8 +9,8 @@ from stochastic_collocation import StochasticCollocation
 from quantity_of_interest import QuantityOfInterest
 import examples
 
-
-x = np.zeros(2)
+systemsize = 2
+x = np.zeros(systemsize)
 theta = 0
 sigma = np.array([0.2, 0.1])
 tuple = (theta,)
@@ -19,9 +19,9 @@ tuple = (theta,)
 collocation = StochasticCollocation(3, "Normal")
 
 # Create a QoI object using ellpsoid
-QoI = examples.Paraboloid2D(tuple)
+QoI = examples.Paraboloid2D(systemsize, tuple)
 
-mu_j = collocation.normal(x, sigma, QoI, collocation)
+mu_j = collocation.normal.mean(x, sigma, QoI)
 print("mu_j = ", mu_j)
 
 # Analytical value

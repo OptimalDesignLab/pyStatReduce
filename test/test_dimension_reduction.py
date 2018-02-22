@@ -78,7 +78,7 @@ class DimensionReductionTest(unittest.TestCase):
         # Get the eigenmodes of the Hessian product and the dominant indices
         dominant_space.getDominantDirections(QoI, jdist)
 
-        mu_j = collocation.normalReduced(QoI, jdist, dominant_space)
+        mu_j = collocation.normal.reduced_mean(QoI, jdist, dominant_space)
         true_value_mu_j = 4.05
         err = abs(mu_j - true_value_mu_j)
         self.assertTrue(err < 1.e-15)

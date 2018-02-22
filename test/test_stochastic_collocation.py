@@ -32,15 +32,15 @@ class StochasticCollocationTest(unittest.TestCase):
         QoI = examples.Paraboloid2D(systemsize, tuple)
 
         # Compute the expected value
-        mu_j = collocation.normal(x, sigma, QoI)
+        mu_j = collocation.normal.mean(x, sigma, QoI)
 
         # Test against nested loops
         mu_j_hat = 0.0
         sqrt2 = np.sqrt(2)
-        for i in xrange(0, collocation.q.size):
-            for j in xrange(0, collocation.q.size):
-                f_val = QoI.eval_QoI(x, sqrt2*sigma*[collocation.q[i], collocation.q[j]])
-                mu_j_hat += collocation.w[i]*collocation.w[j]*f_val
+        for i in xrange(0, collocation.normal.q.size):
+            for j in xrange(0, collocation.normal.q.size):
+                f_val = QoI.eval_QoI(x, sqrt2*sigma*[collocation.normal.q[i], collocation.normal.q[j]])
+                mu_j_hat += collocation.normal.w[i]*collocation.normal.w[j]*f_val
 
         mu_j_hat = mu_j_hat/(np.sqrt(np.pi)**systemsize)
 
@@ -59,18 +59,18 @@ class StochasticCollocationTest(unittest.TestCase):
         QoI = examples.Paraboloid3D(systemsize)
 
         # Compute the expected value
-        mu_j = collocation.normal(x, sigma, QoI)
+        mu_j = collocation.normal.mean(x, sigma, QoI)
 
         # Test against nested loops
         mu_j_hat = 0.0
         sqrt2 = np.sqrt(2)
-        for i in xrange(0, collocation.q.size):
-            for j in xrange(0, collocation.q.size):
-                for k in xrange(0, collocation.q.size):
-                    f_val = QoI.eval_QoI(x, sqrt2*sigma*[collocation.q[i],
-                            collocation.q[j], collocation.q[k]])
-                    mu_j_hat += collocation.w[i]*collocation.w[j]* \
-                                collocation.w[k]*f_val
+        for i in xrange(0, collocation.normal.q.size):
+            for j in xrange(0, collocation.normal.q.size):
+                for k in xrange(0, collocation.normal.q.size):
+                    f_val = QoI.eval_QoI(x, sqrt2*sigma*[collocation.normal.q[i],
+                            collocation.normal.q[j], collocation.normal.q[k]])
+                    mu_j_hat += collocation.normal.w[i]*collocation.normal.w[j]* \
+                                collocation.normal.w[k]*f_val
 
         mu_j_hat = mu_j_hat/(np.sqrt(np.pi)**systemsize)
 
@@ -89,18 +89,18 @@ class StochasticCollocationTest(unittest.TestCase):
         QoI = examples.Paraboloid3D(systemsize)
 
         # Compute the expected value
-        mu_j = collocation.normal(x, sigma, QoI)
+        mu_j = collocation.normal.mean(x, sigma, QoI)
 
         # Test against nested loops
         mu_j_hat = 0.0
         sqrt2 = np.sqrt(2)
-        q = collocation.q
-        w = collocation.w
-        for i in xrange(0, collocation.q.size):
-            for j in xrange(0, collocation.q.size):
-                for k in xrange(0, collocation.q.size):
-                    for l in xrange(0, collocation.q.size):
-                        for m in xrange(0, collocation.q.size):
+        q = collocation.normal.q
+        w = collocation.normal.w
+        for i in xrange(0, q.size):
+            for j in xrange(0, q.size):
+                for k in xrange(0, q.size):
+                    for l in xrange(0, q.size):
+                        for m in xrange(0, q.size):
                             fval = QoI.eval_QoI(x, sqrt2*sigma*[q[i], q[j], q[k],
                                    q[l], q[m]])
                             mu_j_hat += w[i]*w[j]*w[k]*w[l]*w[m]*fval
