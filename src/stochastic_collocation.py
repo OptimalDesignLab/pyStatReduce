@@ -80,7 +80,7 @@ class NormalDistribution(StochasticCollocation):
     def reduced_mean(self, QoI, jdist, dominant_space):
         """
         Public member that is used to perform stochastic collocation only along
-        certain directions.
+        certain directions to compute the mean value of a QoI.
 
         **Inputs**
 
@@ -115,12 +115,93 @@ class NormalDistribution(StochasticCollocation):
 
         return mu_j[0]
 
+    def variance(self, QoI, jdist, mu_j):
+        """
+        Public member that is used to perform stochastic collocation only along
+        certain directions to compute the variance of a QoI.
+
+        **Inputs**
+
+        * `QoI` : Quantity of Interest Object
+        * `jdist` : joint distribution object of the random variables
+        * `mu_j` : Mean value of the quantity of interest
+
+        **Outputs**
+
+        * `variance_j` : variance of the Quantity of Interest for a given mean
+                         value of random variabes
+        """
+
+        x = cp.E(jdist)
+        rv_covariance = cp.Cov(jdist)
+        systemsize = x.size
+        ref_collocation_pts = self.q
+        ref_collocation_w = self.w
+        idx = 0
+        colloc_xi_arr = np.zeros(systemsize)
+        colloc_w_arr = np.zeros(systemsize)
+        variance_j = np.zeros(1)
+
+        idx = self.doVariance(x, rv_covariance, mu_j, variance_j, ref_collocation_pts,
+                              ref_collocation_w, QoI, colloc_xi_arr, colloc_w_arr,
+                              idx)
+
+        assert idx == -1
+        variance_j[0] = variance_j[0]/(np.sqrt(np.pi)**systemsize)
+
+        return variance_j[0]
+
+    def doVariance(self, x, rv_covariance, mu_j, variance_j, xi, w, QoI, colloc_xi_arr,
+                   colloc_w_arr, idx):
+        """
+        Inner private function that actually computes the variance. This is a
+        recursive function and should not be used by the end user. This function
+        is called by `StochasticCollocation.normal.variance`.
+
+        **Inputs**
+
+        * `x` : Mean value of the random variable
+        * `rv_covariance` : Standard deviation of the random variables
+        * `mu_j` : Mean value of the QoI
+        * `variance_j` : 1 element array into which the variance of the QoI is assimilated.
+        * `xi` : 1D reference collocation points along a direction obtained from numpy
+        * `w` : 1D reference collocation weights along a direction obtained from numpy
+        * `QoI` : QuantityOfInterest object
+        * `colloc_xi_arr` : Actual multidimensional perturbation where the QoI
+                            is to be evaluated
+        * `colloc_w_arr` : corresponding weight array to `colloc_xi_arr`
+        * `idx` : index variable that is necessay for book-keeping and
+                  traversing the tensor product grid.
+
+        **Outputs**
+
+        * `idx-1` : the previous index
+
+        """
+
+        if idx == x.size-1:
+            sqrt2 = np.sqrt(2)
+            sqrt_rv_covariance = np.sqrt(rv_covariance)
+            for i in xrange(0, xi.size):
+                colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
+                colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
+                fval = QoI.eval_QoI(x, sqrt2*sqrt_rv_covariance.dot(colloc_xi_arr)) - mu_j
+                variance_j[0] += np.prod(colloc_w_arr)*fval*fval
+            return idx-1
+        else:
+            for i in xrange(0, xi.size):
+                colloc_xi_arr[idx] = xi[i]
+                colloc_w_arr[idx] = w[i]
+                idx = self.doVariance(x, rv_covariance, mu_j, variance_j, xi, w, QoI, colloc_xi_arr,
+                                    colloc_w_arr, idx+1)
+            return idx-1
+
     def doNormalMean(self, x, sigma, mu_j, xi, w, QoI, colloc_xi_arr,
                             colloc_w_arr, idx):
         """
         Inner private function that actually computes the mean value. This is a
         recursive function and should not be used by the end user. This function
-        is called by `StochasticCollocation.normal`.
+        is called by `StochasticCollocation.normal.mean`.
 
         **Inputs**
 
@@ -163,7 +244,7 @@ class NormalDistribution(StochasticCollocation):
                                    colloc_xi_arr, colloc_w_arr, idx):
         """
         Inner private function that actually performs the meat of the collocation
-        computaion. `StochasticCollocation.normalReduced` calls this function.
+        computaion. `StochasticCollocation.normal.reduced_mean` calls this function.
         The user should not use this function directly.
 
         **Inputs**
@@ -207,6 +288,8 @@ class NormalDistribution(StochasticCollocation):
                       dominant_dir, mu_j, xi, w, QoI, colloc_xi_arr,
                       colloc_w_arr, idx+1)
             return idx-1
+
+
 
 
 class UniformDistribution(StochasticCollocation):

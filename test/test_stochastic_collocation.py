@@ -24,6 +24,7 @@ class StochasticCollocationTest(unittest.TestCase):
         theta = 0
         sigma = np.array([0.2, 0.1])
         tuple = (theta,)
+        jdist = cp.MvNormal(x, np.diag(sigma))
 
         # Create a Stochastic collocation object
         collocation = StochasticCollocation(3, "Normal")
@@ -39,13 +40,28 @@ class StochasticCollocationTest(unittest.TestCase):
         sqrt2 = np.sqrt(2)
         for i in xrange(0, collocation.normal.q.size):
             for j in xrange(0, collocation.normal.q.size):
-                f_val = QoI.eval_QoI(x, sqrt2*sigma*[collocation.normal.q[i], collocation.normal.q[j]])
+                f_val = QoI.eval_QoI(x, sqrt2*sigma*[collocation.normal.q[i],
+                        collocation.normal.q[j]])
                 mu_j_hat += collocation.normal.w[i]*collocation.normal.w[j]*f_val
 
         mu_j_hat = mu_j_hat/(np.sqrt(np.pi)**systemsize)
 
         diff = abs(mu_j - mu_j_hat)
         self.assertTrue(diff < 1.e-15)
+
+        # Test Check for the variance
+        # - Analytical Value
+        cov_mat = cp.Cov(jdist)
+        mat1 = np.matmul(QoI.quadratic_matrix, cov_mat)
+        mat2 = np.matmul(QoI.quadratic_matrix, np.matmul(cov_mat,
+                         QoI.quadratic_matrix.dot(x)))
+        variance_analytical = 2*np.trace(np.matmul(mat1, mat1)) + 4*x.dot(mat2)
+
+        # - Numerical Value
+        sigma_j = collocation.normal.variance(QoI, jdist, mu_j)
+        diff = abs(variance_analytical - sigma_j)
+        self.assertTrue(diff < 1.e-15)
+
 
     def test_stochasticCollocation3D(self):
         systemsize = 3
