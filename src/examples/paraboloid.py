@@ -31,6 +31,7 @@ class Paraboloid2D(QuantityOfInterest):
 class Paraboloid3D(QuantityOfInterest):
 
     def __init__(self, systemsize):
+        QuantityOfInterest.__init__(self, systemsize)
         self.quadratic_matrix = np.diag([50, 25, 1])
 
     def eval_QoI(self, mu, xi):
@@ -40,6 +41,7 @@ class Paraboloid3D(QuantityOfInterest):
 class Paraboloid5D(QuantityOfInterest):
 
     def __init__(self, systemsize):
+        QuantityOfInterest.__init__(self, systemsize)
         self.quadratic_matrix = np.diag([50, 40, 30, 20, 1])
 
     def eval_QoI(self, mu, xi):
