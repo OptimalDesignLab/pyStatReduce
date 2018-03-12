@@ -1,7 +1,7 @@
 # Arnoldi_sample
 import numpy as np
 
-class ArnoldSampling(object):
+class ArnoldiSampling(object):
 
     def __init__(self, alpha, num_sample):
         assert alpha > 0
@@ -18,11 +18,11 @@ class ArnoldSampling(object):
 
         # Initialize system-wide eigen value and eigen_vectors
         eigenvals = np.zeros(QoI.systemsize)
-        eigenvecs = np.zeros(QoI.systemsize, QoI.systemsize)
+        eigenvecs = np.zeros([QoI.systemsize, QoI.systemsize])
 
         # Initialize the basis-vector array and Hessenberg matrix
-        Z = np.zeros(n, m+1)
-        H = np.zeros(m+1, m)
+        Z = np.zeros([n, m+1])
+        H = np.zeros([m+1, m])
         Z[:,0] = gdata[:,0]/np.linalg.norm(gdata[:,0])
 
         for i in xrange(0, m):
@@ -58,8 +58,10 @@ class ArnoldSampling(object):
         return i, err_est, eigenvals, eigenvecs
 
     def modified_GramSchmidt(self, i, Hsbg, w):
-        assert Hsbg.shape[0] >= i+1
-        assert Hsbg.shape[1] >= i+2
+        assert Hsbg.shape[1] >= i+1
+        # print "i = ", i
+        # print "Hsbg.shape = ", Hsbg.shape
+        assert Hsbg.shape[0] >= i+2
         assert w.shape[1] >= i+2
 
         err_msg = "modified_GramSchmidt failed: "
