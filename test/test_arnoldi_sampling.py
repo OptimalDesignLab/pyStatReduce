@@ -18,9 +18,9 @@ import examples
 
 class ArnoldiSamplingTest(unittest.TestCase):
 
-    def test_modified_GramSchmidt(self):
+    def test_modified_GramSchmidt_fullRank(self):
         """
-        generate a random set of vectors and use modGramSchmidt to
+        Generate a random set of vectors and use modGramSchmidt to
         orthogonalize them
         """
         systemsize = 10
@@ -44,6 +44,39 @@ class ArnoldiSamplingTest(unittest.TestCase):
         for i in xrange(0, num_sample):
             for j in xrange(i+1, num_sample):
                 self.assertAlmostEqual(np.dot(Z[:,i], Z[:,j]), 0, places=14)
+
+    def test_modified_GramSchmidt_RankDeficient(self):
+        """
+        Generate a random set of vectors, make one of them a linear combination
+        of the others, and use modGramSchmidt to orthogonalize them
+        """
+        systemsize = 10
+
+        # Initialize ArnoldSampling object
+        alpha = 1.e-6
+        num_sample = 4
+        arnoldi = ArnoldiSampling(alpha, num_sample)
+
+        # Create arrays for modified_GramSchmidt
+        Z = np.random.rand(systemsize, num_sample)
+        Z[:,num_sample-1] = Z[:,0:num_sample-1].dot(np.random.rand(num_sample-1))
+        H = np.zeros([num_sample, num_sample-1])
+
+        for i in xrange(-1, num_sample-2):
+            arnoldi.modified_GramSchmidt(i, H, Z)
+            # Check that the vectors are unit normal
+            self.assertAlmostEqual(np.linalg.norm(Z[:,i+1]), 1, places=14)
+
+        # calling now should produce lin_depend flag
+        lin_depend = arnoldi.modified_GramSchmidt(num_sample-2, H, Z)
+        self.assertTrue(lin_depend)
+
+    def test_arnoldiSample_positiveDefinite(self):
+        """
+        Use a synthetic quadratic function, and check that arnoldiSample recovers
+        its eigenvalues and eigenvectors
+        """
+        systemsize = 10
 
 if __name__ == "__main__":
     unittest.main()
