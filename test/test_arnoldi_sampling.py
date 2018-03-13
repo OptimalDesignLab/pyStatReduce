@@ -32,23 +32,17 @@ class ArnoldiSamplingTest(unittest.TestCase):
 
         # Create arrays for modified_GramSchmidt
         Z = np.random.rand(systemsize, num_sample)
-        print "Z pre = "
-        print Z
         H = np.zeros([num_sample, num_sample-1])
 
         # Populate Z
         for i in xrange(-1, num_sample-1):
             arnoldi.modified_GramSchmidt(i, H, Z)
             # Check that the vectors are unit normal
-            print "i = ", i
             self.assertAlmostEqual(np.linalg.norm(Z[:,i+1]), 1, places=14)
 
         # Check that the vectors are orthogonal
-        print "Z post = "
-        print Z
         for i in xrange(0, num_sample):
-            for j in xrange(1, num_sample):
-                print "i = ", i, " j = ", j
+            for j in xrange(i+1, num_sample):
                 self.assertAlmostEqual(np.dot(Z[:,i], Z[:,j]), 0, places=14)
 
 if __name__ == "__main__":

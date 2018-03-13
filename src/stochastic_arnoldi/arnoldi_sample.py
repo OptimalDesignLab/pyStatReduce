@@ -85,7 +85,7 @@ class ArnoldiSampling(object):
             return False
 
         # Begin main Gram-Schmidt loop
-        for k in xrange(0,i):
+        for k in xrange(0,i+1):
             prod = np.dot(w[:,i+1], w[:,k])
             Hsbg[k,i] = prod
             w[:,i+1] -= prod*w[:,k]
