@@ -27,7 +27,6 @@ class ArnoldiSampling(object):
         linear_dependence = False
 
         for i in xrange(0, m):
-            print "arndoldi, i = ", i
             # Find new sample point and data; Compute function and gradient values
             xdata[:,i+1] = xdata[:,0] + self.alpha * Z[:,i]
             fdata[i+1] = QoI.eval_QoI(xdata[:,0], self.alpha*Z[:,i]) # TODO: Figure out a consistrnt API for function and gradient evaluation
@@ -51,9 +50,18 @@ class ArnoldiSampling(object):
 
         # Symmetrize the Hessenberg matrix, and find its eigendecomposition
         Hsym = 0.5*(H[0:i+1, 0:i+1] + H[0:i+1,0:i+1].transpose())
-        print np.around(Hsym, decimals=4)
+        # print np.around(Hsym, decimals=4)
+        eigenvals_red, eigenvecs_red = np.linalg.eig(Hsym)
+
+        # Sort the reduced eigenvalues and eigenvectors reduced in ascending order
+        idx = np.argsort(eigenvals_red)
+        eigenvecs_red = eigenvecs_red[:,idx]
+        eigenvals_red = eigenvals_red[idx]
+
+        # Populate the system eigenvalue and eigenvectors
         eigenvals[:] = 0.0
-        eigenvals[0:i+1], eigenvecs_red = np.linalg.eig(Hsym)
+        eigenvals[0:i+1] = eigenvals_red
+        # print "eigenvals", eigenvals
         error_estimate = np.linalg.norm(0.5*(H[0:i+1,0:i+1] - H[0:i+1,0:i+1].transpose()))
 
         # Generate the full-space eigenvector approximations

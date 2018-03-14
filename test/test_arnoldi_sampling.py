@@ -103,7 +103,6 @@ class ArnoldiSamplingTest(unittest.TestCase):
 
         # Check that eigenvalues and eigenvectors agree
         for i in xrange(0, systemsize):
-            print "i = ", i
             self.assertAlmostEqual(eigenvals[i], QoI.E[i], places=7)
             self.assertAlmostEqual(abs(np.dot(eigenvecs[:,i], QoI.V[:,i])), 1.0, places=7)
 
