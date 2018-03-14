@@ -42,6 +42,9 @@ class QuantityOfInterest(object):
         """
         raise NotImplementedError
 
+    def eval_QoIGradient(self, mu, xi):
+        raise NotImplementedError
+
     def eval_QoIHessian(self, mu, xi):
         """
         Evaluate the Hessian of the quantity of interest with respect to the
