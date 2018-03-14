@@ -16,10 +16,6 @@ class ArnoldiSampling(object):
         assert gdata.shape[0] == eigenvecs.shape[0] == n
         assert xdata.shape[1] == fdata.shape[0] == gdata.shape[1] == self.num_sample
 
-        # # Initialize system-wide eigen value and eigen_vectors
-        # eigenvals = np.zeros(QoI.systemsize)
-        # eigenvecs = np.zeros([QoI.systemsize, QoI.systemsize])
-
         # Initialize the basis-vector array and Hessenberg matrix
         Z = np.zeros([n, m+1])
         H = np.zeros([m+1, m])
@@ -35,12 +31,6 @@ class ArnoldiSampling(object):
             # Find the new basis vector and orthogonalize it against the old ones
             Z[:,i+1] = (gdata[:,i+1] - gdata[:,0])/self.alpha
             linear_dependence = self.modified_GramSchmidt(i, H, Z)
-            # if i == 7:
-            #     print "Z[:,i+1]"
-            #     print Z[:,i+1]
-            #     print "H[0:i+1,0:i]"
-            #     # print np.around(H[0:i+2,0:i+1], decimals=4)
-            #     print np.around(H, decimals=4)
             if linear_dependence == True:
                 # new basis vector is linealy dependent, so terminate early
                 break
@@ -50,7 +40,6 @@ class ArnoldiSampling(object):
 
         # Symmetrize the Hessenberg matrix, and find its eigendecomposition
         Hsym = 0.5*(H[0:i+1, 0:i+1] + H[0:i+1,0:i+1].transpose())
-        # print np.around(Hsym, decimals=4)
         eigenvals_red, eigenvecs_red = np.linalg.eig(Hsym)
 
         # Sort the reduced eigenvalues and eigenvectors reduced in ascending order
@@ -61,26 +50,27 @@ class ArnoldiSampling(object):
         # Populate the system eigenvalue and eigenvectors
         eigenvals[:] = 0.0
         eigenvals[0:i+1] = eigenvals_red
-        # print "eigenvals", eigenvals
         error_estimate = np.linalg.norm(0.5*(H[0:i+1,0:i+1] - H[0:i+1,0:i+1].transpose()))
 
         # Generate the full-space eigenvector approximations
         for k in xrange(0, i+1):
             eigenvecs[:,k] = Z[:,0:i+1].dot(eigenvecs_red[0:i+1, k])
 
+        # Finally, sort the system eigenvalues and eigenvectors
+        idx = np.argsort(eigenvals)
+        eigenvecs = eigenvecs[:,idx]
+        eigenvals = eigenvals[idx]
+
         # Generate the directional-derivative approximation to the reduced gradient
         tmp = (fdata[1:i+2] - np.ones(i+1)*fdata[0])/self.alpha
         grad_red[0:i+1] = eigenvecs_red[0:i+1, 0:i+1].transpose().dot(tmp)
 
-        return i, error_estimate  # , eigenvals, eigenvecs
+        return i+1, error_estimate
 
     def modified_GramSchmidt(self, i, Hsbg, w):
         assert Hsbg.shape[1] >= i+1
         assert Hsbg.shape[0] >= i+2
         assert w.shape[1] >= i+2
-
-        # print "i = ", i
-        # print "Hsbg.shape = ", Hsbg.shape
 
         err_msg = "modified_GramSchmidt failed: "
         reorth = 0.98 # CONSTANT!

@@ -17,7 +17,7 @@ from stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 import examples
 
 class ArnoldiSamplingTest(unittest.TestCase):
-    """
+
     def test_modified_GramSchmidt_fullRank(self):
 
         # Generate a random set of vectors and use modGramSchmidt to
@@ -70,7 +70,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
         # calling now should produce lin_depend flag
         lin_depend = arnoldi.modified_GramSchmidt(num_sample-2, H, Z)
         self.assertTrue(lin_depend)
-    """
+
     def test_arnoldiSample_positiveDefinite(self):
         """
         Use a synthetic quadratic function, and check that arnoldiSample recovers
@@ -105,6 +105,44 @@ class ArnoldiSamplingTest(unittest.TestCase):
         for i in xrange(0, systemsize):
             self.assertAlmostEqual(eigenvals[i], QoI.E[i], places=7)
             self.assertAlmostEqual(abs(np.dot(eigenvecs[:,i], QoI.V[:,i])), 1.0, places=7)
+
+    def test_arnoldiSample_positiveSemiDefinite(self):
+
+        # Use a synthetic quadratic function, and check that arnoldiSample recovers
+        # its eigenvalues and eigenvectors
+
+        systemsize = 10
+
+        # Generate QuantityOfInterest
+        QoI = examples.RandomQuadratic(systemsize, positive_definite=False)
+
+        # generate data at initial point (1,1,1,...,1)^T
+        xdata = np.zeros([systemsize, systemsize+1])
+        fdata = np.zeros(systemsize+1)
+        gdata = np.zeros([systemsize, systemsize+1])
+        xdata[:,0] = np.ones(systemsize)
+        fdata[0] = QoI.eval_QoI(xdata[:,0], np.zeros(systemsize))
+        gdata[:,0] = QoI.eval_QoIGradient(xdata[:,0], np.zeros(systemsize))
+
+        # Initialize ArnoldSampling object
+        alpha = 1.0
+        num_sample = systemsize+1
+        arnoldi = ArnoldiSampling(alpha, num_sample)
+
+        # Generate sample
+        eigenvals = np.zeros(systemsize)
+        eigenvecs = np.zeros([systemsize, systemsize])
+        grad_red = np.zeros(systemsize)
+        dim, error_estimate = arnoldi.arnoldiSample(QoI, xdata, fdata, gdata, eigenvals, eigenvecs,
+                              grad_red)
+
+        self.assertAlmostEqual(error_estimate, 0.0, places=7)
+        self.assertEqual(dim, systemsize-1)
+
+        # Check that eigenvalues and eigenvectors agree
+        for i in xrange(0, dim):
+            self.assertAlmostEqual(eigenvals[i], QoI.E[i+1], places=7)
+            self.assertAlmostEqual(abs(np.dot(eigenvecs[:,i], QoI.V[:,i+1])), 1.0, places=7)
 
 if __name__ == "__main__":
     unittest.main()
