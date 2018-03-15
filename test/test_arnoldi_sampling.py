@@ -25,7 +25,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
 
         systemsize = 10
 
-        # Initialize ArnoldSampling object
+        # Initialize ArnoldiSampling object
         alpha = 1.0
         num_sample = 4
         arnoldi = ArnoldiSampling(alpha, num_sample)
@@ -52,7 +52,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
 
         systemsize = 10
 
-        # Initialize ArnoldSampling object
+        # Initialize ArnoldiSampling object
         alpha = 1.0
         num_sample = 4
         arnoldi = ArnoldiSampling(alpha, num_sample)
@@ -72,10 +72,10 @@ class ArnoldiSamplingTest(unittest.TestCase):
         self.assertTrue(lin_depend)
 
     def test_arnoldiSample_positiveDefinite(self):
-        """
-        Use a synthetic quadratic function, and check that arnoldiSample recovers
-        its eigenvalues and eigenvectors
-        """
+
+        # Use a synthetic quadratic function, and check that arnoldiSample recovers
+        # its eigenvalues and eigenvectors
+
         systemsize = 10
 
         # Generate QuantityOfInterest
@@ -89,7 +89,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
         fdata[0] = QoI.eval_QoI(xdata[:,0], np.zeros(systemsize))
         gdata[:,0] = QoI.eval_QoIGradient(xdata[:,0], np.zeros(systemsize))
 
-        # Initialize ArnoldSampling object
+        # Initialize ArnoldiSampling object
         alpha = 1.0
         num_sample = systemsize+1
         arnoldi = ArnoldiSampling(alpha, num_sample)
@@ -124,7 +124,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
         fdata[0] = QoI.eval_QoI(xdata[:,0], np.zeros(systemsize))
         gdata[:,0] = QoI.eval_QoIGradient(xdata[:,0], np.zeros(systemsize))
 
-        # Initialize ArnoldSampling object
+        # Initialize ArnoldiSampling object
         alpha = 1.0
         num_sample = systemsize+1
         arnoldi = ArnoldiSampling(alpha, num_sample)
@@ -163,7 +163,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
         fdata[0] = QoI.eval_QoI(xdata[:,0], np.zeros(systemsize))
         gdata[:,0] = QoI.eval_QoIGradient(xdata[:,0], np.zeros(systemsize))
 
-        # Initialize ArnoldSampling object
+        # Initialize ArnoldiSampling object
         alpha = np.sqrt(np.finfo(float).eps)
         num_sample = systemsize+1
         arnoldi = ArnoldiSampling(alpha, num_sample)
