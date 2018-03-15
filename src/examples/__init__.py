@@ -1,3 +1,4 @@
 from paraboloid import Paraboloid2D, Paraboloid3D
 from hadamard_quadratic import HadamardQuadratic
 from random_quadratic import RandomQuadratic
+from exponential_function import ExponentialFunction

@@ -133,16 +133,55 @@ class ArnoldiSamplingTest(unittest.TestCase):
         eigenvals = np.zeros(systemsize)
         eigenvecs = np.zeros([systemsize, systemsize])
         grad_red = np.zeros(systemsize)
-        dim, error_estimate = arnoldi.arnoldiSample(QoI, xdata, fdata, gdata, eigenvals, eigenvecs,
-                              grad_red)
+        dim, error_estimate = arnoldi.arnoldiSample(QoI, xdata, fdata, gdata,
+                                                    eigenvals, eigenvecs,
+                                                    grad_red)
 
-        self.assertAlmostEqual(error_estimate, 0.0, places=7)
+        self.assertAlmostEqual(error_estimate, 0.0, places=6)
         self.assertEqual(dim, systemsize-1)
 
         # Check that eigenvalues and eigenvectors agree
         for i in xrange(0, dim):
             self.assertAlmostEqual(eigenvals[i], QoI.E[i+1], places=7)
             self.assertAlmostEqual(abs(np.dot(eigenvecs[:,i], QoI.V[:,i+1])), 1.0, places=7)
+
+    def test_arnoldiSample_reducedGradient(self):
+
+        # use a nonlinear function and a small perturbation to test the reduced
+        # gradient produced by arnoldiSample
+
+        systemsize = 10
+
+        # Generate QuantityOfInterest
+        QoI = examples.ExponentialFunction(systemsize)
+
+        # generate data at initial point (1,1,1,...,1)^T
+        xdata = np.zeros([systemsize, systemsize+1])
+        fdata = np.zeros(systemsize+1)
+        gdata = np.zeros([systemsize, systemsize+1])
+        xdata[:,0] = np.ones(systemsize)
+        fdata[0] = QoI.eval_QoI(xdata[:,0], np.zeros(systemsize))
+        gdata[:,0] = QoI.eval_QoIGradient(xdata[:,0], np.zeros(systemsize))
+
+        # Initialize ArnoldSampling object
+        alpha = np.sqrt(np.finfo(float).eps)
+        num_sample = systemsize+1
+        arnoldi = ArnoldiSampling(alpha, num_sample)
+
+        # Generate sample
+        eigenvals = np.zeros(systemsize)
+        eigenvecs = np.zeros([systemsize, systemsize])
+        grad_red = np.zeros(systemsize)
+        dim, error_estimate = arnoldi.arnoldiSample(QoI, xdata, fdata, gdata,
+                                                    eigenvals, eigenvecs,
+                                                    grad_red)
+
+        # check reduced gradient;
+        # rotate back out of eigenvector coordinates
+        g = eigenvecs.dot(grad_red)
+        err_g = abs(g - gdata[:,0])
+        self.assertTrue((err_g < 1.e-6).all())
+
 
 if __name__ == "__main__":
     unittest.main()
