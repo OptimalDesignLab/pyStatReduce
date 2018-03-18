@@ -276,7 +276,6 @@ class NormalDistribution(StochasticCollocation):
                 colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
                 colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
                 q = sqrt2* np.matmul(sqrt_Sigma, dominant_dir.dot(colloc_xi_arr))
-                # fval = QoI.eval_QoI(x, sqrt2*sigma*dominant_dir.dot(colloc_xi_arr))
                 fval = QoI.eval_QoI(x, q)
                 mu_j[0] += np.prod(colloc_w_arr)*fval
             return idx-1
@@ -297,8 +296,128 @@ class UniformDistribution(StochasticCollocation):
     def __init__(self, degree):
         self.q, self.w = np.polynomial.legendre.leggauss(degree)
 
-    def mean(self, x, sigma, QoI):
-        raise NotImplementedError
+    def mean(self, QoI, jdist):
+        x = cp.E(jdist)
+        covariance = cp.Cov(jdist)
+
+        systemsize = x.size
+        ref_collocation_pts = self.q
+        ref_collocation_w = self.w
+        idx = 0
+        colloc_xi_arr = np.zeros(systemsize)
+        colloc_w_arr = np.zeros(systemsize)
+        mu_j = np.zeros(1)
+        idx = self.doUniformMean(x, covariance, mu_j, ref_collocation_pts,
+                                       ref_collocation_w, QoI, colloc_xi_arr,
+                                       colloc_w_arr, idx)
+        assert idx == -1
+        mu_j[0] = mu_j[0]*(np.sqrt(3)**systemsize)*np.prod(cp.Std)
+
+        return mu_j[0]
 
     def reduced_mean(self, QoI, jdist, dominant_space):
-        raise NotImplementedError
+
+        x = cp.E(jdist)
+        covariance = cp.Cov(jdist)
+        n_quadrature_loops = len(dominant_space.dominant_indices)
+        dominant_dir = dominant_space.iso_eigen_vectors[:, dominant_space.dominant_indices]
+        ref_collocation_pts = self.q
+        ref_collocation_w = self.w
+        idx = 0
+        colloc_xi_arr = np.zeros(n_quadrature_loops)
+        colloc_w_arr = np.zeros(n_quadrature_loops)
+        mu_j = np.zeros(1)
+
+        idx = self.doReducedUniformMean(x, covariance, dominant_dir, mu_j,
+                                        ref_collocation_pts,
+                                        ref_collocation_w, QoI, colloc_xi_arr,
+                                        colloc_w_arr, idx)
+
+        assert idx == -1
+        # TODO: The following scaling doesnt look right, INVESTIGATE
+        mu_j[0] = mu_j[0]*(np.sqrt(3)**n_quadrature_loops)* \
+                  np.prod(dominant_dir.dot(cp.Std))
+
+        return mu_j[0]
+
+    def variance(self, QoI, jdist, mu_j):
+        x = cp.E(jdist)
+        rv_covariance = cp.Cov(jdist)
+        systemsize = x.size
+        ref_collocation_pts = self.q
+        ref_collocation_w = self.w
+        idx = 0
+        colloc_xi_arr = np.zeros(systemsize)
+        colloc_w_arr = np.zeros(systemsize)
+        variance_j = np.zeros(1)
+
+        idx = self.doVariance(x, rv_covariance, mu_j, variance_j, ref_collocation_pts,
+                              ref_collocation_w, QoI, colloc_xi_arr, colloc_w_arr,
+                              idx)
+
+        assert idx == -1
+        variance_j[0] = variance_j[0]*(np.sqrt(3)**systemsize)*np.prod(cp.Std)
+
+        return variance_j[0]
+
+
+    def doUniformMean(self, x, covariance, mu_j, ref_collocation_pts,
+                      ref_collocation_w, QoI, colloc_xi_arr, colloc_w_arr, idx):
+
+        if idx == x.size-1:
+            sqrt3 = np.sqrt(3)
+            sqrt_Sigma = np.sqrt(covariance)
+            for i in xrange(0, xi.size):
+                colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
+                colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
+                fval = QoI.eval_QoI(x, sqrt3 * sqrt_Sigma.dot(colloc_xi_arr))
+                mu_j[0] += np.prod(colloc_w_arr)*fval
+            return idx-1
+        else:
+            for i in xrange(0, xi.size):
+                colloc_xi_arr[idx] = xi[i]
+                colloc_w_arr[idx] = w[i]
+                idx = self.doNormalMean(x, sigma, mu_j, xi, w, QoI, colloc_xi_arr,
+                                        colloc_w_arr, idx+1)
+            return idx-1
+
+    def doReducedUniformMean(self, x, covariance, dominant_dir, mu_j, xi, w, QoI,
+                                   colloc_xi_arr, colloc_w_arr, idx):
+
+        if idx == np.size(dominant_dir,1)-1:  # x.size-1: # TODO: Change to nquadrature loops
+            sqrt3 = np.sqrt(3)
+            sqrt_Sigma = np.sqrt(covariance)
+            for i in xrange(0, xi.size):
+                colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
+                colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
+                q = sqrt3* np.matmul(sqrt_Sigma, dominant_dir.dot(colloc_xi_arr))
+                fval = QoI.eval_QoI(x, q)
+                mu_j[0] += np.prod(colloc_w_arr)*fval
+            return idx-1
+        else:
+            for i in xrange(0, xi.size):
+                colloc_xi_arr[idx] = xi[i]
+                colloc_w_arr[idx] = w[i]
+                idx = self.doReducedNormalMean(x, covariance,
+                      dominant_dir, mu_j, xi, w, QoI, colloc_xi_arr,
+                      colloc_w_arr, idx+1)
+            return idx-1
+
+    def doVariance(self, x, rv_covariance, mu_j, variance_j, xi, w, QoI, colloc_xi_arr,
+                   colloc_w_arr, idx):
+        if idx == x.size-1:
+            sqrt3 = np.sqrt(3)
+            sqrt_rv_covariance = np.sqrt(rv_covariance)
+            for i in xrange(0, xi.size):
+                colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
+                colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
+                fval = QoI.eval_QoI(x, sqrt3*sqrt_rv_covariance.dot(colloc_xi_arr)) - mu_j
+                variance_j[0] += np.prod(colloc_w_arr)*fval*fval
+            return idx-1
+        else:
+            for i in xrange(0, xi.size):
+                colloc_xi_arr[idx] = xi[i]
+                colloc_w_arr[idx] = w[i]
+                idx = self.doVariance(x, rv_covariance, mu_j, variance_j, xi, w, QoI, colloc_xi_arr,
+                                    colloc_w_arr, idx+1)
+            return idx-1

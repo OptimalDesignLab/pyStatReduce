@@ -3,6 +3,19 @@ import numdifftools as nd
 from quantity_of_interest import QuantityOfInterest
 
 class RandomQuadratic(QuantityOfInterest):
+    """
+    Class for computing an arbitrary quadratic of a defined size which is of
+    the form
+
+            f(x) = 0.5* x^T *V*E*V^T * x
+
+    where V is generated using a QR factorization of a randomly generated
+    matrix, E is a randomly generated vector and, depending on the kwarg
+    'positive_definite' has its first index set to zero. Finally, x is a random
+    variable that can be decomposed into its mean value, mu, and pertrurbation
+    about its mean, xi.
+
+    """
 
     def __init__(self, systemsize, **kwargs):
         QuantityOfInterest.__init__(self, systemsize)

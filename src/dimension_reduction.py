@@ -83,3 +83,6 @@ class DimensionReduction(object):
             ind.append(np.argmax(self.iso_eigen_vals))
 
         self.dominant_indices = ind
+
+    # def getDominantDirections2(self, QoI, jdist):
+    #     mu = cp.E(jdist)

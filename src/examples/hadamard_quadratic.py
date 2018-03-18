@@ -14,14 +14,22 @@ class HadamardQuadratic(QuantityOfInterest):
 
     def eval_QoI(self, mu, xi):
 
-        # getSyntheticEigenValues()
-        # getSyntheticEigenVectors()
         random_variable = mu + xi
         xi_hat = np.zeros(self.systemsize)
         self.applyHadamard(random_variable, xi_hat)
 
         fval = xi_hat.dot((self.eigen_vals*xi_hat))
         return fval
+
+    def eval_QoIGradient(self, mu, xi):
+        rv = mu + xi
+        xi_hat = np.zeros(self.systemsize)
+        dfdrv = np.zeros(self.systemsize)
+        self.applyHadamard(rv, xi_hat)
+        xi_hat = 2*self.eigen_vals*xi_hat
+        self.applyHadamard(xi_hat, dfdrv)
+
+        return dfdrv
 
     def eval_QoIHessian(self, mu, xi):
         Hessian = np.dot(self.eigen_vectors,
@@ -38,6 +46,12 @@ class HadamardQuadratic(QuantityOfInterest):
         return mu_fval
 
     def applyHadamard(self, x, y):
+        """
+        Multiplies `x` by a scaled orthonormal Hadamard matrix and returns `y`.
+        This method uses Sylvester's construction and thus results in a
+        symmetric Hadamrad matrix with trace zero.
+        """
+
         n = np.size(x,0)
         assert n % 2  == 0, "size of x must be a power of 2"
 
