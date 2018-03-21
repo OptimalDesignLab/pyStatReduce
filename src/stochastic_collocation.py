@@ -39,6 +39,8 @@ class StochasticCollocation(object):
         else:
             raise NotImplementedError
 
+# ------------------------------------------------------------------------------
+
 class NormalDistribution(StochasticCollocation):
 
     def __init__(self, degree):
@@ -289,7 +291,7 @@ class NormalDistribution(StochasticCollocation):
             return idx-1
 
 
-
+# ------------------------------------------------------------------------------
 
 class UniformDistribution(StochasticCollocation):
 
@@ -311,7 +313,7 @@ class UniformDistribution(StochasticCollocation):
                                        ref_collocation_w, QoI, colloc_xi_arr,
                                        colloc_w_arr, idx)
         assert idx == -1
-        mu_j[0] = mu_j[0]*(np.sqrt(3)**systemsize)*np.prod(cp.Std)
+        mu_j[0] = mu_j[0]*(0.5**systemsize)
 
         return mu_j[0]
 
@@ -356,13 +358,13 @@ class UniformDistribution(StochasticCollocation):
                               idx)
 
         assert idx == -1
-        variance_j[0] = variance_j[0]*(np.sqrt(3)**systemsize)*np.prod(cp.Std)
+        variance_j[0] = variance_j[0]*(np.sqrt(3)**systemsize)*np.prod(cp.Std(jdist))
 
         return variance_j[0]
 
 
-    def doUniformMean(self, x, covariance, mu_j, ref_collocation_pts,
-                      ref_collocation_w, QoI, colloc_xi_arr, colloc_w_arr, idx):
+    def doUniformMean(self, x, covariance, mu_j, xi, w,
+                      QoI, colloc_xi_arr, colloc_w_arr, idx):
 
         if idx == x.size-1:
             sqrt3 = np.sqrt(3)
@@ -370,14 +372,14 @@ class UniformDistribution(StochasticCollocation):
             for i in xrange(0, xi.size):
                 colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
                 colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
-                fval = QoI.eval_QoI(x, sqrt3 * sqrt_Sigma.dot(colloc_xi_arr))
+                fval = QoI.eval_QoI(x, sqrt3 * np.dot(sqrt_Sigma, colloc_xi_arr))
                 mu_j[0] += np.prod(colloc_w_arr)*fval
             return idx-1
         else:
             for i in xrange(0, xi.size):
                 colloc_xi_arr[idx] = xi[i]
                 colloc_w_arr[idx] = w[i]
-                idx = self.doNormalMean(x, sigma, mu_j, xi, w, QoI, colloc_xi_arr,
+                idx = self.doUniformMean(x, covariance, mu_j, xi, w, QoI, colloc_xi_arr,
                                         colloc_w_arr, idx+1)
             return idx-1
 

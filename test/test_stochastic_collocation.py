@@ -18,7 +18,7 @@ import examples
 
 class StochasticCollocationTest(unittest.TestCase):
 
-    def test_stochasticCollocation2D(self):
+    def test_normalStochasticCollocation2D(self):
         systemsize = 2
         x = np.zeros(systemsize)
         theta = 0
@@ -63,7 +63,7 @@ class StochasticCollocationTest(unittest.TestCase):
         self.assertTrue(diff < 1.e-15)
 
 
-    def test_stochasticCollocation3D(self):
+    def test_normalStochasticCollocation3D(self):
         systemsize = 3
         x = np.zeros(systemsize)
         sigma = 0.2*np.ones(systemsize)
@@ -93,7 +93,7 @@ class StochasticCollocationTest(unittest.TestCase):
         diff = abs(mu_j - mu_j_hat)
         self.assertTrue(diff < 1.e-15)
 
-    def test_stochasticCollocation5D(self):
+    def test_normalStochasticCollocation5D(self):
         systemsize = 5
         x = np.random.rand(systemsize)
         sigma = 0.2*np.ones(systemsize)
@@ -102,7 +102,7 @@ class StochasticCollocationTest(unittest.TestCase):
         collocation = StochasticCollocation(3, "Normal")
 
         # Create a QoI object using ellpsoid
-        QoI = examples.Paraboloid3D(systemsize)
+        QoI = examples.Paraboloid5D(systemsize)
 
         # Compute the expected value
         mu_j = collocation.normal.mean(x, sigma, QoI)
@@ -125,6 +125,87 @@ class StochasticCollocationTest(unittest.TestCase):
 
         diff = abs(mu_j - mu_j_hat)
         self.assertTrue(diff < 1.e-15)
+
+    """
+    def test_uniformStochasticCollocationConstt(self):
+        systemsize = 2
+        mu = np.random.rand(systemsize)
+        sigma = np.random.rand(systemsize)
+
+        # Create a Stochastic collocation object
+        collocation = StochasticCollocation(1, "Uniform")
+        # print collocation.uniform.q
+        # print collocation.uniform.w
+
+        # Create a probability distribution object
+        xlo = mu - np.sqrt(3)*sigma
+        xhi = mu + np.sqrt(3)*sigma
+        udist1 = cp.Uniform(xlo[0], xhi[0])
+        udist2 = cp.Uniform(xlo[1], xhi[1])
+        jdist = cp.J(udist1, udist2)
+
+        # Create a QoI object using ellpsoid
+        QoI = examples.ConstantFunction(systemsize)
+
+        # Compute the expected value
+        mu_j = collocation.uniform.mean(QoI, udist1)
+        print
+        print "mu_j = ", mu_j
+
+        # q = collocation.uniform.q
+        # w = collocation.uniform.w
+        # mu_j_hat = 0.0
+        # for i in xrange(0, q.size):
+        #     fval = QoI.eval_QoI(mu, np.sqrt(3)*np.dot(sigma,q[i]))
+        #     print "fval = ", fval
+        #     mu_j_hat += w[i]*fval
+        # mu_j_hat = mu_j_hat * np.sqrt(3) * sigma / (xhi - xlo)
+        # print "mu_j_hat = ", mu_j_hat
+    """
+
+    def test_uniformStochasticCollocation5D(self):
+        systemsize = 5
+        mu = np.random.rand(systemsize)
+        sigma = np.random.rand(systemsize)
+
+        # Create a Stochastic collocation object
+        collocation = StochasticCollocation(3, "Uniform")
+
+        # Create a probability distribution object
+        xlo = mu - np.sqrt(3)*sigma
+        xhi = mu + np.sqrt(3)*sigma
+        udist1 = cp.Uniform(xlo[0], xhi[0])
+        udist2 = cp.Uniform(xlo[1], xhi[1])
+        udist3 = cp.Uniform(xlo[2], xhi[2])
+        udist4 = cp.Uniform(xlo[3], xhi[3])
+        udist5 = cp.Uniform(xlo[4], xhi[4])
+        jdist = cp.J(udist1, udist2, udist3, udist4, udist5)
+
+        # Create a QoI object using ellpsoid
+        QoI = examples.Paraboloid5D(systemsize)
+
+        # Compute the expected value
+        mu_j = collocation.uniform.mean(QoI, jdist)
+        # print "mu_j = ", mu_j
+
+        # Compute the analytical expected value
+        mu_j_analytical = np.trace(np.matmul(QoI.quadratic_matrix, cp.Cov(jdist))) + \
+                            QoI.eval_QoI(mu, np.zeros(systemsize))
+
+        # print "mu_j_analytical = ", mu_j_analytical
+
+        diff = abs(mu_j - mu_j_analytical)
+        self.assertTrue(diff < 1.e-12)
+
+        # # Monte-Carlo simulation
+        # num_sample = 1000
+        # mu_j_mc = 0.0
+        # for i in xrange(0, num_sample):
+        #     xi = jdist.sample() - mu
+        #     mu_j_mc += QoI.eval_QoI(mu, xi)
+        # mu_j_mc = mu_j_mc/num_sample
+        # print "mu_j_mc = ", mu_j_mc
+
 
 if __name__ == "__main__":
     unittest.main()
