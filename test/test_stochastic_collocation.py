@@ -126,7 +126,6 @@ class StochasticCollocationTest(unittest.TestCase):
         diff = abs(mu_j - mu_j_hat)
         self.assertTrue(diff < 1.e-15)
 
-    """
     def test_uniformStochasticCollocationConstt(self):
         systemsize = 2
         mu = np.random.rand(systemsize)
@@ -134,8 +133,6 @@ class StochasticCollocationTest(unittest.TestCase):
 
         # Create a Stochastic collocation object
         collocation = StochasticCollocation(1, "Uniform")
-        # print collocation.uniform.q
-        # print collocation.uniform.w
 
         # Create a probability distribution object
         xlo = mu - np.sqrt(3)*sigma
@@ -149,19 +146,14 @@ class StochasticCollocationTest(unittest.TestCase):
 
         # Compute the expected value
         mu_j = collocation.uniform.mean(QoI, udist1)
-        print
-        print "mu_j = ", mu_j
 
-        # q = collocation.uniform.q
-        # w = collocation.uniform.w
-        # mu_j_hat = 0.0
-        # for i in xrange(0, q.size):
-        #     fval = QoI.eval_QoI(mu, np.sqrt(3)*np.dot(sigma,q[i]))
-        #     print "fval = ", fval
-        #     mu_j_hat += w[i]*fval
-        # mu_j_hat = mu_j_hat * np.sqrt(3) * sigma / (xhi - xlo)
-        # print "mu_j_hat = ", mu_j_hat
-    """
+        diff = abs(mu_j - QoI.eval_QoI(mu, np.zeros(systemsize)))
+        self.assertTrue(diff < 1.e-15)
+
+        # Test Check for the variance
+        variance_j = collocation.uniform.variance(QoI, jdist, mu_j)
+        self.assertAlmostEqual(variance_j, 0, places=15)
+
 
     def test_uniformStochasticCollocation5D(self):
         systemsize = 5
@@ -186,25 +178,13 @@ class StochasticCollocationTest(unittest.TestCase):
 
         # Compute the expected value
         mu_j = collocation.uniform.mean(QoI, jdist)
-        # print "mu_j = ", mu_j
 
         # Compute the analytical expected value
         mu_j_analytical = np.trace(np.matmul(QoI.quadratic_matrix, cp.Cov(jdist))) + \
                             QoI.eval_QoI(mu, np.zeros(systemsize))
 
-        # print "mu_j_analytical = ", mu_j_analytical
-
         diff = abs(mu_j - mu_j_analytical)
         self.assertTrue(diff < 1.e-12)
-
-        # # Monte-Carlo simulation
-        # num_sample = 1000
-        # mu_j_mc = 0.0
-        # for i in xrange(0, num_sample):
-        #     xi = jdist.sample() - mu
-        #     mu_j_mc += QoI.eval_QoI(mu, xi)
-        # mu_j_mc = mu_j_mc/num_sample
-        # print "mu_j_mc = ", mu_j_mc
 
 
 if __name__ == "__main__":

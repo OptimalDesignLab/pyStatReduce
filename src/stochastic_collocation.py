@@ -337,8 +337,7 @@ class UniformDistribution(StochasticCollocation):
 
         assert idx == -1
         # TODO: The following scaling doesnt look right, INVESTIGATE
-        mu_j[0] = mu_j[0]*(np.sqrt(3)**n_quadrature_loops)* \
-                  np.prod(dominant_dir.dot(cp.Std))
+        mu_j[0] = mu_j[0]*(0.5**n_quadrature_loops)
 
         return mu_j[0]
 
@@ -358,7 +357,7 @@ class UniformDistribution(StochasticCollocation):
                               idx)
 
         assert idx == -1
-        variance_j[0] = variance_j[0]*(np.sqrt(3)**systemsize)*np.prod(cp.Std(jdist))
+        variance_j[0] = variance_j[0]*(0.5**systemsize)
 
         return variance_j[0]
 
