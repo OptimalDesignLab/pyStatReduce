@@ -2,6 +2,7 @@
 
 import numpy as np
 import chaospy as cp
+from stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 
 class DimensionReduction(object):
     """
@@ -13,12 +14,12 @@ class DimensionReduction(object):
 
     * `threshold_factor` : fraction of threshold energy that MUST be had by an
                            approximation of the expected value of QoI.
-    * `iso_eigen_vals` : Eigenvalues of the Hessian of the QoI in the
+    * `iso_eigenvals` : Eigenvalues of the Hessian of the QoI in the
                          isoprobabilistic space
-    * `iso_eigen_vectors` : Eigenvectors of the Hessian of the QoI in the
+    * `iso_eigenvecs` : Eigenvectors of the Hessian of the QoI in the
                             isoprobabilistic space
     * `dominant_indices` : array of indices that correspond to the column number
-                           in iso_eigen_vectors, of the largest eigen values
+                           in iso_eigenvecs, of the largest eigen values
                            needed for approximation.
 
     **Constructor Arguments**
@@ -61,28 +62,76 @@ class DimensionReduction(object):
 
         # Compute the eigen modes of the Hessian of the Hadamard Quadratic
         Hessian_Product = np.matmul(sqrt_Sigma, np.matmul(Hessian, sqrt_Sigma))
-        self.iso_eigen_vals, self.iso_eigen_vectors = np.linalg.eig(Hessian_Product)
+        self.iso_eigenvals, self.iso_eigenvecs = np.linalg.eig(Hessian_Product)
 
         # Get the system energy of Hessian_Product
-        system_energy = np.sum(self.iso_eigen_vals)
+        system_energy = np.sum(self.iso_eigenvals)
         ind = []
 
         # get the indices of dominant eigenvalues in descending order
-        sort_ind = self.iso_eigen_vals.argsort()[::-1]
+        sort_ind = self.iso_eigenvals.argsort()[::-1]
 
         # Check the threshold
         for i in xrange(0, QoI.systemsize):
             dominant_eigen_val_ind = sort_ind[0:i+1]
-            reduced_energy = np.sum(self.iso_eigen_vals[dominant_eigen_val_ind])
+            reduced_energy = np.sum(self.iso_eigenvals[dominant_eigen_val_ind])
             if reduced_energy <= self.threshold_factor*system_energy:
                 ind.append(dominant_eigen_val_ind[i])
             else:
                 break
 
         if len(ind) == 0:
-            ind.append(np.argmax(self.iso_eigen_vals))
+            ind.append(np.argmax(self.iso_eigenvals))
 
         self.dominant_indices = ind
 
-    # def getDominantDirections2(self, QoI, jdist):
-    #     mu = cp.E(jdist)
+    def getDominantDirections2(self, QoI, jdist):
+
+        # Convert the joint distribution to an isoprobabilistic space
+        mu = cp.E(jdist)
+        mu_iso = jdist.fwd(mu)
+
+        # approximate the hessian of the QoI in the isoprobabilistic space
+        # 1. Initialize ArnoldiSampling object
+        perturbation_size = 1.e-6
+        if QoI.systemsize < 20:
+            num_sample = QoI.systemsize+1
+        else:
+            num_sample = 20
+        arnoldi = ArnoldiSampling(perturbation_size, num_sample)
+
+        # 2. Declare arrays for iso-eigenmodes
+        self.iso_eigenvals = np.zeros(QoI.systemsize)
+        self.iso_eigenvecs = np.zeros([QoI.systemsize, QoI.systemsize])
+
+        # 3. Approximate eigenvalues using ArnoldiSampling
+        xdata = np.zeros([QoI.systemsize, QoI.systemsize+1])
+        fdata = np.zeros(QoI.systemsize+1)
+        gdata = np.zeros([QoI.systemsize, QoI.systemsize+1])
+        grad_red = np.zeros(QoI.systemsize)
+        xdata[:,0] = mu_iso[:]
+        gdata[:,0] = QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize))
+        dim, error_estimate = arnoldi.arnoldiSample_2_test(QoI, jdist, xdata, fdata, gdata,
+                                                    self.iso_eigenvals, self.iso_eigenvecs,
+                                                    grad_red)
+
+        # Get the system energy of Hessian_Product
+        system_energy = np.sum(self.iso_eigenvals)
+        ind = []
+
+        # get the indices of dominant eigenvalues in descending order
+        sort_ind = self.iso_eigenvals.argsort()[::-1]
+
+        # Check the threshold
+        for i in xrange(0, QoI.systemsize):
+            dominant_eigen_val_ind = sort_ind[0:i+1]
+            reduced_energy = np.sum(self.iso_eigenvals[dominant_eigen_val_ind])
+            if reduced_energy <= self.threshold_factor*system_energy:
+                ind.append(dominant_eigen_val_ind[i])
+            else:
+                break
+
+        if len(ind) == 0:
+            ind.append(np.argmax(self.iso_eigenvals))
+
+        self.dominant_indices = ind

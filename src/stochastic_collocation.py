@@ -99,7 +99,7 @@ class NormalDistribution(StochasticCollocation):
         x = cp.E(jdist)
         covariance = cp.Cov(jdist)
         n_quadrature_loops = len(dominant_space.dominant_indices)
-        dominant_dir = dominant_space.iso_eigen_vectors[:, dominant_space.dominant_indices]
+        dominant_dir = dominant_space.iso_eigenvecs[:, dominant_space.dominant_indices]
         ref_collocation_pts = self.q
         ref_collocation_w = self.w
         idx = 0
