@@ -9,6 +9,7 @@ sys.path.insert(0, SRC_DIR)
 import unittest
 import numpy as np
 import chaospy as cp
+import numdifftools as nd
 
 from stochastic_collocation import StochasticCollocation
 from quantity_of_interest import QuantityOfInterest
@@ -63,6 +64,25 @@ class HadamardQuadraticTest(unittest.TestCase):
         mu_j = collocation.normal.mean(mu, sigma, QoI)
         err = abs(fval - mu_j)
         self.assertTrue(err < 1.e-14)
+
+    def test_evalQoIGradient(self):
+        systemsize = 4
+        eigen_decayrate = 2.0
+        QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
+        mu = np.random.rand(systemsize)
+        xi = np.random.rand(systemsize)
+
+        grad_val = QoI.eval_QoIGradient(mu, xi)
+
+        # Check against finite difference
+        def func(x):
+            deviation = x - mu
+            return QoI.eval_QoI(mu, deviation)
+
+        grad_fd = nd.Gradient(func)(mu + xi)
+        error_vals = abs(grad_val - grad_fd)
+        self.assertTrue((error_vals < 1.e-10).all())
+
 
     def test_evalQoIHessian(self):
         systemsize = 4
