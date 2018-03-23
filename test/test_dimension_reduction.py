@@ -99,22 +99,22 @@ class DimensionReductionTest(unittest.TestCase):
 
         # Initialize chaospy distribution
         std_dev = 0.2*np.ones(QoI.systemsize)
-        x = np.ones(QoI.systemsize)
+        x = np.random.rand(QoI.systemsize) # np.ones(QoI.systemsize)
         jdist = cp.MvNormal(x, np.diag(std_dev))
 
         # Get the eigenmodes of the Hessian product and the dominant indices
         dominant_space.getDominantDirections2(QoI, jdist)
-        true_eigen_vals = np.array([ 0.04, 0.01, 0.0025, 0.004444444444444])
-        err_eigen_vals = abs(dominant_space.iso_eigen_vals - true_eigen_vals)
+        true_eigenvals = np.array([ 0.04, 0.01, 0.0025, 0.004444444444444])
+        err_eigenvals = abs(dominant_space.iso_eigenvals - true_eigenvals)
 
-        true_eigen_vecs = np.array([[ 0.5,  0.5, -0.5, -0.5],
+        true_eigenvecs = np.array([[ 0.5,  0.5, -0.5, -0.5],
                                     [ 0.5, -0.5,  0.5, -0.5],
                                     [ 0.5,  0.5,  0.5,  0.5],
                                     [ 0.5, -0.5, -0.5,  0.5]])
-        err_eigen_vecs = abs(dominant_space.iso_eigen_vectors - true_eigen_vecs)
+        err_eigenvecs = abs(dominant_space.iso_eigenvecs - true_eigenvecs)
 
-        self.assertTrue((err_eigen_vals < 1.e-15).all())
-        self.assertTrue((err_eigen_vecs < 1.e-15).all())
+        self.assertTrue((err_eigenvals < 1.e-15).all())
+        self.assertTrue((err_eigenvecs < 1.e-15).all())
         self.assertItemsEqual(dominant_space.dominant_indices, [0,1])
 
 

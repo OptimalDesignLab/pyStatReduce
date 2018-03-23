@@ -136,6 +136,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
         dim, error_estimate = arnoldi.arnoldiSample(QoI, xdata, fdata, gdata,
                                                     eigenvals, eigenvecs,
                                                     grad_red)
+        print "eigenvals = ", eigenvals.size
 
         self.assertAlmostEqual(error_estimate, 0.0, places=6)
         self.assertEqual(dim, systemsize-1)

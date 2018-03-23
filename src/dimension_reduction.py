@@ -93,7 +93,7 @@ class DimensionReduction(object):
 
         # approximate the hessian of the QoI in the isoprobabilistic space
         # 1. Initialize ArnoldiSampling object
-        perturbation_size = 1.e-6
+        perturbation_size = 0.2
         if QoI.systemsize < 20:
             num_sample = QoI.systemsize+1
         else:
