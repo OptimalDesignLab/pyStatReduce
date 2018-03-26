@@ -29,8 +29,14 @@ class DimensionReduction(object):
 
     """
 
-    def __init__(self, threshold_factor):
+    def __init__(self, threshold_factor, **kwargs):
         self.threshold_factor = threshold_factor
+
+        # Decide between using arnoldi-iteration or exact Hessian
+        if kwargs['exact_Hessian'] == False:
+            self.use_exact_Hessian = False
+        else:
+            self.use_exact_Hessian = True
         # TODO: Check if isoprobabilistic eigen modes can be initialized here
 
     def getDominantDirections(self, QoI, jdist):
@@ -50,20 +56,48 @@ class DimensionReduction(object):
         mu = cp.E(jdist)
         covariance = cp.Cov(jdist)
 
-        # Check if variance covariance matrix is diagonal
-        if np.count_nonzero(covariance - np.diag(np.diagonal(covariance))) == 0:
-            sqrt_Sigma = np.sqrt(covariance)
+        if self.use_exact_Hessian == True:
+            # Check if variance covariance matrix is diagonal
+            if np.count_nonzero(covariance - np.diag(np.diagonal(covariance))) == 0:
+                sqrt_Sigma = np.sqrt(covariance)
+            else:
+                raise NotImplementedError
+
+            # Get the Hessian of the QoI
+            xi = np.zeros(QoI.systemsize)
+            Hessian = QoI.eval_QoIHessian(mu, xi)
+
+            # Compute the eigen modes of the Hessian of the Hadamard Quadratic
+            Hessian_Product = np.matmul(sqrt_Sigma, np.matmul(Hessian, sqrt_Sigma))
+            self.iso_eigenvals, self.iso_eigenvecs = np.linalg.eig(Hessian_Product)
         else:
-            raise NotImplementedError
+            mu_iso = jdist.fwd(mu)
+            # approximate the hessian of the QoI in the isoprobabilistic space
+            # 1. Initialize ArnoldiSampling object
+            perturbation_size = 1
+            if QoI.systemsize < 20:
+                num_sample = QoI.systemsize+1
+            else:
+                num_sample = 20
+            arnoldi = ArnoldiSampling(perturbation_size, num_sample)
 
-        # Get the Hessian of the QoI
-        xi = np.zeros(QoI.systemsize)
-        Hessian = QoI.eval_QoIHessian(mu, xi)
+            # 2. Declare arrays for iso-eigenmodes
+            self.iso_eigenvals = np.zeros(QoI.systemsize)
+            self.iso_eigenvecs = np.zeros([QoI.systemsize, QoI.systemsize])
 
-        # Compute the eigen modes of the Hessian of the Hadamard Quadratic
-        Hessian_Product = np.matmul(sqrt_Sigma, np.matmul(Hessian, sqrt_Sigma))
-        self.iso_eigenvals, self.iso_eigenvecs = np.linalg.eig(Hessian_Product)
+            # 3. Approximate eigenvalues using ArnoldiSampling
+            xdata = np.zeros([QoI.systemsize, QoI.systemsize+1])
+            fdata = np.zeros(QoI.systemsize+1)
+            gdata = np.zeros([QoI.systemsize, QoI.systemsize+1])
+            grad_red = np.zeros(QoI.systemsize)
+            # xdata[:,0] = mu_iso[:]
+            xdata[:,0] = mu[:]
+            gdata[:,0] = QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize))
+            dim, error_estimate = arnoldi.arnoldiSample_2_test(QoI, jdist, xdata, fdata, gdata,
+                                                        self.iso_eigenvals, self.iso_eigenvecs,
+                                                        grad_red)
 
+        # Next,
         # Get the system energy of Hessian_Product
         system_energy = np.sum(self.iso_eigenvals)
         ind = []
@@ -85,6 +119,8 @@ class DimensionReduction(object):
 
         self.dominant_indices = ind
 
+
+    """
     def getDominantDirections2(self, QoI, jdist):
 
         # Convert the joint distribution to an isoprobabilistic space
@@ -135,3 +171,4 @@ class DimensionReduction(object):
             ind.append(np.argmax(self.iso_eigenvals))
 
         self.dominant_indices = ind
+    """

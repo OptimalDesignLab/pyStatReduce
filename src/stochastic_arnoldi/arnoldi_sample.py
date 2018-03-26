@@ -2,6 +2,8 @@
 import numpy as np
 import chaospy as cp
 
+np.set_printoptions(linewidth=150, suppress=True)
+
 class ArnoldiSampling(object):
 
     def __init__(self, alpha, num_sample):
@@ -80,31 +82,34 @@ class ArnoldiSampling(object):
         # Initialize the basis-vector array and Hessenberg matrix
         Z = np.zeros([n, m+1])
         H = np.zeros([m+1, m])
-        Z[:,0] = gdata[:,0]/np.linalg.norm(gdata[:,0])
+        Z[:,0] = -gdata[:,0]/np.linalg.norm(gdata[:,0])
         linear_dependence = False
 
         rv_mean = cp.E(jdist)
 
         print "m = ", m
+        print "gdata[:,0] = ", gdata[:,0]
+
         for i in xrange(0, m):
             # Find new sample point and data; Compute function and gradient values
             xdata_iso[:,i+1] = xdata_iso[:,0] + self.alpha * Z[:,i]
 
             # Convert the new sample point into the original space
-            x_val = jdist.inv(xdata_iso[:,i+1])
+            # x_val = jdist.inv(xdata_iso[:,i+1])
+            # print "iso_x_val = ", xdata_iso[:,i+1]
+            x_val = xdata_iso[:,i+1]
             # print "rv_mean = ", rv_mean
             # print "x_val = ", x_val
             # print "xdata_iso[:,0] = ", xdata_iso[:,0]
-            # print "xdata_iso[:,1] = ", xdata_iso[:,1]
             fdata[i+1] = QoI.eval_QoI(rv_mean, x_val - rv_mean)
             gdata[:,i+1] = QoI.eval_QoIGradient(rv_mean, x_val - rv_mean)
-            # print "gdata[:,i+1] = ", gdata[:,i+1]
-            # print "gdata[:,0] = ", gdata[:,0]
 
             # Find the new basis vector and orthogonalize it against the old ones
             Z[:,i+1] = (gdata[:,i+1] - gdata[:,0])/self.alpha
             linear_dependence = self.modified_GramSchmidt(i, H, Z)
-            print "i = ", i, "linear_dependence = ", linear_dependence
+            # print '\n', "i = ", i, "linear_dependence = ", linear_dependence
+            # print "xdata_iso[:,i] = ", xdata_iso[:,i]
+            # print "gdata[:,i+1] = ", gdata[:,i+1]
             if linear_dependence == True:
                 # new basis vector is linealy dependent, so terminate early
                 break
@@ -112,8 +117,7 @@ class ArnoldiSampling(object):
         if linear_dependence == True:
             i -= 1
 
-        print "H = ", '\n', H
-        print "i = ", i
+        print '\n' # , "H = ", '\n', H
         # Symmetrize the Hessenberg matrix, and find its eigendecomposition
         Hsym = 0.5*(H[0:i+1, 0:i+1] + H[0:i+1,0:i+1].transpose())
         print "Hsym = ", '\n', Hsym

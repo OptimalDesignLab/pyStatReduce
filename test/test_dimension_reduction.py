@@ -32,7 +32,7 @@ class DimensionReductionTest(unittest.TestCase):
 
         # Create dimension reduction object
         threshold_factor = 0.9
-        dominant_space = DimensionReduction(threshold_factor)
+        dominant_space = DimensionReduction(threshold_factor, exact_Hessian=True)
 
         # Initialize chaospy distribution
         std_dev = 0.2*np.ones(QoI.systemsize)
@@ -41,17 +41,17 @@ class DimensionReductionTest(unittest.TestCase):
 
         # Get the eigenmodes of the Hessian product and the dominant indices
         dominant_space.getDominantDirections(QoI, jdist)
-        true_eigen_vals = np.array([ 0.04, 0.01, 0.0025, 0.004444444444444])
-        err_eigen_vals = abs(dominant_space.iso_eigenvals - true_eigen_vals)
+        true_eigenvals = np.array([ 0.08, 0.02, 0.005, 0.00888888888888889])
+        err_eigenvals = abs(dominant_space.iso_eigenvals - true_eigenvals)
 
-        true_eigen_vecs = np.array([[ 0.5,  0.5, -0.5, -0.5],
+        true_eigenvecs = np.array([[ 0.5,  0.5, -0.5, -0.5],
                                     [ 0.5, -0.5,  0.5, -0.5],
                                     [ 0.5,  0.5,  0.5,  0.5],
                                     [ 0.5, -0.5, -0.5,  0.5]])
-        err_eigen_vecs = abs(dominant_space.iso_eigenvecs - true_eigen_vecs)
+        err_eigenvecs = abs(dominant_space.iso_eigenvecs - true_eigenvecs)
 
-        self.assertTrue((err_eigen_vals < 1.e-15).all())
-        self.assertTrue((err_eigen_vecs < 1.e-15).all())
+        self.assertTrue((err_eigenvals < 1.e-15).all())
+        self.assertTrue((err_eigenvecs < 1.e-15).all())
         self.assertItemsEqual(dominant_space.dominant_indices, [0,1])
 
     def test_reducedCollocation(self):
@@ -67,7 +67,7 @@ class DimensionReductionTest(unittest.TestCase):
 
         # Create dimension reduction object
         threshold_factor = 0.9
-        dominant_space = DimensionReduction(threshold_factor)
+        dominant_space = DimensionReduction(threshold_factor, exact_Hessian=True)
 
         # Initialize chaospy distribution
         std_dev = 0.2*np.ones(QoI.systemsize)
@@ -82,9 +82,10 @@ class DimensionReductionTest(unittest.TestCase):
         err = abs(mu_j - true_value_mu_j)
         self.assertTrue(err < 1.e-15)
 
+
     def test_dimensionReduction_arnoldi(self):
 
-        systemsize = 4
+        systemsize = 8
         eigen_decayrate = 2.0
 
         # Create Hadmard Quadratic object
@@ -95,28 +96,46 @@ class DimensionReductionTest(unittest.TestCase):
 
         # Create dimension reduction object
         threshold_factor = 0.9
-        dominant_space = DimensionReduction(threshold_factor)
+        dominant_space_exactHess = DimensionReduction(threshold_factor, exact_Hessian=True)
+        dominant_space_arnoldi = DimensionReduction(threshold_factor, exact_Hessian=False)
 
         # Initialize chaospy distribution
-        std_dev = 0.2*np.ones(QoI.systemsize)
+        # std_dev = 0.2*np.ones(QoI.systemsize)
+        std_dev = np.ones(QoI.systemsize) # np.random.rand()*np.ones(QoI.systemsize)
         x = np.random.rand(QoI.systemsize) # np.ones(QoI.systemsize)
         jdist = cp.MvNormal(x, np.diag(std_dev))
 
         # Get the eigenmodes of the Hessian product and the dominant indices
-        dominant_space.getDominantDirections2(QoI, jdist)
-        true_eigenvals = np.array([ 0.04, 0.01, 0.0025, 0.004444444444444])
-        err_eigenvals = abs(dominant_space.iso_eigenvals - true_eigenvals)
+        dominant_space_exactHess.getDominantDirections(QoI, jdist)
+        dominant_space_arnoldi.getDominantDirections(QoI, jdist)
 
-        true_eigenvecs = np.array([[ 0.5,  0.5, -0.5, -0.5],
-                                    [ 0.5, -0.5,  0.5, -0.5],
-                                    [ 0.5,  0.5,  0.5,  0.5],
-                                    [ 0.5, -0.5, -0.5,  0.5]])
-        err_eigenvecs = abs(dominant_space.iso_eigenvecs - true_eigenvecs)
+        # Print iso_eigenvals
+        sort_ind1 = dominant_space_exactHess.iso_eigenvals.argsort()[::-1]
+        sort_ind2 = dominant_space_arnoldi.iso_eigenvals.argsort()[::-1]
+        np.set_printoptions(linewidth=150)
+        print '\n', "dominant_space_exactHess.iso_eigenvals = ", \
+            dominant_space_exactHess.iso_eigenvals[sort_ind1]
+        print "dominant_space_arnoldi.iso_eigenvals = ", \
+            dominant_space_arnoldi.iso_eigenvals[sort_ind2]
 
-        self.assertTrue((err_eigenvals < 1.e-15).all())
-        self.assertTrue((err_eigenvecs < 1.e-15).all())
-        self.assertItemsEqual(dominant_space.dominant_indices, [0,1])
+        # Print iso_eigenvecs
+        print '\n', "dominant_space_exactHess.iso_eigenvecs = ", '\n', \
+            dominant_space_exactHess.iso_eigenvecs[:, sort_ind1]
+        print "dominant_space_arnoldi.iso_eigenvecs = ", '\n', \
+            dominant_space_arnoldi.iso_eigenvecs[:, sort_ind2]
 
+        # Compare the eigenvalues
+        err_eigenvals = abs(dominant_space_exactHess.iso_eigenvals[sort_ind1] -
+                            dominant_space_arnoldi.iso_eigenvals[sort_ind2])
+        self.assertTrue((err_eigenvals < 1.e-7).all())
+
+        # Compare the eigenvectors
+        V_exact = dominant_space_exactHess.iso_eigenvecs[:, sort_ind1]
+        V_arnoldi = dominant_space_arnoldi.iso_eigenvecs[:, sort_ind2]
+        product = np.zeros(QoI.systemsize)
+        for i in xrange(0, systemsize):
+            product[i] = abs(np.dot(V_exact[:,i], V_arnoldi[:,i]))
+            self.assertAlmostEqual(product[i], 1.0, places=7)
 
 if __name__ == "__main__":
     unittest.main()
