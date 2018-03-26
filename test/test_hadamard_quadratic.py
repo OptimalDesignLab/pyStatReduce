@@ -92,14 +92,16 @@ class HadamardQuadraticTest(unittest.TestCase):
         xi = np.zeros(systemsize)
 
         Hessian = QoI.eval_QoIHessian(mu, xi)
-        true_value = np.array([[ 0.35590278,  0.19965278,  0.26909722,  0.17534722],
-                               [ 0.19965278,  0.35590278,  0.17534722,  0.26909722],
-                               [ 0.26909722,  0.17534722,  0.35590278,  0.19965278],
-                               [ 0.17534722,  0.26909722,  0.19965278,  0.35590278]])
 
-        error_vals = abs(Hessian - true_value)
-        self.assertTrue((error_vals < 1.e-7).all())
+        # Check against finite difference
+        def func(x):
+            deviation = x - mu
+            return QoI.eval_QoI(mu, deviation)
 
+        Hess_fd = nd.Hessian(func)(mu + xi)
+        
+        error_vals = abs(Hessian - Hess_fd)
+        self.assertTrue((error_vals < 1.e-10).all())
 
 if __name__ == "__main__":
     unittest.main()

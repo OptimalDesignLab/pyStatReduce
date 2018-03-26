@@ -32,7 +32,7 @@ class HadamardQuadratic(QuantityOfInterest):
         return dfdrv
 
     def eval_QoIHessian(self, mu, xi):
-        Hessian = np.dot(self.eigen_vectors,
+        Hessian = 2*np.dot(self.eigen_vectors,
                          (self.eigen_vals*self.eigen_vectors.T).T)
         return Hessian
 
