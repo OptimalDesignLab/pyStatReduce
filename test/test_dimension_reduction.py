@@ -101,7 +101,7 @@ class DimensionReductionTest(unittest.TestCase):
 
         # Initialize chaospy distribution
         # std_dev = 0.2*np.ones(QoI.systemsize)
-        std_dev = np.ones(QoI.systemsize) # np.random.rand()*np.ones(QoI.systemsize)
+        std_dev = np.random.rand(QoI.systemsize) # np.random.rand()*np.ones(QoI.systemsize)
         x = np.random.rand(QoI.systemsize) # np.ones(QoI.systemsize)
         jdist = cp.MvNormal(x, np.diag(std_dev))
 

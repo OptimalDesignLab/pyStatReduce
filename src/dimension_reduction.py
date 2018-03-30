@@ -55,13 +55,13 @@ class DimensionReduction(object):
 
         mu = cp.E(jdist)
         covariance = cp.Cov(jdist)
+        # Check if variance covariance matrix is diagonal
+        if np.count_nonzero(covariance - np.diag(np.diagonal(covariance))) == 0:
+            sqrt_Sigma = np.sqrt(covariance)
+        else:
+            raise NotImplementedError
 
         if self.use_exact_Hessian == True:
-            # Check if variance covariance matrix is diagonal
-            if np.count_nonzero(covariance - np.diag(np.diagonal(covariance))) == 0:
-                sqrt_Sigma = np.sqrt(covariance)
-            else:
-                raise NotImplementedError
 
             # Get the Hessian of the QoI
             xi = np.zeros(QoI.systemsize)
@@ -71,28 +71,35 @@ class DimensionReduction(object):
             Hessian_Product = np.matmul(sqrt_Sigma, np.matmul(Hessian, sqrt_Sigma))
             self.iso_eigenvals, self.iso_eigenvecs = np.linalg.eig(Hessian_Product)
         else:
-            mu_iso = jdist.fwd(mu)
+            # mu_iso = jdist.fwd(mu)
             # approximate the hessian of the QoI in the isoprobabilistic space
             # 1. Initialize ArnoldiSampling object
-            perturbation_size = 1
+            perturbation_size = 1 # 0.5/np.sqrt(3)
+            print "perturbation_size = ", perturbation_size
             if QoI.systemsize < 20:
                 num_sample = QoI.systemsize+1
             else:
                 num_sample = 20
             arnoldi = ArnoldiSampling(perturbation_size, num_sample)
 
-            # 2. Declare arrays for iso-eigenmodes
+            # 2. Declare arrays
+            # 2.1 iso-eigenmodes
             self.iso_eigenvals = np.zeros(QoI.systemsize)
             self.iso_eigenvecs = np.zeros([QoI.systemsize, QoI.systemsize])
-
-            # 3. Approximate eigenvalues using ArnoldiSampling
+            # 2.2 solution and function history array
             xdata = np.zeros([QoI.systemsize, QoI.systemsize+1])
             fdata = np.zeros(QoI.systemsize+1)
             gdata = np.zeros([QoI.systemsize, QoI.systemsize+1])
             grad_red = np.zeros(QoI.systemsize)
-            # xdata[:,0] = mu_iso[:]
-            xdata[:,0] = mu[:]
-            gdata[:,0] = QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize))
+
+            # 3. Approximate eigenvalues using ArnoldiSampling
+            # 3.1 Convert x into a standard normal distribution
+            xdata[:,0] = 0.0
+            # print "mu_iso = ", mu_iso
+            # xdata[:,0] = mu[:]
+            # gdata[:,0] = QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize))
+            gdata[:,0] = np.dot(QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize)),
+                                sqrt_Sigma)
             dim, error_estimate = arnoldi.arnoldiSample_2_test(QoI, jdist, xdata, fdata, gdata,
                                                         self.iso_eigenvals, self.iso_eigenvecs,
                                                         grad_red)

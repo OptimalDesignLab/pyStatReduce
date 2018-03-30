@@ -86,28 +86,33 @@ class ArnoldiSampling(object):
         linear_dependence = False
 
         rv_mean = cp.E(jdist)
-
-        print "m = ", m
-        print "gdata[:,0] = ", gdata[:,0]
+        covariance = cp.Cov(jdist)
+        # Check if variance covariance matrix is diagonal
+        if np.count_nonzero(covariance - np.diag(np.diagonal(covariance))) == 0:
+            sqrt_Sigma = np.sqrt(covariance)
+        else:
+            raise NotImplementedError
 
         for i in xrange(0, m):
             # Find new sample point and data; Compute function and gradient values
             xdata_iso[:,i+1] = xdata_iso[:,0] + self.alpha * Z[:,i]
 
             # Convert the new sample point into the original space
-            # x_val = jdist.inv(xdata_iso[:,i+1])
+            x_val = np.dot(sqrt_Sigma, xdata_iso[:,i+1]) + rv_mean
+            # x_val = xdata_iso[:,i+1]
             # print "iso_x_val = ", xdata_iso[:,i+1]
-            x_val = xdata_iso[:,i+1]
             # print "rv_mean = ", rv_mean
             # print "x_val = ", x_val
             # print "xdata_iso[:,0] = ", xdata_iso[:,0]
             fdata[i+1] = QoI.eval_QoI(rv_mean, x_val - rv_mean)
-            gdata[:,i+1] = QoI.eval_QoIGradient(rv_mean, x_val - rv_mean)
+            # gdata[:,i+1] = QoI.eval_QoIGradient(rv_mean, x_val - rv_mean)
+            gdata[:,i+1] = np.dot(QoI.eval_QoIGradient(rv_mean, x_val - rv_mean),
+                            sqrt_Sigma)
 
             # Find the new basis vector and orthogonalize it against the old ones
             Z[:,i+1] = (gdata[:,i+1] - gdata[:,0])/self.alpha
             linear_dependence = self.modified_GramSchmidt(i, H, Z)
-            # print '\n', "i = ", i, "linear_dependence = ", linear_dependence
+            print '\n', "i = ", i, "linear_dependence = ", linear_dependence
             # print "xdata_iso[:,i] = ", xdata_iso[:,i]
             # print "gdata[:,i+1] = ", gdata[:,i+1]
             if linear_dependence == True:
@@ -117,7 +122,7 @@ class ArnoldiSampling(object):
         if linear_dependence == True:
             i -= 1
 
-        print '\n' # , "H = ", '\n', H
+        print '\n', "H = ", '\n', H
         # Symmetrize the Hessenberg matrix, and find its eigendecomposition
         Hsym = 0.5*(H[0:i+1, 0:i+1] + H[0:i+1,0:i+1].transpose())
         print "Hsym = ", '\n', Hsym
