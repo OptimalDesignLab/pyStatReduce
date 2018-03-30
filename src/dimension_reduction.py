@@ -74,7 +74,7 @@ class DimensionReduction(object):
             # mu_iso = jdist.fwd(mu)
             # approximate the hessian of the QoI in the isoprobabilistic space
             # 1. Initialize ArnoldiSampling object
-            perturbation_size = 1 # 0.5/np.sqrt(3)
+            perturbation_size = 1.e-6 # 0.5/np.sqrt(3)
             print "perturbation_size = ", perturbation_size
             if QoI.systemsize < 20:
                 num_sample = QoI.systemsize+1
@@ -100,6 +100,7 @@ class DimensionReduction(object):
             # gdata[:,0] = QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize))
             gdata[:,0] = np.dot(QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize)),
                                 sqrt_Sigma)
+            print gdata[:,0]
             dim, error_estimate = arnoldi.arnoldiSample_2_test(QoI, jdist, xdata, fdata, gdata,
                                                         self.iso_eigenvals, self.iso_eigenvecs,
                                                         grad_red)

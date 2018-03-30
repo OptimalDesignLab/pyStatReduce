@@ -100,10 +100,6 @@ class ArnoldiSampling(object):
             # Convert the new sample point into the original space
             x_val = np.dot(sqrt_Sigma, xdata_iso[:,i+1]) + rv_mean
             # x_val = xdata_iso[:,i+1]
-            # print "iso_x_val = ", xdata_iso[:,i+1]
-            # print "rv_mean = ", rv_mean
-            # print "x_val = ", x_val
-            # print "xdata_iso[:,0] = ", xdata_iso[:,0]
             fdata[i+1] = QoI.eval_QoI(rv_mean, x_val - rv_mean)
             # gdata[:,i+1] = QoI.eval_QoIGradient(rv_mean, x_val - rv_mean)
             gdata[:,i+1] = np.dot(QoI.eval_QoIGradient(rv_mean, x_val - rv_mean),
@@ -113,14 +109,14 @@ class ArnoldiSampling(object):
             Z[:,i+1] = (gdata[:,i+1] - gdata[:,0])/self.alpha
             linear_dependence = self.modified_GramSchmidt(i, H, Z)
             print '\n', "i = ", i, "linear_dependence = ", linear_dependence
-            # print "xdata_iso[:,i] = ", xdata_iso[:,i]
-            # print "gdata[:,i+1] = ", gdata[:,i+1]
             if linear_dependence == True:
                 # new basis vector is linealy dependent, so terminate early
                 break
 
-        if linear_dependence == True:
+        if (i != n-1 and linear_dependence == True):
             i -= 1
+        elif (i == n-1 and linear_dependence == True):
+            pass
 
         print '\n', "H = ", '\n', H
         # Symmetrize the Hessenberg matrix, and find its eigendecomposition
