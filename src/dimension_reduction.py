@@ -70,37 +70,34 @@ class DimensionReduction(object):
             # Compute the eigen modes of the Hessian of the Hadamard Quadratic
             Hessian_Product = np.matmul(sqrt_Sigma, np.matmul(Hessian, sqrt_Sigma))
             self.iso_eigenvals, self.iso_eigenvecs = np.linalg.eig(Hessian_Product)
+
+            num_sample = QoI.systemsize
         else:
             # mu_iso = jdist.fwd(mu)
             # approximate the hessian of the QoI in the isoprobabilistic space
             # 1. Initialize ArnoldiSampling object
-            perturbation_size = 1.e-6 # 0.5/np.sqrt(3)
-            print "perturbation_size = ", perturbation_size
+            perturbation_size = 1.e-6
             if QoI.systemsize < 20:
                 num_sample = QoI.systemsize+1
             else:
-                num_sample = 20
+                num_sample = 21
             arnoldi = ArnoldiSampling(perturbation_size, num_sample)
 
             # 2. Declare arrays
             # 2.1 iso-eigenmodes
-            self.iso_eigenvals = np.zeros(QoI.systemsize)
-            self.iso_eigenvecs = np.zeros([QoI.systemsize, QoI.systemsize])
+            self.iso_eigenvals = np.zeros(num_sample-1)
+            self.iso_eigenvecs = np.zeros([QoI.systemsize, num_sample-1])
             # 2.2 solution and function history array
-            xdata = np.zeros([QoI.systemsize, QoI.systemsize+1])
-            fdata = np.zeros(QoI.systemsize+1)
-            gdata = np.zeros([QoI.systemsize, QoI.systemsize+1])
+            xdata = np.zeros([QoI.systemsize, num_sample])
+            fdata = np.zeros(num_sample)
+            gdata = np.zeros([QoI.systemsize, num_sample])
             grad_red = np.zeros(QoI.systemsize)
 
             # 3. Approximate eigenvalues using ArnoldiSampling
             # 3.1 Convert x into a standard normal distribution
             xdata[:,0] = 0.0
-            # print "mu_iso = ", mu_iso
-            # xdata[:,0] = mu[:]
-            # gdata[:,0] = QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize))
             gdata[:,0] = np.dot(QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize)),
                                 sqrt_Sigma)
-            print gdata[:,0]
             dim, error_estimate = arnoldi.arnoldiSample_2_test(QoI, jdist, xdata, fdata, gdata,
                                                         self.iso_eigenvals, self.iso_eigenvecs,
                                                         grad_red)
@@ -114,7 +111,8 @@ class DimensionReduction(object):
         sort_ind = self.iso_eigenvals.argsort()[::-1]
 
         # Check the threshold
-        for i in xrange(0, QoI.systemsize):
+        # for i in xrange(0, QoI.systemsize):
+        for i in xrange(0, num_sample):
             dominant_eigen_val_ind = sort_ind[0:i+1]
             reduced_energy = np.sum(self.iso_eigenvals[dominant_eigen_val_ind])
             if reduced_energy <= self.threshold_factor*system_energy:

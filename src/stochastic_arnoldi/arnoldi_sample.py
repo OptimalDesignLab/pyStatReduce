@@ -108,7 +108,7 @@ class ArnoldiSampling(object):
             # Find the new basis vector and orthogonalize it against the old ones
             Z[:,i+1] = (gdata[:,i+1] - gdata[:,0])/self.alpha
             linear_dependence = self.modified_GramSchmidt(i, H, Z)
-            print '\n', "i = ", i, "linear_dependence = ", linear_dependence
+            # print '\n', "i = ", i, "linear_dependence = ", linear_dependence
             if linear_dependence == True:
                 # new basis vector is linealy dependent, so terminate early
                 break
@@ -118,10 +118,10 @@ class ArnoldiSampling(object):
         elif (i == n-1 and linear_dependence == True):
             pass
 
-        print '\n', "H = ", '\n', H
+        # print '\n', "H = ", '\n', H
         # Symmetrize the Hessenberg matrix, and find its eigendecomposition
         Hsym = 0.5*(H[0:i+1, 0:i+1] + H[0:i+1,0:i+1].transpose())
-        print "Hsym = ", '\n', Hsym
+        # print "Hsym = ", '\n', Hsym
         eigenvals_red, eigenvecs_red = np.linalg.eig(Hsym)
 
         # Sort the reduced eigenvalues and eigenvectors reduced in ascending order
