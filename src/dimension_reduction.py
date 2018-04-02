@@ -73,7 +73,6 @@ class DimensionReduction(object):
 
             num_sample = QoI.systemsize
         else:
-            # mu_iso = jdist.fwd(mu)
             # approximate the hessian of the QoI in the isoprobabilistic space
             # 1. Initialize ArnoldiSampling object
             perturbation_size = 1.e-6
@@ -88,19 +87,15 @@ class DimensionReduction(object):
             self.iso_eigenvals = np.zeros(num_sample-1)
             self.iso_eigenvecs = np.zeros([QoI.systemsize, num_sample-1])
             # 2.2 solution and function history array
-            xdata = np.zeros([QoI.systemsize, num_sample])
-            fdata = np.zeros(num_sample)
-            gdata = np.zeros([QoI.systemsize, num_sample])
-            grad_red = np.zeros(QoI.systemsize)
+            mu_iso = np.zeros(QoI.systemsize)
 
             # 3. Approximate eigenvalues using ArnoldiSampling
             # 3.1 Convert x into a standard normal distribution
-            xdata[:,0] = 0.0
-            gdata[:,0] = np.dot(QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize)),
+            mu_iso[:] = 0.0
+            gdata0 = np.dot(QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize)),
                                 sqrt_Sigma)
-            dim, error_estimate = arnoldi.arnoldiSample_2_test(QoI, jdist, xdata, fdata, gdata,
-                                                        self.iso_eigenvals, self.iso_eigenvecs,
-                                                        grad_red)
+            dim, error_estimate = arnoldi.arnoldiSample(QoI, jdist, mu_iso, gdata0,
+                                                        self.iso_eigenvals, self.iso_eigenvecs)
 
         # Next,
         # Get the system energy of Hessian_Product
