@@ -140,7 +140,7 @@ class DimensionReduction(object):
 
             grad_discard = np.zeros(QoI.systemsize)
             energy_discard = 0.0
-            for i in xrange(0, self.num_sample-1):
+            for i in xrange(0, dim):
                 grad_discard[:] = np.dot(projector, gdata0[:,i])
                 energy_discard += np.linalg.norm(grad_discard) / np.linalg.norm(gdata0[:,i])
 
