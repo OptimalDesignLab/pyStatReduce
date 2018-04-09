@@ -23,13 +23,13 @@ class ArnoldiSampling(object):
         # Initialize the basis-vector array and Hessenberg matrix
         Z = np.zeros([n, m+1])
         H = np.zeros([m+1, m])
-        Z[:,0] = -gdata0/np.linalg.norm(gdata0)
+        Z[:,0] = -gdata0[:,0]/np.linalg.norm(gdata0[:,0])
         linear_dependence = False
 
         rv_mean = cp.E(jdist)
         covariance = cp.Cov(jdist)
         xdata_i = np.zeros(QoI.systemsize)
-        gdata_i = np.zeros(QoI.systemsize)
+        # gdata_i = np.zeros(QoI.systemsize)
 
         # Check if variance covariance matrix is diagonal
         if np.count_nonzero(covariance - np.diag(np.diagonal(covariance))) == 0:
@@ -43,11 +43,13 @@ class ArnoldiSampling(object):
 
             # Convert the new sample point into the original space
             x_val = np.dot(sqrt_Sigma, xdata_i) + rv_mean
-            gdata_i = np.dot(QoI.eval_QoIGradient(rv_mean, x_val - rv_mean),
+            # gdata_i = np.dot(QoI.eval_QoIGradient(rv_mean, x_val - rv_mean),
+            #                 sqrt_Sigma)
+            gdata0[:,i+1] = np.dot(QoI.eval_QoIGradient(rv_mean, x_val - rv_mean),
                             sqrt_Sigma)
 
             # Find the new basis vector and orthogonalize it against the old ones
-            Z[:,i+1] = (gdata_i - gdata0)/self.alpha
+            Z[:,i+1] = (gdata0[:,i+1] - gdata0[:,0])/self.alpha
             linear_dependence = self.modified_GramSchmidt(i, H, Z)
             if linear_dependence == True:
                 # new basis vector is linealy dependent, so terminate early

@@ -22,6 +22,9 @@ class DimensionReduction(object):
                            in iso_eigenvecs, of the largest eigen values
                            needed for approximation.
 
+    * `num_sample` : Number of arnoldi samples. When using the exact Hessian,
+                        num_sample = QoI.systemsize
+
     **Constructor Arguments**
 
     * `threshold_factor` : fraction of threshold energy that MUST be had by an
@@ -35,6 +38,16 @@ class DimensionReduction(object):
         # Decide between using arnoldi-iteration or exact Hessian
         if kwargs['exact_Hessian'] == False:
             self.use_exact_Hessian = False
+
+            if 'n_arnoldi_sample' in kwargs:
+                self.num_sample = kwargs.get('n_arnoldi_sample')
+            else:
+                self.num_sample = 51
+
+            if 'sample_radius' in kwargs:
+                self.sample_radius = kwargs.get('sample_radius')
+            else:
+                self.sample_radius = 1.e-6
         else:
             self.use_exact_Hessian = True
         # TODO: Check if isoprobabilistic eigen modes can be initialized here
@@ -71,54 +84,90 @@ class DimensionReduction(object):
             Hessian_Product = np.matmul(sqrt_Sigma, np.matmul(Hessian, sqrt_Sigma))
             self.iso_eigenvals, self.iso_eigenvecs = np.linalg.eig(Hessian_Product)
 
-            num_sample = QoI.systemsize
+            self.num_sample = QoI.systemsize
+
+            # Next,
+            # Get the system energy of Hessian_Product
+            system_energy = np.sum(self.iso_eigenvals)
+            ind = []
+
+            # get the indices of dominant eigenvalues in descending order
+            sort_ind = self.iso_eigenvals.argsort()[::-1]
+
+            # Check the threshold
+            for i in xrange(0, self.num_sample):
+                dominant_eigen_val_ind = sort_ind[0:i+1]
+                reduced_energy = np.sum(self.iso_eigenvals[dominant_eigen_val_ind])
+                if reduced_energy <= self.threshold_factor*system_energy:
+                    ind.append(dominant_eigen_val_ind[i])
+                else:
+                    break
+
+            if len(ind) == 0:
+                ind.append(np.argmax(self.iso_eigenvals))
+
+            self.dominant_indices = ind
+
         else:
             # approximate the hessian of the QoI in the isoprobabilistic space
             # 1. Initialize ArnoldiSampling object
-            perturbation_size = 1.e-6
-            if QoI.systemsize < 20:
-                num_sample = QoI.systemsize+1
-            else:
-                num_sample = 21
-            arnoldi = ArnoldiSampling(perturbation_size, num_sample)
+            # Check if the system size is smaller than the number of arnoldi sample - 1
+            if QoI.systemsize < self.num_sample-1:
+                self.num_sample = QoI.systemsize+1
+
+            arnoldi = ArnoldiSampling(self.sample_radius, self.num_sample)
 
             # 2. Declare arrays
             # 2.1 iso-eigenmodes
-            self.iso_eigenvals = np.zeros(num_sample-1)
-            self.iso_eigenvecs = np.zeros([QoI.systemsize, num_sample-1])
+            self.iso_eigenvals = np.zeros(self.num_sample-1)
+            self.iso_eigenvecs = np.zeros([QoI.systemsize, self.num_sample-1])
             # 2.2 solution and function history array
             mu_iso = np.zeros(QoI.systemsize)
+            gdata0 = np.zeros([QoI.systemsize, self.num_sample])
 
             # 3. Approximate eigenvalues using ArnoldiSampling
             # 3.1 Convert x into a standard normal distribution
             mu_iso[:] = 0.0
-            gdata0 = np.dot(QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize)),
+            gdata0[:,0] = np.dot(QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize)),
                                 sqrt_Sigma)
             dim, error_estimate = arnoldi.arnoldiSample(QoI, jdist, mu_iso, gdata0,
                                                         self.iso_eigenvals, self.iso_eigenvecs)
+            print "gdata0 = ", '\n', gdata0
+            print "dim = ", dim
+            # compute the error_estimate at the mean value
+            projector = np.eye(QoI.systemsize) - \
+                        np.matmul(self.iso_eigenvecs, self.iso_eigenvecs.transpose())
 
-        # Next,
-        # Get the system energy of Hessian_Product
-        system_energy = np.sum(self.iso_eigenvals)
-        ind = []
+            grad_discard = np.zeros(QoI.systemsize)
+            energy_discard = 0.0
+            for i in xrange(0, self.num_sample-1):
+                grad_discard[:] = np.dot(projector, gdata0[:,i])
+                energy_discard += np.linalg.norm(grad_discard) / np.linalg.norm(gdata0[:,i])
 
-        # get the indices of dominant eigenvalues in descending order
-        sort_ind = self.iso_eigenvals.argsort()[::-1]
+            return energy_discard
 
-        # Check the threshold
-        # for i in xrange(0, QoI.systemsize):
-        for i in xrange(0, num_sample):
-            dominant_eigen_val_ind = sort_ind[0:i+1]
-            reduced_energy = np.sum(self.iso_eigenvals[dominant_eigen_val_ind])
-            if reduced_energy <= self.threshold_factor*system_energy:
-                ind.append(dominant_eigen_val_ind[i])
-            else:
-                break
 
-        if len(ind) == 0:
-            ind.append(np.argmax(self.iso_eigenvals))
+        # # Next,
+        # # Get the system energy of Hessian_Product
+        # system_energy = np.sum(self.iso_eigenvals)
+        # ind = []
 
-        self.dominant_indices = ind
+        # # get the indices of dominant eigenvalues in descending order
+        # sort_ind = self.iso_eigenvals.argsort()[::-1]
+
+        # # Check the threshold
+        # for i in xrange(0, self.num_sample):
+        #     dominant_eigen_val_ind = sort_ind[0:i+1]
+        #     reduced_energy = np.sum(self.iso_eigenvals[dominant_eigen_val_ind])
+        #     if reduced_energy <= self.threshold_factor*system_energy:
+        #         ind.append(dominant_eigen_val_ind[i])
+        #     else:
+        #         break
+
+        # if len(ind) == 0:
+        #     ind.append(np.argmax(self.iso_eigenvals))
+
+        # self.dominant_indices = ind
 
 
     """

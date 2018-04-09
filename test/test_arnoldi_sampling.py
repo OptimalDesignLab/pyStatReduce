@@ -73,6 +73,10 @@ class ArnoldiSamplingTest(unittest.TestCase):
 
     def test_arnoldiSample_complete(self):
 
+        # Compute all of the eigenmodes of an isoprobabilistic Hadamard
+        # quadratic system using Arnoldi sampling and verify against the exact
+        # computation
+
         systemsize = 16
         eigen_decayrate = 2.0
 
@@ -122,6 +126,11 @@ class ArnoldiSamplingTest(unittest.TestCase):
 
 
     def test_dimensionReduction_arnoldi_partial(self):
+
+        # Compute 21 major the eigenmodes of an isoprobabilistic Hadamard
+        # quadratic system using Arnoldi sampling and verify against the exact
+        # computation
+
         systemsize = 32
         eigen_decayrate = 2.0
         num_sample = 21
