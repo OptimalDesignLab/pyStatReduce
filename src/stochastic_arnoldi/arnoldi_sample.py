@@ -62,6 +62,8 @@ class ArnoldiSampling(object):
 
         # Symmetrize the Hessenberg matrix, and find its eigendecomposition
         Hsym = 0.5*(H[0:i+1, 0:i+1] + H[0:i+1,0:i+1].transpose())
+        print "H = ", '\n', H
+        print "Hsym = ", '\n', Hsym
         eigenvals_red, eigenvecs_red = np.linalg.eig(Hsym)
 
         # Sort the reduced eigenvalues and eigenvectors reduced in ascending order
@@ -72,7 +74,7 @@ class ArnoldiSampling(object):
         # Populate the system eigenvalue and eigenvectors
         eigenvals[:] = 0.0
         eigenvals[0:i+1] = eigenvals_red
-        error_estimate = np.linalg.norm(0.5*(H[0:i+1,0:i+1] - H[0:i+1,0:i+1].transpose()))
+        # error_estimate = np.linalg.norm(0.5*(H[0:i+1,0:i+1] - H[0:i+1,0:i+1].transpose()))
 
         # Generate the full-space eigenvector approximations
         for k in xrange(0, i+1):
@@ -82,6 +84,18 @@ class ArnoldiSampling(object):
         idx = np.argsort(eigenvals)
         eigenvecs = eigenvecs[:,idx]
         eigenvals = eigenvals[idx]
+
+        # Get the error estimate for all eigen pairs
+        e_m = np.zeros(i+1)
+        e_m[-1] = 1.0 # Last value of the basis = 1
+        print "e_m = ", e_m
+        print "H[i+1,i] = ", H[i+1,i]
+        error_estimate = np.zeros(i+1)
+        for i in xrange(0, i+1):
+            error_estimate[i] = H[i+1,i]*abs(np.dot(e_m,eigenvecs_red[:,i]))
+        # int_arr = np.dot(e_m,eigenvecs_red)
+        # print "int_arr = ", int_arr
+        # error_estimate = np.linalg.norm(H[i+1,i]*np.dot(np.dot(e_m,eigenvecs_red), Z[:,i+1]))
 
         return i+1, error_estimate
 

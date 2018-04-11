@@ -132,12 +132,14 @@ class DimensionReduction(object):
                                 sqrt_Sigma)
             dim, error_estimate = arnoldi.arnoldiSample(QoI, jdist, mu_iso, gdata0,
                                                         self.iso_eigenvals, self.iso_eigenvecs)
-            print "gdata0 = ", '\n', gdata0
+            # print "gdata0 = ", '\n', gdata0
             print "dim = ", dim
+            print "iso_eigenvecs.size = ", self.iso_eigenvecs.shape
+            print "error_estimate = ", error_estimate
             # compute the error_estimate at the mean value
             projector = np.eye(QoI.systemsize) - \
                         np.matmul(self.iso_eigenvecs, self.iso_eigenvecs.transpose())
-
+            # print "projector = ", '\n', projector
             grad_discard = np.zeros(QoI.systemsize)
             energy_discard = 0.0
             for i in xrange(0, dim):
