@@ -38,7 +38,7 @@ class DimensionReduction(object):
         # Decide between using arnoldi-iteration or exact Hessian
         if kwargs['exact_Hessian'] == False:
             self.use_exact_Hessian = False
-            self.min_eigen_accuracy = 1.e-3
+            self.min_eigen_accuracy = 1.e-6
             if 'n_arnoldi_sample' in kwargs:
                 self.num_sample = kwargs.get('n_arnoldi_sample')
             else:
@@ -134,9 +134,9 @@ class DimensionReduction(object):
                                                         self.iso_eigenvals, self.iso_eigenvecs)
 
             # print "gdata0 = ", '\n', gdata0
-            print "dim = ", dim
-            print "iso_eigenvecs.size = ", self.iso_eigenvecs.shape
-            print "error_estimate = ", error_estimate
+            # print "dim = ", dim
+            # print "iso_eigenvecs.size = ", self.iso_eigenvecs.shape
+            # print "error_estimate = ", error_estimate
 
             # Check how many eigen pairs are good. We will exploit the fact that
             # the eigen pairs are already sorted in a descending order. We will
@@ -147,21 +147,35 @@ class DimensionReduction(object):
                     ctr += 1
                 else:
                     break
-            print "ctr = ", ctr
-            print "self.iso_eigenvals[0:ctr] = ", self.iso_eigenvals[0:ctr]
+            # print "ctr = ", ctr
+            # print "self.iso_eigenvals[0:ctr] = ", self.iso_eigenvals[0:ctr]
 
             # Compute the accumulated energy
             acc_energy = np.sum(np.square(self.iso_eigenvals[0:ctr]))
 
             # Compute the magnitude of the eigenvalues w.r.t the largest eigenvalues
             relative_ratio = self.iso_eigenvals[0:ctr] / self.iso_eigenvals[0]
-            print "relative_ratio = ", relative_ratio
 
             discard_ratio = 0.1
             # We will only use eigenpairs which whose relative size > discard_ratio
             usable_pairs = np.where(relative_ratio > discard_ratio)
-            self.dominant_indices = usable_pairs[0]
+            # self.dominant_indices = usable_pairs[0]
 
+            # Now use only a portion of the accumulated energy
+            ind = []
+            for i in usable_pairs[0]:
+                dominant_eigen_val_ind = usable_pairs[0][0:i+1]
+                # print "dominant_eigen_val_ind = ", usable_pairs[0][0:i+1]
+                reduced_energy = np.sum(np.square(self.iso_eigenvals[dominant_eigen_val_ind]))
+                if reduced_energy <= self.threshold_factor*acc_energy:
+                        ind.append(dominant_eigen_val_ind[i])
+                else:
+                    break
+
+            if len(ind) == 0:
+                ind.append(np.argmax(self.iso_eigenvals))
+
+            self.dominant_indices = ind
 
         # # Next,
         # # Get the system energy of Hessian_Product
