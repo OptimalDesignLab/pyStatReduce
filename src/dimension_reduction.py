@@ -38,7 +38,7 @@ class DimensionReduction(object):
         # Decide between using arnoldi-iteration or exact Hessian
         if kwargs['exact_Hessian'] == False:
             self.use_exact_Hessian = False
-
+            self.min_eigen_accuracy = 1.e-3
             if 'n_arnoldi_sample' in kwargs:
                 self.num_sample = kwargs.get('n_arnoldi_sample')
             else:
@@ -132,14 +132,35 @@ class DimensionReduction(object):
                                 sqrt_Sigma)
             dim, error_estimate = arnoldi.arnoldiSample(QoI, jdist, mu_iso, gdata0,
                                                         self.iso_eigenvals, self.iso_eigenvecs)
+
             # print "gdata0 = ", '\n', gdata0
             print "dim = ", dim
             print "iso_eigenvecs.size = ", self.iso_eigenvecs.shape
             print "error_estimate = ", error_estimate
 
-            # Check the rate of contribution
+            # Check how many eigen pairs are good. We will exploit the fact that
+            # the eigen pairs are already sorted in a descending order. We will
+            # only use "good" eigen pairs to estimate the dominant directions.
+            ctr = 0
+            for i in xrange(0, dim):
+                if error_estimate[i] < self.min_eigen_accuracy:
+                    ctr += 1
+                else:
+                    break
+            print "ctr = ", ctr
+            print "self.iso_eigenvals[0:ctr] = ", self.iso_eigenvals[0:ctr]
 
-            return energy_discard
+            # Compute the accumulated energy
+            acc_energy = np.sum(np.square(self.iso_eigenvals[0:ctr]))
+
+            # Compute the magnitude of the eigenvalues w.r.t the largest eigenvalues
+            relative_ratio = self.iso_eigenvals[0:ctr] / self.iso_eigenvals[0]
+            print "relative_ratio = ", relative_ratio
+
+            discard_ratio = 0.1
+            # We will only use eigenpairs which whose relative size > discard_ratio
+            usable_pairs = np.where(relative_ratio > discard_ratio)
+            self.dominant_indices = usable_pairs[0]
 
 
         # # Next,

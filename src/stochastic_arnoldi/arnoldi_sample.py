@@ -62,8 +62,8 @@ class ArnoldiSampling(object):
 
         # Symmetrize the Hessenberg matrix, and find its eigendecomposition
         Hsym = 0.5*(H[0:i+1, 0:i+1] + H[0:i+1,0:i+1].transpose())
-        print "H = ", '\n', H
-        print "Hsym = ", '\n', Hsym
+        # print "H = ", '\n', H
+        # print "Hsym = ", '\n', Hsym
         eigenvals_red, eigenvecs_red = np.linalg.eig(Hsym)
 
         # Sort the reduced eigenvalues and eigenvectors reduced in ascending order
@@ -76,26 +76,20 @@ class ArnoldiSampling(object):
         eigenvals[0:i+1] = eigenvals_red
         # error_estimate = np.linalg.norm(0.5*(H[0:i+1,0:i+1] - H[0:i+1,0:i+1].transpose()))
 
-        # Generate the full-space eigenvector approximations
-        for k in xrange(0, i+1):
-            eigenvecs[:,k] = Z[:,0:i+1].dot(eigenvecs_red[0:i+1, k])
-
-        # Finally, sort the system eigenvalues and eigenvectors
-        idx = np.argsort(eigenvals)[::-1]
-        eigenvecs = eigenvecs[:,idx]
-        eigenvals = eigenvals[idx]
-
-        # Get the error estimate for all eigen pairs
+        # Generate the full-space eigenvector approximations and get the error
+        # estimate for the Rayleigh-Ritz eigen pairs
         e_m = np.zeros(i+1)
         e_m[-1] = 1.0 # Last value of the basis = 1
-        print "e_m = ", e_m
-        print "H[i+1,i] = ", H[i+1,i]
         error_estimate = np.zeros(i+1)
-        for i in xrange(0, i+1):
-            error_estimate[i] = H[i+1,i]*abs(np.dot(e_m,eigenvecs_red[:,i]))
-        # int_arr = np.dot(e_m,eigenvecs_red)
-        # print "int_arr = ", int_arr
-        # error_estimate = np.linalg.norm(H[i+1,i]*np.dot(np.dot(e_m,eigenvecs_red), Z[:,i+1]))
+        for k in xrange(0, i+1):
+            eigenvecs[:,k] = Z[:,0:i+1].dot(eigenvecs_red[0:i+1, k])
+            error_estimate[k] = H[i+1,i]*abs(np.dot(e_m,eigenvecs_red[:,k]))
+
+        # Finally, sort the system eigen pairs in descending order
+        idx = np.argsort(eigenvals)[::-1]
+        eigenvecs[:,:] = eigenvecs[:,idx]
+        eigenvals[:] = eigenvals[idx]
+        error_estimate = error_estimate[idx]
 
         return i+1, error_estimate
 

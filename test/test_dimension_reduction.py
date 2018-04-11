@@ -108,7 +108,7 @@ class DimensionReductionTest(unittest.TestCase):
 
         # Get the eigenmodes of the Hessian product and the dominant indices
         dominant_space_exactHess.getDominantDirections(QoI, jdist)
-        discarded_energy = dominant_space_arnoldi.getDominantDirections(QoI, jdist)
+        dominant_space_arnoldi.getDominantDirections(QoI, jdist)
 
         # Print iso_eigenvals
         sort_ind1 = dominant_space_exactHess.iso_eigenvals.argsort()[::-1]
@@ -119,7 +119,7 @@ class DimensionReductionTest(unittest.TestCase):
         energy_exact = 1 - np.sum(lambda_exact[0:5])/np.sum(lambda_exact)
 
         print "energy_exact = ", energy_exact
-        print "discarded_energy = ", discarded_energy
+        print "dominant_space_arnoldi.dominant_indices = ", dominant_space_arnoldi.dominant_indices
 
         # # Compare the eigenvalues
         # print "dominant_space_arnoldi.num_sample = ", dominant_space_arnoldi.num_sample
