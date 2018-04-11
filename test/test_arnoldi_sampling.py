@@ -97,7 +97,8 @@ class ArnoldiSamplingTest(unittest.TestCase):
         eigenvecs = np.zeros([QoI.systemsize, num_sample-1])
         mu_iso = np.zeros(QoI.systemsize)
         mu_iso[:] = 0.0
-        gdata0 = np.dot(QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize)),
+        gdata0 = np.zeros([QoI.systemsize, num_sample])
+        gdata0[:,0] = np.dot(QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize)),
                             sqrt_Sigma)
         dim, error_estimate = arnoldi.arnoldiSample(QoI, jdist, mu_iso, gdata0,
                                                     eigenvals, eigenvecs)
@@ -151,7 +152,8 @@ class ArnoldiSamplingTest(unittest.TestCase):
         eigenvecs = np.zeros([QoI.systemsize, num_sample-1])
         mu_iso = np.zeros(QoI.systemsize)
         mu_iso[:] = 0.0
-        gdata0 = np.dot(QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize)),
+        gdata0 = np.zeros([QoI.systemsize, num_sample])
+        gdata0[:,0] = np.dot(QoI.eval_QoIGradient(mu, np.zeros(QoI.systemsize)),
                             sqrt_Sigma)
         dim, error_estimate = arnoldi.arnoldiSample(QoI, jdist, mu_iso, gdata0,
                                                     eigenvals, eigenvecs)
