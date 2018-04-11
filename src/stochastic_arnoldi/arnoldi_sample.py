@@ -81,7 +81,7 @@ class ArnoldiSampling(object):
             eigenvecs[:,k] = Z[:,0:i+1].dot(eigenvecs_red[0:i+1, k])
 
         # Finally, sort the system eigenvalues and eigenvectors
-        idx = np.argsort(eigenvals)
+        idx = np.argsort(eigenvals)[::-1]
         eigenvecs = eigenvecs[:,idx]
         eigenvals = eigenvals[idx]
 

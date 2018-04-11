@@ -136,15 +136,8 @@ class DimensionReduction(object):
             print "dim = ", dim
             print "iso_eigenvecs.size = ", self.iso_eigenvecs.shape
             print "error_estimate = ", error_estimate
-            # compute the error_estimate at the mean value
-            projector = np.eye(QoI.systemsize) - \
-                        np.matmul(self.iso_eigenvecs, self.iso_eigenvecs.transpose())
-            # print "projector = ", '\n', projector
-            grad_discard = np.zeros(QoI.systemsize)
-            energy_discard = 0.0
-            for i in xrange(0, dim):
-                grad_discard[:] = np.dot(projector, gdata0[:,i])
-                energy_discard += np.linalg.norm(grad_discard) / np.linalg.norm(gdata0[:,i])
+
+            # Check the rate of contribution
 
             return energy_discard
 
