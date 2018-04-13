@@ -56,19 +56,22 @@ avg_mu_err = np.zeros(n_e_sample)
 max_mu_err = np.zeros(n_e_sample)
 min_mu_err = np.zeros(n_e_sample)
 
-# i = 4
+eigen_decayrate_arr_idx = 0
+
 for i in systemsize_arr:
     for j in xrange(0, n_e_sample):
         print "systemsize = ", i, ", n_eigenmodes_arr[j] = ", n_eigenmodes_arr[j]
         for k in xrange(0, n_stddev_samples):
             std_dev = np.random.rand(i)
             # print "systemsize = ", i, ", n_eigenmodes_arr[j] = ", n_eigenmodes_arr[j], "std_dev.size = ", std_dev.size
-            err_mu_arr[j,k] = run_hadamard(i, eigen_decayrate_arr[0], std_dev,
+            if i == 256:
+                print "    k = ", k
+            err_mu_arr[j,k] = run_hadamard(i, eigen_decayrate_arr[eigen_decayrate_arr_idx], std_dev,
                                            n_eigenmodes_arr[j])
 
         avg_mu_err[j] = np.mean(err_mu_arr[:,j])
         max_mu_err[j] = np.max(err_mu_arr[:,j])
-        min_mu_err[j] = np.max(err_mu_arr[:,j])
+        min_mu_err[j] = np.min(err_mu_arr[:,j])
 
     dirname = ''.join(['./plot_data/', str(i), '/'])
     # Create the directory if it doesn't exist
@@ -78,13 +81,10 @@ for i in systemsize_arr:
         except OSError as exc:  # Guard against race condition
             if exc.errno != errno.EEXIST:
                 raise
-    fname1 = ''.join([dirname, 'avg_err_decay', str(eigen_decayrate_arr[0]), '.txt'])
-    fname2 = ''.join([dirname, 'max_err_decay', str(eigen_decayrate_arr[0]), '.txt'])
-    fname3 = ''.join([dirname, 'min_err_decay', str(eigen_decayrate_arr[0]), '.txt'])
+    fname1 = ''.join([dirname, 'avg_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
+    fname2 = ''.join([dirname, 'max_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
+    fname3 = ''.join([dirname, 'min_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
 
     np.savetxt(fname1, avg_mu_err, delimiter=',')
     np.savetxt(fname2, max_mu_err, delimiter=',')
     np.savetxt(fname3, min_mu_err, delimiter=',')
-
-    # n_eigenmodes = 10
-    # run_hadamard(systemsize_arr[i], eigen_decayrate_arr[2], std_dev, n_eigenmodes)

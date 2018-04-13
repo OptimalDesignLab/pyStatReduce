@@ -151,7 +151,7 @@ class DimensionReduction(object):
             # print "self.iso_eigenvals[0:ctr] = ", self.iso_eigenvals[0:ctr]
 
             # Compute the accumulated energy
-            acc_energy = np.sum(np.square(self.iso_eigenvals[0:ctr]))
+            # acc_energy = np.sum(np.square(self.iso_eigenvals[0:ctr]))
 
             # Compute the magnitude of the eigenvalues w.r.t the largest eigenvalues
             relative_ratio = self.iso_eigenvals[0:ctr] / self.iso_eigenvals[0]
