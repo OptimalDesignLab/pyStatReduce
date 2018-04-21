@@ -15,9 +15,9 @@ max_mu_err = np.zeros([len(systemsize_arr), n_e_sample])
 min_mu_err = np.zeros([len(systemsize_arr), n_e_sample])
 errs = np.zeros([len(systemsize_arr), 2, n_e_sample])
 
-j = 0
+j = 2
 for i in xrange(0, len(systemsize_arr)):
-    dirname = ''.join(['./plot_data/', str(systemsize_arr[i]), '/'])
+    dirname = ''.join(['./plot_data/mean_accuracy/', str(systemsize_arr[i]), '/'])
     fname1 = ''.join([dirname, 'avg_err_decay', str(eigen_decayrate_arr[j]), '.txt'])
     fname2 = ''.join([dirname, 'max_err_decay', str(eigen_decayrate_arr[j]), '.txt'])
     fname3 = ''.join([dirname, 'min_err_decay', str(eigen_decayrate_arr[j]), '.txt'])
@@ -36,33 +36,45 @@ for i in xrange(0, len(systemsize_arr)):
 
 # Plot
 titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), 'eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-plotname = ''.join(['./plot_data/approximation_error_bar_decay', str(eigen_decayrate_arr[j]), '.pdf'])
+plotname = ''.join(['./plot_data/mean_accuracy/approximation_error_bar_decay', str(eigen_decayrate_arr[j]), '.pdf'])
 
-f, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, sharex=True, figsize=(10,10))
+plt.rc('text', usetex=True)
 matplotlib.rcParams['mathtext.fontset'] = 'cm'
+
+f, axes = plt.subplots(5, sharex=True, sharey=True, figsize=(10,10))
+plt.setp(axes, xticks=[0,1,2,3,4,5,6,7,8,9,10])
+# plt.tight_layout()
+if j == 0:
+    f.suptitle(r'$\lambda_{i} = \frac{1}{i^2}$')
+elif j==1:
+    f.suptitle(r'$\lambda_{i} = \frac{1}{i}$')
+elif j==2:
+    f.suptitle(r'$\lambda_{i} = \frac{1}{\sqrt{i}}$')
 i = 0
-ax1.errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), 'eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-ax1.set_title(titlename)
+axes[i].errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
+titlename = ''.join(['system size = ', str(systemsize_arr[i])])
+axes[i].set_title(titlename)
 
 i = 1
-ax2.errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), 'eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-ax2.set_title(titlename)
+axes[i].errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
+titlename = ''.join(['system size = ', str(systemsize_arr[i])])
+axes[i].set_title(titlename)
 
 i = 2
-ax3.errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), 'eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-ax3.set_title(titlename)
+axes[i].errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
+titlename = ''.join(['system size = ', str(systemsize_arr[i])])
+axes[i].set_ylabel(r'approximation error, $\epsilon$')
+axes[i].set_title(titlename)
 
 i = 3
-ax4.errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), 'eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-ax4.set_title(titlename)
+axes[i].errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
+titlename = ''.join(['system size = ', str(systemsize_arr[i])])
+axes[i].set_title(titlename)
 
 i = 4
-ax5.errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), 'eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-ax5.set_title(titlename)
+axes[i].errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
+titlename = ''.join(['system size = ', str(systemsize_arr[i])])
+axes[i].set_xlabel("Maximum allowable eigenmodes for collocation")
+axes[i].set_title(titlename)
 
 f.savefig(plotname, format='pdf')

@@ -86,7 +86,7 @@ class DimensionReductionTest(unittest.TestCase):
         self.assertTrue(err < 1.e-15)
 
     def test_dimensionReduction_arnoldi_enlarge(self):
-        systemsize = 16
+        systemsize = 128
         eigen_decayrate = 2.0
         # n_arnoldi_sample = 51
 

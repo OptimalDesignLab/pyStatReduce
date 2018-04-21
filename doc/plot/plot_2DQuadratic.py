@@ -16,11 +16,12 @@ def lineplot_2DQuadratic():
 
     plt.figure(figsize=(5,5))
     matplotlib.rcParams['mathtext.fontset'] = 'cm'
-    plt.plot(theta, approxn_error)
+    plt.plot(theta, approxn_error, color="black")
     plt.rc('text', usetex=True)
     plt.ylim(0.0, 0.08)
-    plt.ylabel('Approximation error')
-    plt.xlabel(r'$\theta^{\circ}$')
+    plt.ylabel(r'Approximation error, $\epsilon$', fontsize=16)
+    plt.xlabel(r'$\theta^{\circ}$', fontsize=16)
+    plt.tight_layout()
     plt.savefig("2DQuadratic_approxn_err.pdf", format="pdf")
 
 def surfaceplot_2DQuadratic():
@@ -54,4 +55,5 @@ def surfaceplot_2DQuadratic():
     ax.set_zlabel('Approximation Error')
     plt.savefig("2DQuadratic_std_dev_ratio.pdf", format="pdf")
 
-surfaceplot_2DQuadratic()
+# surfaceplot_2DQuadratic()
+lineplot_2DQuadratic()

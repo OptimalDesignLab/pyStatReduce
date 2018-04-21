@@ -38,7 +38,7 @@ class DimensionReduction(object):
         # Decide between using arnoldi-iteration or exact Hessian
         if kwargs['exact_Hessian'] == False:
             self.use_exact_Hessian = False
-            self.min_eigen_accuracy = 1.e-6
+            self.min_eigen_accuracy = 1.e-3
             if 'n_arnoldi_sample' in kwargs:
                 self.num_sample = kwargs.get('n_arnoldi_sample')
             else:
@@ -156,7 +156,7 @@ class DimensionReduction(object):
             # Compute the magnitude of the eigenvalues w.r.t the largest eigenvalues
             relative_ratio = self.iso_eigenvals[0:ctr] / self.iso_eigenvals[0]
 
-            discard_ratio = 0.1
+            discard_ratio = 1.e-10 # 0.1
             # We will only use eigenpairs which whose relative size > discard_ratio
             usable_pairs = np.where(relative_ratio > discard_ratio)
             # print "usable_pairs[0].size = ", usable_pairs[0].size

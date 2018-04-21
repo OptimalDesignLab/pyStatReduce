@@ -56,7 +56,7 @@ avg_mu_err = np.zeros(n_e_sample)
 max_mu_err = np.zeros(n_e_sample)
 min_mu_err = np.zeros(n_e_sample)
 
-eigen_decayrate_arr_idx = 0
+eigen_decayrate_arr_idx = 1
 
 for i in systemsize_arr:
     for j in xrange(0, n_e_sample):
@@ -69,11 +69,11 @@ for i in systemsize_arr:
             err_mu_arr[j,k] = run_hadamard(i, eigen_decayrate_arr[eigen_decayrate_arr_idx], std_dev,
                                            n_eigenmodes_arr[j])
 
-        avg_mu_err[j] = np.mean(err_mu_arr[:,j])
-        max_mu_err[j] = np.max(err_mu_arr[:,j])
-        min_mu_err[j] = np.min(err_mu_arr[:,j])
+        avg_mu_err[j] = np.mean(err_mu_arr[j,:])
+        max_mu_err[j] = np.max(err_mu_arr[j,:])
+        min_mu_err[j] = np.min(err_mu_arr[j,:])
 
-    dirname = ''.join(['./plot_data/', str(i), '/'])
+    dirname = ''.join(['./plot_data/mean_accuracy/', str(i), '/'])
     # Create the directory if it doesn't exist
     if not os.path.isdir(dirname):
         try:
