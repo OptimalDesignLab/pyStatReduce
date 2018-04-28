@@ -26,7 +26,7 @@ def run_hadamard(systemsize, eigen_decayrate, std_dev, n_eigenmodes):
     jdist = cp.MvNormal(x, np.diag(std_dev))
 
     threshold_factor = 0.5
-    dominant_space = DimensionReduction(threshold_factor, exact_Hessian=False)
+    dominant_space = DimensionReduction(threshold_factor, exact_Hessian=False, n_arnoldi_sample=71)
     dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=n_eigenmodes)
     # print "dominant_indices = ", dominant_space.dominant_indices
 
@@ -56,7 +56,7 @@ avg_mu_err = np.zeros(n_e_sample)
 max_mu_err = np.zeros(n_e_sample)
 min_mu_err = np.zeros(n_e_sample)
 
-eigen_decayrate_arr_idx = 1
+eigen_decayrate_arr_idx = 0
 
 for i in systemsize_arr:
     for j in xrange(0, n_e_sample):

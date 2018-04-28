@@ -15,7 +15,7 @@ max_mu_err = np.zeros([len(systemsize_arr), n_e_sample])
 min_mu_err = np.zeros([len(systemsize_arr), n_e_sample])
 errs = np.zeros([len(systemsize_arr), 2, n_e_sample])
 
-j = 2
+j = 0
 for i in xrange(0, len(systemsize_arr)):
     dirname = ''.join(['./plot_data/mean_accuracy/', str(systemsize_arr[i]), '/'])
     fname1 = ''.join([dirname, 'avg_err_decay', str(eigen_decayrate_arr[j]), '.txt'])
@@ -53,28 +53,33 @@ elif j==2:
 i = 0
 axes[i].errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
 titlename = ''.join(['system size = ', str(systemsize_arr[i])])
+axes[i].set_yscale("log", nonposy='clip')
 axes[i].set_title(titlename)
 
 i = 1
 axes[i].errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
 titlename = ''.join(['system size = ', str(systemsize_arr[i])])
+axes[i].set_yscale("log", nonposy='clip')
 axes[i].set_title(titlename)
 
 i = 2
 axes[i].errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
 titlename = ''.join(['system size = ', str(systemsize_arr[i])])
 axes[i].set_ylabel(r'approximation error, $\epsilon$')
+axes[i].set_yscale("log", nonposy='clip')
 axes[i].set_title(titlename)
 
 i = 3
 axes[i].errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
 titlename = ''.join(['system size = ', str(systemsize_arr[i])])
+axes[i].set_yscale("log", nonposy='clip')
 axes[i].set_title(titlename)
 
 i = 4
 axes[i].errorbar(n_eigenmodes_arr, avg_mu_err[i,:], yerr=errs[i,:,:], fmt='-o', barsabove=True)
 titlename = ''.join(['system size = ', str(systemsize_arr[i])])
 axes[i].set_xlabel("Maximum allowable eigenmodes for collocation")
+axes[i].set_yscale("log", nonposy='clip')
 axes[i].set_title(titlename)
 
 f.savefig(plotname, format='pdf')
