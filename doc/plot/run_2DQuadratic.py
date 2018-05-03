@@ -1,15 +1,18 @@
 # run_hadamard
+import os
 import sys
+import errno
 sys.path.insert(0, '../../src')
 
-import unittest
 import numpy as np
 import chaospy as cp
 
-from StochasticCollocation import StochasticCollocation
-from QuantityOfInterest import QuantityOfInterest
+from stochastic_collocation import StochasticCollocation
+from quantity_of_interest import QuantityOfInterest
 from dimension_reduction import DimensionReduction
+from stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 import examples
+
 
 def run2DQuadratic(theta, std_dev, nx):
 
@@ -32,14 +35,14 @@ def run2DQuadratic(theta, std_dev, nx):
             collocation = StochasticCollocation(3, "Normal")
             QoI = examples.Paraboloid2D(systemsize, tuple)
             jdist = cp.MvNormal(x, np.diag(std_dev))
-            dominant_space = DimensionReduction(threshold_factor)
+            dominant_space = DimensionReduction(threshold_factor, exact_Hessian=True)
 
             # Get dominant directions and perform reduced collocation
             dominant_space.getDominantDirections(QoI, jdist)
-            mu_j_bar = collocation.normalReduced(QoI, jdist, dominant_space)
+            mu_j_bar = collocation.normal.reduced_mean(QoI, jdist, dominant_space)
 
             # Check agaisnt full stochastic collocation
-            mu_j = collocation.normal(x, std_dev, QoI)
+            mu_j = collocation.normal.mean(x, std_dev, QoI)
 
             error_mu_j[i,j] = abs((mu_j_bar - mu_j)/mu_j)
 
@@ -54,7 +57,7 @@ def test_orientation():
     theta = np.linspace(0, 90, num=n_theta)
 
     # same standard deviation
-    std_dev = np.array([0.2, 0.1])
+    std_dev = np.array([0.1, 0.1])
     print "standard deviation = ", std_dev
     for i in xrange(0, n_theta): # xrange(0, n_theta):
         theta_rad = theta[i]*np.pi/180
@@ -63,7 +66,7 @@ def test_orientation():
 
     print "max_err = ", max_err
 
-    fname = "max_err_02_01.dat"
+    fname = "max_err_01_01.txt"
     np.savetxt(fname, max_err, delimiter=',')
 
 
@@ -82,8 +85,9 @@ def test_sigmaRatio():
             sigma1 = std_dev_ratios[j]*sigma2
             std_dev = np.array([sigma1, sigma2])
             print "  std_dev = ", std_dev
-            max_err[i,j] = run2DQuadratic(theta_rad, std_dev, n_samples)
+            # max_err[i,j] = run2DQuadratic(theta_rad, std_dev, n_samples)
 
-    np.savetxt("max_err_sigma_ratio.txt", max_err)
+    # np.savetxt("max_err_sigma_ratio.txt", max_err)
 
 test_sigmaRatio()
+# test_orientation()

@@ -35,86 +35,45 @@ plotname = ''.join(['./plot_data/eigen_accuracy/approximation_error_bar_decay', 
 
 plt.rc('text', usetex=True)
 matplotlib.rcParams['mathtext.fontset'] = 'cm'
-matplotlib.rcParams.update({'font.size': 22})
+matplotlib.rcParams.update({'font.size': 18})
 
-i = 1
-f1, axes1 = plt.subplots(1,3, sharey=True , figsize=(9,5.5))
-plt.setp(axes1, xticks=[10, 20, 30, 40, 50], yticks=[0.0, 0.25, 0.5, 0.75, 1])
-f1.suptitle(''.join(['system size = ', str(systemsize_arr[i])]  ))
+i = 2
+f1, axes1 = plt.subplots(1,3, sharey=True , figsize=(9,4))
+plt.setp(axes1[:], xticks=[10, 20, 30, 40, 50]) #, yticks=[0.0, 0.25, 0.5, 0.75, 1.0])
+#   f1.suptitle(''.join(['system size = ', str(systemsize_arr[i])]  ))
+props = dict(boxstyle='round', facecolor='white')
+
 
 j = 0
-axes1[j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', barsabove=True)
-# axes1[j].set_xlabel('Arnoldi estimated eigen pairs')
-axes1[j].set_ylabel(r'$ || \lambda_{1:10} - \lambda_{1:10}^{exact} ||_2$')
-axes1[j].set_ylim(-0.02, 0.75)
-axes1[j].set_title(r'$\lambda_i = \frac{1}{i^2}$')
+axes1[j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', capsize=6)
+axes1[j].set_yscale("log", nonposy='clip')
+axes1[j].set_ylabel(r'eigenvalue accuracy, $\tau$')
+axes1[j].set_ylim(-0.02, 1.0)
+axes1[j].text(0.5,1,r'$\lambda_i = \frac{1}{i^2}$', size=18, bbox=props, \
+              transform=axes1[j].transAxes, horizontalalignment='center', \
+              verticalalignment='center')
+axes1[j].set_xlabel('Arnoldi iterations')
+axes1[j].yaxis.grid(which='major', linestyle=':')
 
 j = 1
-axes1[j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', barsabove=True)
+axes1[j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', capsize=6)
+axes1[j].set_yscale("log", nonposy='clip')
 titlename = ''.join(['system size = ', str(systemsize_arr[i])])
-axes1[j].set_xlabel(r'No. of Arnoldi samples')
-axes1[j].set_title(r'$\lambda_i = \frac{1}{i}$')
+axes1[j].set_xlabel('Arnoldi iterations')
+axes1[j].text(0.5,1,r'$\lambda_i = \frac{1}{i}$', size=18, bbox=props, \
+              transform=axes1[j].transAxes, horizontalalignment='center', \
+              verticalalignment='center')
+axes1[j].yaxis.grid(which='major', linestyle=':')
 
 j = 2
-axes1[j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', barsabove=True)
-# axes1[j].set_xlabel('Arnoldi estimated eigen pairs')
-axes1[j].set_title(r'$\lambda_i = \frac{1}{\sqrt{i}}$')
+axes1[j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', capsize=6)
+axes1[j].set_yscale("log", nonposy='clip')
+axes1[j].text(0.5,1,r'$\lambda_i = \frac{1}{\sqrt{i}}$', size=18, bbox=props, \
+              transform=axes1[j].transAxes, horizontalalignment='center', \
+              verticalalignment='center')
+axes1[j].set_xlabel('Arnoldi iterations')
+axes1[j].yaxis.grid(which='major', linestyle=':')
 
-plt.tight_layout(pad=2, w_pad=-1)# , w_pad=0.5, h_pad=0.5)
+plt.tight_layout(pad=1, w_pad=0)# , w_pad=0.5, h_pad=0.5)
 plotname = ''.join(['./plot_data/eigen_accuracy/approximation_error_bar_decay', str(systemsize_arr[i]), '.pdf'])
 f1.savefig(plotname, format='pdf')
-
-
-
-
-"""
-f, axes = plt.subplots(3, 3, figsize=(8.3,11.7))
-matplotlib.rcParams['mathtext.fontset'] = 'cm'
-
-i = 0;j = 0
-axes[i,j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), ', eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-axes[i,j].set_title(titlename)
-
-i = 0;j = 1
-axes[i,j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), ', eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-axes[i,j].set_title(titlename)
-
-i = 0;j = 2
-axes[i,j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), ', eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-axes[i,j].set_title(titlename)
-
-i = 1;j = 0
-axes[i,j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), ', eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-axes[i,j].set_title(titlename)
-
-i = 1;j = 1
-axes[i,j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), ', eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-axes[i,j].set_title(titlename)
-
-i = 1;j = 2
-axes[i,j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), ', eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-axes[i,j].set_title(titlename)
-
-i = 2;j = 0
-axes[i,j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), ', eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-axes[i,j].set_title(titlename)
-
-i = 2;j = 1
-axes[i,j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), ', eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-axes[i,j].set_title(titlename)
-
-i = 2;j = 2
-axes[i,j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', barsabove=True)
-titlename = ''.join(['systemsize = ', str(systemsize_arr[i]), ', eigen_decayrate = ', str(eigen_decayrate_arr[j])])
-axes[i,j].set_title(titlename)
-
-f.savefig(plotname, format='pdf')
-"""

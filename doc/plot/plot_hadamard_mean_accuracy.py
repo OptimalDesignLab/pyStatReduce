@@ -1,4 +1,5 @@
-# Plot hadamard
+# Plot hadamard approximation error all systemsizes for a given decay rate
+
 import numpy as np
 from mpl_toolkits import mplot3d
 import matplotlib
