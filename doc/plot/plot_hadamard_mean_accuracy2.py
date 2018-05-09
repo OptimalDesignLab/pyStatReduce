@@ -56,7 +56,7 @@ axes[j].text(0.5,1,r'$\lambda_i = \frac{1}{i^2}$', size=18, bbox=props, \
               transform=axes[j].transAxes, horizontalalignment='center', \
               verticalalignment='center')
 axes[j].yaxis.grid(which='major', linestyle=':')
-axes[j].set_ylim(top=1.0)
+axes[j].set_ylim(1.e-5, 1.0)
 
 j = 1  # Eigen decay rate index
 axes[j].set_yscale("log", nonposy='clip')

@@ -57,7 +57,8 @@ def test_orientation():
     theta = np.linspace(0, 90, num=n_theta)
 
     # same standard deviation
-    std_dev = np.array([0.1, 0.1])
+    # std_dev = np.array([0.1, 0.1])
+    std_dev = np.array([0.2, 0.1])
     print "standard deviation = ", std_dev
     for i in xrange(0, n_theta): # xrange(0, n_theta):
         theta_rad = theta[i]*np.pi/180
@@ -66,7 +67,8 @@ def test_orientation():
 
     print "max_err = ", max_err
 
-    fname = "max_err_01_01.txt"
+    # fname = "max_err_01_01.txt"
+    fname = "max_err_02_01.txt"
     np.savetxt(fname, max_err, delimiter=',')
 
 
@@ -89,5 +91,5 @@ def test_sigmaRatio():
 
     # np.savetxt("max_err_sigma_ratio.txt", max_err)
 
-test_sigmaRatio()
-# test_orientation()
+test_orientation()
+# test_sigmaRatio()

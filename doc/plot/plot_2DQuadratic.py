@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 
 
 def lineplot_2DQuadratic():
-    fname = "max_err_01_01.txt"
+    fname = "max_err_02_01.txt"
+    # fname = "max_err_01_01.txt"
     approxn_error = np.loadtxt(fname)
     # approxn_error = np.array([0.00492413, 0.00510523, 0.00569139, 0.00682811,
     #                           0.00882148, 0.01225806, 0.01819729, 0.02828646,
@@ -14,15 +15,20 @@ def lineplot_2DQuadratic():
     n_theta = 11
     theta = np.linspace(0, 90, num=n_theta)
 
-    plt.figure(figsize=(5,5))
     matplotlib.rcParams['mathtext.fontset'] = 'cm'
-    plt.plot(theta, approxn_error, color="black")
     plt.rc('text', usetex=True)
+    matplotlib.rcParams.update({'font.size': 14})
+    plt.figure(figsize=(4,3))
+    plt.plot(theta, approxn_error, color="black")
     plt.ylim(0.0, 0.08)
-    plt.ylabel(r'Approximation error, $\epsilon$', fontsize=16)
-    plt.xlabel(r'$\theta^{\circ}$', fontsize=16)
+    plt.yticks([0.0, 0.025, 0.05, 0.075])
+    plt.xticks([0, 30, 60, 90])
+    plt.ylabel(r'approximation error, $\epsilon$')
+    # plt.ylabel(r'relative error in the mean', fontsize=16)
+    plt.xlabel(r'$\theta^{\circ}$')
     plt.tight_layout()
-    plt.savefig("2DQuadratic_approxn_err_01_01.pdf", format="pdf")
+    # plt.savefig("2DQuadratic_approxn_err_01_01.pdf", format="pdf")
+    plt.savefig("2DQuadratic_approxn_err_02_01.pdf", format="pdf")
 
 def surfaceplot_2DQuadratic():
 

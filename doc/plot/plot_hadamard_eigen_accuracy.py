@@ -37,9 +37,9 @@ plt.rc('text', usetex=True)
 matplotlib.rcParams['mathtext.fontset'] = 'cm'
 matplotlib.rcParams.update({'font.size': 18})
 
-i = 2
+i = 0
 f1, axes1 = plt.subplots(1,3, sharey=True , figsize=(9,4))
-plt.setp(axes1[:], xticks=[10, 20, 30, 40, 50]) #, yticks=[0.0, 0.25, 0.5, 0.75, 1.0])
+plt.setp(axes1[:], xticks=[10, 20, 30, 40, 50], yticks=[1.e-9, 1.e-7, 1.e-5, 1.e-3, 0.1, 1])
 #   f1.suptitle(''.join(['system size = ', str(systemsize_arr[i])]  ))
 props = dict(boxstyle='round', facecolor='white')
 
@@ -48,7 +48,8 @@ j = 0
 axes1[j].errorbar(n_arnoldi_samples_arr, avg_err[i,j,:], yerr=err_bars[i,j,:,:], fmt='-o', capsize=6)
 axes1[j].set_yscale("log", nonposy='clip')
 axes1[j].set_ylabel(r'eigenvalue accuracy, $\tau$')
-axes1[j].set_ylim(-0.02, 1.0)
+axes1[j].set_ylim(1.e-10, 1.0)
+axes1[j].set_yticks([1.e-9, 1.e-7, 1.e-5, 1.e-3, 0.1, 1])
 axes1[j].text(0.5,1,r'$\lambda_i = \frac{1}{i^2}$', size=18, bbox=props, \
               transform=axes1[j].transAxes, horizontalalignment='center', \
               verticalalignment='center')
