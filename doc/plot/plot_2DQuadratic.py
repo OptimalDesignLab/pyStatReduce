@@ -43,6 +43,7 @@ def surfaceplot_2DQuadratic():
 
     # REad approximation error from file
     fname = "max_err_sigma_ratio.txt"
+    # fname = "max_err_sigma_ratio_no_iso.txt"
     approxn_error = np.loadtxt(fname)
     print "approxn_error.shape", approxn_error.shape, "\n"
 
@@ -50,18 +51,20 @@ def surfaceplot_2DQuadratic():
     matplotlib.rcParams['mathtext.fontset'] = 'cm'
     plt.rc('text', usetex=True)
     matplotlib.rcParams.update({'font.size': 18})
-    fig = plt.figure(figsize=(7,5))
+    fig = plt.figure(figsize=(6 ,5))
     ax = fig.add_subplot(111, projection='3d')
     ax.view_init(30, 225)
     ax.plot_surface(m_theta, m_std_dev_ratios, approxn_error.T, cmap="coolwarm", edgecolors="k")
     plt.yticks([0, 5, 10, 15, 20])
+    ax.set_xticks([0, 30, 60, 90])
     ax.set_zticks([0, 0.2, 0.4, 0.6, 0.8, 1])
     ax.set_zlim(0.0, 1.0)
     plt.xlabel(r'$\theta^{\circ}$', labelpad=10)
     plt.ylabel(r'$\frac{\sigma_{1}}{\sigma_{2}}$', labelpad=10)
-    ax.set_zlabel(r'Approximation Error, $\epsilon$')
+    ax.set_zlabel(r'approximation error, $\epsilon$')
     plt.tight_layout()
     plt.savefig("2DQuadratic_std_dev_ratio.pdf", format="pdf")
+    # plt.savefig("2DQuadratic_std_dev_ratio_no_iso.pdf", format="pdf")
 
-# surfaceplot_2DQuadratic()
-lineplot_2DQuadratic()
+surfaceplot_2DQuadratic()
+# lineplot_2DQuadratic()

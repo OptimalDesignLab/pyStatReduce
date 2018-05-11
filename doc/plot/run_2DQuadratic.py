@@ -87,9 +87,9 @@ def test_sigmaRatio():
             sigma1 = std_dev_ratios[j]*sigma2
             std_dev = np.array([sigma1, sigma2])
             print "  std_dev = ", std_dev
-            # max_err[i,j] = run2DQuadratic(theta_rad, std_dev, n_samples)
+            max_err[i,j] = run2DQuadratic(theta_rad, std_dev, n_samples)
 
-    # np.savetxt("max_err_sigma_ratio.txt", max_err)
+    np.savetxt("max_err_sigma_ratio_no_iso.txt", max_err)
 
-test_orientation()
-# test_sigmaRatio()
+# test_orientation()
+test_sigmaRatio()
