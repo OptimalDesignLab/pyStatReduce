@@ -15,3 +15,7 @@ script:
   - python ./test/test_hadamard_quadratic.py
   - python ./test/test_dimension_reduction.py
   - python ./test/test_arnoldi_sampling.py
+
+notifications:
+  email:
+    - pandak@rpi.edu

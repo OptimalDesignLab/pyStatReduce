@@ -33,7 +33,8 @@ class StochasticCollocationTest(unittest.TestCase):
         QoI = examples.Paraboloid2D(systemsize, tuple)
 
         # Compute the expected value
-        mu_j = collocation.normal.mean(x, sigma, QoI)
+        QoI_func = QoI.eval_QoI
+        mu_j = collocation.normal.mean(x, sigma, QoI_func)
 
         # Test against nested loops
         mu_j_hat = 0.0
@@ -58,7 +59,7 @@ class StochasticCollocationTest(unittest.TestCase):
         variance_analytical = 2*np.trace(np.matmul(mat1, mat1)) + 4*x.dot(mat2)
 
         # - Numerical Value
-        sigma_j = collocation.normal.variance(QoI, jdist, mu_j)
+        sigma_j = collocation.normal.variance(QoI_func, jdist, mu_j)
         diff = abs(variance_analytical - sigma_j)
         self.assertTrue(diff < 1.e-15)
 
@@ -73,9 +74,10 @@ class StochasticCollocationTest(unittest.TestCase):
 
         # Create a QoI object using ellpsoid
         QoI = examples.Paraboloid3D(systemsize)
+        QoI_func = QoI.eval_QoI
 
         # Compute the expected value
-        mu_j = collocation.normal.mean(x, sigma, QoI)
+        mu_j = collocation.normal.mean(x, sigma, QoI_func)
 
         # Test against nested loops
         mu_j_hat = 0.0
@@ -103,9 +105,10 @@ class StochasticCollocationTest(unittest.TestCase):
 
         # Create a QoI object using ellpsoid
         QoI = examples.Paraboloid5D(systemsize)
+        QoI_func = QoI.eval_QoI
 
         # Compute the expected value
-        mu_j = collocation.normal.mean(x, sigma, QoI)
+        mu_j = collocation.normal.mean(x, sigma, QoI_func)
 
         # Test against nested loops
         mu_j_hat = 0.0
@@ -143,15 +146,16 @@ class StochasticCollocationTest(unittest.TestCase):
 
         # Create a QoI object using ellpsoid
         QoI = examples.ConstantFunction(systemsize)
+        QoI_func = QoI.eval_QoI
 
         # Compute the expected value
-        mu_j = collocation.uniform.mean(QoI, udist1)
+        mu_j = collocation.uniform.mean(QoI_func, udist1)
 
         diff = abs(mu_j - QoI.eval_QoI(mu, np.zeros(systemsize)))
         self.assertTrue(diff < 1.e-15)
 
         # Test Check for the variance
-        variance_j = collocation.uniform.variance(QoI, jdist, mu_j)
+        variance_j = collocation.uniform.variance(QoI_func, jdist, mu_j)
         self.assertAlmostEqual(variance_j, 0, places=15)
 
 
@@ -175,9 +179,10 @@ class StochasticCollocationTest(unittest.TestCase):
 
         # Create a QoI object using ellpsoid
         QoI = examples.Paraboloid5D(systemsize)
+        QoI_func = QoI.eval_QoI
 
         # Compute the expected value
-        mu_j = collocation.uniform.mean(QoI, jdist)
+        mu_j = collocation.uniform.mean(QoI_func, jdist)
 
         # Compute the analytical expected value
         mu_j_analytical = np.trace(np.matmul(QoI.quadratic_matrix, cp.Cov(jdist))) + \
