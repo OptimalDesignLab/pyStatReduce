@@ -95,6 +95,37 @@ class StochasticCollocationTest(unittest.TestCase):
         diff = abs(mu_j - mu_j_hat)
         self.assertTrue(diff < 1.e-15)
 
+    def test_normalStochasticCollocation3D_grad(self):
+        systemsize = 3
+        x = np.random.rand(systemsize)
+        sigma = np.random.rand(systemsize)
+
+        # Create a Stochastic collocation object
+        collocation = StochasticCollocation(3, "Normal", systemsize)
+
+        # Create a QoI object using ellpsoid
+        QoI = examples.Paraboloid3D(systemsize)
+        QoI_func = QoI.eval_QoIGradient
+
+        # Compute the expected value
+        mu_j = collocation.normal.mean(x, sigma, QoI_func)
+
+        # Test against nested loops
+        mu_j_hat = np.zeros(systemsize) # 0.0
+        sqrt2 = np.sqrt(2)
+        for i in xrange(0, collocation.normal.q.size):
+            for j in xrange(0, collocation.normal.q.size):
+                for k in xrange(0, collocation.normal.q.size):
+                    f_val = QoI.eval_QoIGradient(x, sqrt2*sigma*[collocation.normal.q[i],
+                            collocation.normal.q[j], collocation.normal.q[k]])
+                    mu_j_hat[:] += collocation.normal.w[i]*collocation.normal.w[j]* \
+                                collocation.normal.w[k]*f_val
+
+        mu_j_hat[:] = mu_j_hat/(np.sqrt(np.pi)**systemsize)
+
+        diff = abs(mu_j - mu_j_hat)
+        self.assertTrue((diff < 1.e-15).all())
+
     def test_normalStochasticCollocation5D(self):
         systemsize = 5
         x = np.random.rand(systemsize)

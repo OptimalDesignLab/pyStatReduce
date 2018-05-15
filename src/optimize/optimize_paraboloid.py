@@ -27,14 +27,19 @@ def objfunc(xdict):
     theta = 0
     sigma = np.array([0.2, 0.1])
     tuple = (theta,)
-    jdist = cp.MvNormal(x, np.diag(sigma))           # Create joint distribution
+    jdist = cp.MvNormal(mu, np.diag(sigma))          # Create joint distribution
     collocation = StochasticCollocation(3, "Normal") # Create a Stochastic collocation object
     QoI = examples.Paraboloid2D(systemsize, tuple)   # Create QoI
     dominant_space = DimensionReduction(threshold_factor, exact_Hessian=True)
     dominant_space.getDominantDirections(QoI, jdist)
 
-    funcs['obj'] = collocation.normal.reduced_mean(QoI, jdist, dominant_space)
+    QoI_func = QoI.eval_QoI
+    funcs['obj'] = collocation.normal.reduced_mean(QoI_func, jdist, dominant_space)
 
     fail = False
 
 def sens(xdict, funcs):
+
+    mu = xdict['xvars']
+    funcsSens = {}
+    funcsSens['obj', 'xvars'] =

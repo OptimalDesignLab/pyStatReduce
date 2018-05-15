@@ -26,16 +26,17 @@ class StochasticCollocation(object):
     * `degree` : Number of collocation point in a particular dimension
     * `distribution_type` : String value that indicates the type of distribution
                             is expected to be used.
+    * `QoI_dimensions` : Dimension of the quantity of interest. Default = 1
 
     """
 
-    def __init__(self, degree, distribution_type):
+    def __init__(self, degree, distribution_type, QoI_dimensions=1):
         assert degree > 0, "Need at least 1 collocation point for \
                                         uncertainty propagation"
         if distribution_type == "Normal" or distribution_type == "MvNormal":
-            self.normal = NormalDistribution(degree)
+            self.normal = NormalDistribution(degree, QoI_dimensions)
         elif distribution_type == "Uniform":
-            self.uniform = UniformDistribution(degree)
+            self.uniform = UniformDistribution(degree, QoI_dimensions)
         else:
             raise NotImplementedError
 
@@ -43,8 +44,9 @@ class StochasticCollocation(object):
 
 class NormalDistribution(StochasticCollocation):
 
-    def __init__(self, degree):
+    def __init__(self, degree, QoI_dimensions):
         self.q, self.w = np.polynomial.hermite.hermgauss(degree)
+        self.QoI_dimensions = QoI_dimensions
 
     def mean(self, x, sigma, QoI_func):
         """
@@ -70,14 +72,17 @@ class NormalDistribution(StochasticCollocation):
         idx = 0
         colloc_xi_arr = np.zeros(systemsize)
         colloc_w_arr = np.zeros(systemsize)
-        mu_j = np.zeros(1)
+        mu_j = np.zeros(self.QoI_dimensions)
         idx = self.doNormalMean(x, sigma, mu_j, ref_collocation_pts,
                                 ref_collocation_w, QoI_func, colloc_xi_arr,
                                 colloc_w_arr, idx)
         assert idx == -1
-        mu_j[0] = mu_j[0]/(np.sqrt(np.pi)**systemsize)
+        mu_j[:] = mu_j[:]/(np.sqrt(np.pi)**systemsize)
 
-        return mu_j[0]
+        if len(mu_j) == 1:
+            return mu_j[0]
+        else:
+            return mu_j
 
     def reduced_mean(self, QoI_func, jdist, dominant_space):
         """
@@ -105,7 +110,7 @@ class NormalDistribution(StochasticCollocation):
         idx = 0
         colloc_xi_arr = np.zeros(n_quadrature_loops)
         colloc_w_arr = np.zeros(n_quadrature_loops)
-        mu_j = np.zeros(1)
+        mu_j = np.zeros(self.QoI_dimensions)
 
         idx = self.doReducedNormalMean(x, covariance, dominant_dir, mu_j,
                                        ref_collocation_pts, ref_collocation_w,
@@ -113,9 +118,12 @@ class NormalDistribution(StochasticCollocation):
                                        colloc_w_arr, idx)
 
         assert idx == -1
-        mu_j[0] = mu_j[0]/(np.sqrt(np.pi)**n_quadrature_loops)
+        mu_j[:] = mu_j[:]/(np.sqrt(np.pi)**n_quadrature_loops)
 
-        return mu_j[0]
+        if len(mu_j) == 1:
+            return mu_j[0]
+        else:
+            return mu_j
 
     def variance(self, QoI_func, jdist, mu_j):
         """
@@ -134,6 +142,7 @@ class NormalDistribution(StochasticCollocation):
                          value of random variabes
         """
 
+        # np.testing.assert_equal(len(mu_j), self.QoI_dimensions) # sanity check
         x = cp.E(jdist)
         rv_covariance = cp.Cov(jdist)
         systemsize = x.size
@@ -142,16 +151,19 @@ class NormalDistribution(StochasticCollocation):
         idx = 0
         colloc_xi_arr = np.zeros(systemsize)
         colloc_w_arr = np.zeros(systemsize)
-        variance_j = np.zeros(1)
+        variance_j = np.zeros(self.QoI_dimensions)
 
         idx = self.doVariance(x, rv_covariance, mu_j, variance_j, ref_collocation_pts,
                               ref_collocation_w, QoI_func, colloc_xi_arr,
                               colloc_w_arr, idx)
 
         assert idx == -1
-        variance_j[0] = variance_j[0]/(np.sqrt(np.pi)**systemsize)
+        variance_j[:] = variance_j[:]/(np.sqrt(np.pi)**systemsize)
 
-        return variance_j[0]
+        if len(variance_j) == 0:
+            return variance_j[0]
+        else:
+            return variance_j
 
     def doVariance(self, x, rv_covariance, mu_j, variance_j, xi, w, QoI_func, colloc_xi_arr,
                    colloc_w_arr, idx):
@@ -189,7 +201,7 @@ class NormalDistribution(StochasticCollocation):
                 colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
                 # fval = QoI.eval_QoI(x, sqrt2*sqrt_rv_covariance.dot(colloc_xi_arr)) - mu_j
                 fval = QoI_func(x, sqrt2*sqrt_rv_covariance.dot(colloc_xi_arr)) - mu_j
-                variance_j[0] += np.prod(colloc_w_arr)*fval*fval
+                variance_j[:] += np.prod(colloc_w_arr)*fval*fval
             return idx-1
         else:
             for i in xrange(0, xi.size):
@@ -233,7 +245,7 @@ class NormalDistribution(StochasticCollocation):
                 colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
                 # fval = QoI.eval_QoI(x, sqrt2*sigma*colloc_xi_arr)
                 fval = QoI_func(x, sqrt2*sigma*colloc_xi_arr)
-                mu_j[0] += np.prod(colloc_w_arr)*fval
+                mu_j[:] += np.prod(colloc_w_arr)*fval
             return idx-1
         else:
             for i in xrange(0, xi.size):
@@ -282,7 +294,7 @@ class NormalDistribution(StochasticCollocation):
                 q = sqrt2* np.matmul(sqrt_Sigma, dominant_dir.dot(colloc_xi_arr))
                 # fval = QoI.eval_QoI(x, q)
                 fval = QoI_func(x, q)
-                mu_j[0] += np.prod(colloc_w_arr)*fval
+                mu_j[:] += np.prod(colloc_w_arr)*fval
             return idx-1
         else:
             for i in xrange(0, xi.size):
@@ -298,8 +310,9 @@ class NormalDistribution(StochasticCollocation):
 
 class UniformDistribution(StochasticCollocation):
 
-    def __init__(self, degree):
+    def __init__(self, degree, QoI_dimensions):
         self.q, self.w = np.polynomial.legendre.leggauss(degree)
+        self.QoI_dimensions = QoI_dimensions
 
     def mean(self, QoI_func, jdist):
         x = cp.E(jdist)
@@ -311,14 +324,17 @@ class UniformDistribution(StochasticCollocation):
         idx = 0
         colloc_xi_arr = np.zeros(systemsize)
         colloc_w_arr = np.zeros(systemsize)
-        mu_j = np.zeros(1)
+        mu_j = np.zeros(self.QoI_dimensions)
         idx = self.doUniformMean(x, covariance, mu_j, ref_collocation_pts,
                                        ref_collocation_w, QoI_func, colloc_xi_arr,
                                        colloc_w_arr, idx)
         assert idx == -1
-        mu_j[0] = mu_j[0]*(0.5**systemsize)
+        mu_j[:] = mu_j[:]*(0.5**systemsize)
 
-        return mu_j[0]
+        if len(mu_j) == 1:
+            return mu_j[0]
+        else:
+            return mu_j
 
     def reduced_mean(self, QoI_func, jdist, dominant_space):
 
@@ -331,7 +347,7 @@ class UniformDistribution(StochasticCollocation):
         idx = 0
         colloc_xi_arr = np.zeros(n_quadrature_loops)
         colloc_w_arr = np.zeros(n_quadrature_loops)
-        mu_j = np.zeros(1)
+        mu_j = np.zeros(self.QoI_dimensions)
 
         idx = self.doReducedUniformMean(x, covariance, dominant_dir, mu_j,
                                         ref_collocation_pts,
@@ -340,9 +356,12 @@ class UniformDistribution(StochasticCollocation):
 
         assert idx == -1
         # TODO: The following scaling doesnt look right, INVESTIGATE
-        mu_j[0] = mu_j[0]*(0.5**n_quadrature_loops)
+        mu_j[:] = mu_j[:]*(0.5**n_quadrature_loops)
 
-        return mu_j[0]
+        if len(mu_j) == 1:
+            return mu_j[0]
+        else:
+            return mu_j
 
     def variance(self, QoI_func, jdist, mu_j):
         x = cp.E(jdist)
@@ -360,9 +379,12 @@ class UniformDistribution(StochasticCollocation):
                               idx)
 
         assert idx == -1
-        variance_j[0] = variance_j[0]*(0.5**systemsize)
+        variance_j[:] = variance_j[:]*(0.5**systemsize)
 
-        return variance_j[0]
+        if len(variance_j) == 1:
+            return variance_j[0]
+        else:
+            return variance_j
 
 
     def doUniformMean(self, x, covariance, mu_j, xi, w,
@@ -376,7 +398,7 @@ class UniformDistribution(StochasticCollocation):
                 colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
                 # fval = QoI.eval_QoI(x, sqrt3 * np.dot(sqrt_Sigma, colloc_xi_arr))
                 fval = QoI_func(x, sqrt3 * np.dot(sqrt_Sigma, colloc_xi_arr))
-                mu_j[0] += np.prod(colloc_w_arr)*fval
+                mu_j[:] += np.prod(colloc_w_arr)*fval
             return idx-1
         else:
             for i in xrange(0, xi.size):
@@ -398,7 +420,7 @@ class UniformDistribution(StochasticCollocation):
                 q = sqrt3* np.matmul(sqrt_Sigma, dominant_dir.dot(colloc_xi_arr))
                 # fval = QoI.eval_QoI(x, q)
                 fval = QoI_func(x, q)
-                mu_j[0] += np.prod(colloc_w_arr)*fval
+                mu_j[:] += np.prod(colloc_w_arr)*fval
             return idx-1
         else:
             for i in xrange(0, xi.size):
@@ -419,7 +441,7 @@ class UniformDistribution(StochasticCollocation):
                 colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
                 # fval = QoI.eval_QoI(x, sqrt3*sqrt_rv_covariance.dot(colloc_xi_arr)) - mu_j
                 fval = QoI_func(x, sqrt3*sqrt_rv_covariance.dot(colloc_xi_arr)) - mu_j
-                variance_j[0] += np.prod(colloc_w_arr)*fval*fval
+                variance_j[:] += np.prod(colloc_w_arr)*fval*fval
             return idx-1
         else:
             for i in xrange(0, xi.size):

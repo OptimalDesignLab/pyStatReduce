@@ -37,6 +37,11 @@ class Paraboloid3D(QuantityOfInterest):
     def eval_QoI(self, mu, xi):
         return 50*(mu[0]+xi[0])**2 + 25*(mu[1] + xi[1])**2 + (mu[2] + xi[2])**2
 
+    def eval_QoIGradient(self, mu, xi):
+        rv = mu + xi
+        grad = np.array([100*rv[0], 50*rv[1], 2*rv[2]])
+        return grad
+
 
 class Paraboloid5D(QuantityOfInterest):
 
