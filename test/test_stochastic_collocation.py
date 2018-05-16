@@ -101,7 +101,7 @@ class StochasticCollocationTest(unittest.TestCase):
         sigma = np.random.rand(systemsize)
 
         # Create a Stochastic collocation object
-        collocation = StochasticCollocation(3, "Normal", systemsize)
+        collocation = StochasticCollocation(4, "Normal", systemsize)
 
         # Create a QoI object using ellpsoid
         QoI = examples.Paraboloid3D(systemsize)
@@ -125,6 +125,11 @@ class StochasticCollocationTest(unittest.TestCase):
 
         diff = abs(mu_j - mu_j_hat)
         self.assertTrue((diff < 1.e-15).all())
+
+        # Test against analytical value
+        mu_j_analytical = QoI.eval_QoIGradient(x, np.zeros(systemsize))
+        diff_analytical = abs(mu_j - mu_j_analytical)
+        self.assertTrue((diff_analytical < 1.e-13).all())
 
     def test_normalStochasticCollocation5D(self):
         systemsize = 5
