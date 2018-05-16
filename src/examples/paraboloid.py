@@ -42,6 +42,9 @@ class Paraboloid3D(QuantityOfInterest):
         grad = np.array([100*rv[0], 50*rv[1], 2*rv[2]])
         return grad
 
+    def eval_QoIHessian(self, mu, xi):
+        return np.diag([100, 50, 2])
+
 
 class Paraboloid5D(QuantityOfInterest):
 
