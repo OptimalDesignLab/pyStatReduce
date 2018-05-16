@@ -61,7 +61,8 @@ class HadamardQuadraticTest(unittest.TestCase):
         # Check against stochastic collocation
         collocation = StochasticCollocation(3, "Normal")
         sigma = np.diagonal(np.sqrt(Sigma)) # Standard deviation vector
-        mu_j = collocation.normal.mean(mu, sigma, QoI)
+        QoI_func = QoI.eval_QoI
+        mu_j = collocation.normal.mean(mu, sigma, QoI_func)
         err = abs(fval - mu_j)
         self.assertTrue(err < 1.e-14)
 
@@ -99,7 +100,7 @@ class HadamardQuadraticTest(unittest.TestCase):
             return QoI.eval_QoI(mu, deviation)
 
         Hess_fd = nd.Hessian(func)(mu + xi)
-        
+
         error_vals = abs(Hessian - Hess_fd)
         self.assertTrue((error_vals < 1.e-10).all())
 

@@ -132,9 +132,9 @@ class ArnoldiSamplingTest(unittest.TestCase):
         # quadratic system using Arnoldi sampling and verify against the exact
         # computation
 
-        systemsize = 32
+        systemsize = 64
         eigen_decayrate = 2.0
-        num_sample = 21
+        num_sample = 51
 
         # Create Hadmard Quadratic object
         QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)

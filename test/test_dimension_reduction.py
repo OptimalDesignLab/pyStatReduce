@@ -21,7 +21,7 @@ np.set_printoptions(linewidth=150)
 
 
 class DimensionReductionTest(unittest.TestCase):
-    """
+
     def test_dimensionReduction(self):
 
         systemsize = 4
@@ -80,15 +80,15 @@ class DimensionReductionTest(unittest.TestCase):
         # Get the eigenmodes of the Hessian product and the dominant indices
         dominant_space.getDominantDirections(QoI, jdist)
 
-        mu_j = collocation.normal.reduced_mean(QoI, jdist, dominant_space)
+        QoI_func = QoI.eval_QoI
+        mu_j = collocation.normal.reduced_mean(QoI_func, jdist, dominant_space)
         true_value_mu_j = 4.05
         err = abs(mu_j - true_value_mu_j)
         self.assertTrue(err < 1.e-15)
-    """
+
     def test_dimensionReduction_arnoldi_enlarge(self):
-        systemsize = 256
-        eigen_decayrate = 0.5
-        # n_arnoldi_sample = 51
+        systemsize = 128
+        eigen_decayrate = 1.0
 
         # Create Hadmard Quadratic object
         QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
@@ -98,7 +98,7 @@ class DimensionReductionTest(unittest.TestCase):
 
         # Create dimension reduction object
         threshold_factor = 0.9
-        # dominant_space_exactHess = DimensionReduction(threshold_factor, exact_Hessian=True)
+        dominant_space_exactHess = DimensionReduction(threshold_factor, exact_Hessian=True)
         dominant_space_arnoldi = DimensionReduction(threshold_factor, exact_Hessian=False, n_arnoldi_sample=71)
 
         # Initialize chaospy distribution
@@ -107,19 +107,18 @@ class DimensionReductionTest(unittest.TestCase):
         jdist = cp.MvNormal(x, np.diag(std_dev))
 
         # Get the eigenmodes of the Hessian product and the dominant indices
-        # dominant_space_exactHess.getDominantDirections(QoI, jdist)
+        dominant_space_exactHess.getDominantDirections(QoI, jdist)
         dominant_space_arnoldi.getDominantDirections(QoI, jdist)
 
         # Print iso_eigenvals
-        # sort_ind1 = dominant_space_exactHess.iso_eigenvals.argsort()[::-1]
+        sort_ind1 = dominant_space_exactHess.iso_eigenvals.argsort()[::-1]
         sort_ind2 = dominant_space_arnoldi.iso_eigenvals.argsort()[::-1]
-        # lambda_exact = dominant_space_exactHess.iso_eigenvals[sort_ind1]
+        lambda_exact = dominant_space_exactHess.iso_eigenvals[sort_ind1]
         lambda_arnoldi = dominant_space_arnoldi.iso_eigenvals[sort_ind2]
 
-        # energy_exact = 1 - np.sum(lambda_exact[0:5])/np.sum(lambda_exact)
+        energy_err = np.linalg.norm(lambda_arnoldi[0:10] - lambda_exact[0:10]) / np.linalg.norm(lambda_exact[0:10])
 
-        # print "energy_exact = ", energy_exact
-        print "dominant_space_arnoldi.dominant_indices = ", dominant_space_arnoldi.dominant_indices
+        self.assertTrue(energy_err < 1.e-8)
 
 
 
