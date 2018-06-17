@@ -65,8 +65,8 @@ class HadamardQuadratic(QuantityOfInterest):
 
         fac = 1.0/np.sqrt(2)
         if n == 2:
-            y[0,:] = fac*(x[0,:] + x[1,:])
-            y[1,:] = fac*(x[0,:] - x[1,:])
+            y_2D[0,:] = fac*(x_2D[0,:] + x_2D[1,:])
+            y_2D[1,:] = fac*(x_2D[0,:] - x_2D[1,:])
         else:
             n2 = n // 2
             Hx1 = np.zeros((n2, np.size(x_2D,1)))
