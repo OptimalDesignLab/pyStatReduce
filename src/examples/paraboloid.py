@@ -21,7 +21,20 @@ class Paraboloid2D(QuantityOfInterest):
         fval = 50*(mu[0]+xi_hat[0])**2 + (mu[1] + xi_hat[1])**2
         return fval
 
+    def eval_QoIGradient(self, mu, xi):
+        """
+        Use finite difference to compute gradient.
+        """
+        def func(xi) :
+            return self.eval_QoI(mu, xi)
+
+        G = nd.Gradient(func)(xi)
+        return G
+
     def eval_QoIHessian(self, mu, xi):
+        """
+        Use finite difference to compute Hessian.
+        """
         def func(xi) :
             return self.eval_QoI(mu, xi)
 

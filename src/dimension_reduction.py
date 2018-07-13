@@ -73,7 +73,7 @@ class DimensionReduction(object):
             sqrt_Sigma = np.sqrt(covariance)
         else:
             raise NotImplementedError
-
+        # TODO: Break the long if blocks into functions
         if self.use_exact_Hessian == True:
 
             # Get the Hessian of the QoI

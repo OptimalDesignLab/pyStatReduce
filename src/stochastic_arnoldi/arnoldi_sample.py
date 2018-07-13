@@ -145,6 +145,8 @@ class ArnoldiSampling(object):
             w[:,i+1] = w[:,i+1]/nrm
             return False
 
+    #---------------------------------------------------------------------------
+
     def arnoldiSample_og(self, QoI, xdata, fdata, gdata, eigenvals, eigenvecs, grad_red):
         """
         Generates a sample of points, function values, and gradients using Arnoldi

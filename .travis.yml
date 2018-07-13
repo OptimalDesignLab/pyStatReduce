@@ -9,6 +9,11 @@ install:
   - pip install numdifftools
   - pip install chaospy
 
+# Branches to avoid building
+branches:
+  except:
+    - codebreaking
+
 # command to run tests
 script:
   - python ./test/test_stochastic_collocation.py

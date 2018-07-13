@@ -23,8 +23,8 @@ import examples
 
 # Quadratic object
 mu = np.zeros(2)
-sigma = np.array([2, 0.1]) # np.ones(2)
-theta = np.pi/3
+sigma = np.ones(2) # np.array([2, 0.1])
+theta = 0.0 # np.pi/3
 tuple = (theta,)
 jdist = cp.MvNormal(mu, np.diag(sigma))
 QoI = examples.Paraboloid2D(2, tuple)
@@ -44,17 +44,20 @@ for i in xrange(0, nx):
 
 
 # Plot the distribution
-# fname = "./pdfs/stadard_quadratic-distribution_0.pdf"
-fname = "./pdfs/2_01_quadratic-distribution_60.pdf"
+if theta == 0.0:
+    fname = "./pdfs/stadard_quadratic-distribution_0.pdf"
+elif theta == np.pi/3:
+    fname = "./pdfs/2_01_quadratic-distribution_60.pdf"
+    
 plt.rc('text', usetex=True)
 matplotlib.rcParams['mathtext.fontset'] = 'cm'
 fig = plt.figure("probability_distribution", figsize=(6,6))
 ax = plt.axes()
-cp1 = ax.contour(xi_1, xi_2, probability_density, colors="red", linewidths=0.5)
-cp2 = ax.contour(xi_1, xi_2, J_xi, levels=[2,4,8,16,32,64,128,256, 512], colors="black", linewidths=0.5)
+cp1 = ax.contour(xi_1, xi_2, probability_density, colors="red", linestyles='dashed', linewidths=1.0)
+cp2 = ax.contour(xi_1, xi_2, J_xi, levels=[2,4,8,16,32,64,128,256, 512], colors="black", linewidths=1.0)
 # ax.clabel(cp, inline=1, fmt='%1.1f', fontsize=8)
 lines = [cp1.collections[0], cp2.collections[0]]
-labels = ['Probability density', 'Quantity of Interest']
+labels = [r'Probability density, $P_{\Xi} (\xi)$', r'Quantity of Interest, $J$']
 ax.set_xlabel(r'$\xi_1$', fontsize=16)
 ax.set_ylabel(r'$\xi_2$', fontsize=16)
 ax.tick_params(axis='both', labelsize=16)

@@ -31,8 +31,10 @@ class StochasticCollocation(object):
     """
 
     def __init__(self, degree, distribution_type, QoI_dimensions=1):
+        # TODO: Check the term degree
         assert degree > 0, "Need at least 1 collocation point for \
                                         uncertainty propagation"
+        # TODO: get rid of normal and uniform
         if distribution_type == "Normal" or distribution_type == "MvNormal":
             self.normal = NormalDistribution(degree, QoI_dimensions)
         elif distribution_type == "Uniform":

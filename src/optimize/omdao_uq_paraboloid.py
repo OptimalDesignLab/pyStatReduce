@@ -30,6 +30,8 @@ class Paraboloid(ExplicitComponent):
     """
     def setup(self):
 
+        print("In Setup!!")
+
         self.std_dev_xi = np.array([0.3, 0.2, 0.1])
         system_size = 3
         mean_xi = np.ones(system_size)
@@ -55,6 +57,8 @@ class Paraboloid(ExplicitComponent):
 
     def compute(self, inputs, outputs):
 
+        print("In compute")
+
         mu = inputs['mean_xi']
         # print("mu = ", mu)
         jdist = cp.MvNormal(mu, np.diag(self.std_dev_xi))
@@ -62,6 +66,8 @@ class Paraboloid(ExplicitComponent):
         outputs['mean_QoI'] = self.collocation_QoI.normal.reduced_mean(QoI_func, jdist, self.dominant_space)
 
     def compute_partials(self, inputs, J):
+
+        print("In compute_partials")
 
         mu = inputs['mean_xi']
         jdist = cp.MvNormal(mu, np.diag(self.std_dev_xi))
@@ -90,7 +96,7 @@ if __name__ == "__main__":
     #------------ Run optimization using SNOPT
     prob = Problem()
     indeps = prob.model.add_subsystem('indeps', IndepVarComp(), promotes=['*'])
-    indeps.add_output('mean_xi', 8*np.ones(3))
+    indeps.add_output('mean_xi', 10*np.ones(3))
     prob.model.add_subsystem('paraboloid', Paraboloid(), promotes_inputs=['mean_xi'])
 
     # Set up the Optimization
@@ -100,7 +106,7 @@ if __name__ == "__main__":
     prob.driver.opt_settings['Major feasibility tolerance'] = 3e-7
     prob.driver.opt_settings['Major iterations limit'] = 1000
     prob.driver.opt_settings['Verify level'] = -1
-    prob.model.add_design_var('mean_xi', lower = -5*np.ones(3), upper = 10*np.ones(3))
+    prob.model.add_design_var('mean_xi', lower = -20*np.ones(3), upper = 20*np.ones(3))
     prob.model.add_objective('paraboloid.mean_QoI')
 
     prob.setup()
