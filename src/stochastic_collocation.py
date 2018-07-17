@@ -127,6 +127,40 @@ class NormalDistribution(StochasticCollocation):
         else:
             return mu_j
 
+    def reduced_mean2(self, QoI_func, jdist, dominant_space):
+        marginal_dist = dominant_space.marginal_distribution
+        marginal_x = cp.E(marginal_dist)
+        marginal_covariance = cp.Cov(marginal_dist)
+        # Compute the square root of the covariance matrix
+        if np.count_nonzero(marginal_covariance - np.diag(np.diagonal(marginal_covariance))) == 0:
+            sqrt_Sigma = np.sqrt(covariance)
+        else:
+            cov_eigenval, cov_eigenvecs = np.linalg.eig(marginal_covariance)
+            sqrt_Sigma = np.sqrt(cov_eigenval)*cov_eigenvecs
+
+        n_quadrature_loops = len(dominant_space.dominant_indices)
+        dominant_dir = dominant_space.iso_eigenvecs[:, dominant_space.dominant_indices]
+        ref_collocation_pts = self.q
+        ref_collocation_w = self.w
+        idx = 0
+        colloc_xi_arr = np.zeros(n_quadrature_loops)
+        colloc_w_arr = np.zeros(n_quadrature_loops)
+        mu_j = np.zeros(self.QoI_dimensions)
+
+        idx = self.doReducedNormalMean2(marginal_x, sqrt_Sigma, dominant_dir, mu_j,
+                                        ref_collocation_pts, ref_collocation_w,
+                                        QoI_func, colloc_xi_arr,
+                                        colloc_w_arr, idx)
+
+        assert idx == -1
+        mu_j[:] = mu_j[:]/(np.sqrt(np.pi)**n_quadrature_loops)
+
+        if len(mu_j) == 1:
+            return mu_j[0]
+        else:
+            return mu_j
+
+
     def variance(self, QoI_func, jdist, mu_j):
         """
         Public member that is used to perform stochastic collocation only along
@@ -295,6 +329,28 @@ class NormalDistribution(StochasticCollocation):
                 colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
                 q = sqrt2* np.matmul(sqrt_Sigma, dominant_dir.dot(colloc_xi_arr))
                 # fval = QoI.eval_QoI(x, q)
+                fval = QoI_func(x, q)
+                mu_j[:] += np.prod(colloc_w_arr)*fval
+            return idx-1
+        else:
+            for i in xrange(0, xi.size):
+                colloc_xi_arr[idx] = xi[i]
+                colloc_w_arr[idx] = w[i]
+                idx = self.doReducedNormalMean(x, covariance,
+                      dominant_dir, mu_j, xi, w, QoI_func, colloc_xi_arr,
+                      colloc_w_arr, idx+1)
+            return idx-1
+
+    def doReducedNormalMean2(self, marginal_x, sqrt_Sigma, dominant_dir, mu_j, xi, w,
+                            QoI_func, colloc_xi_arr, colloc_w_arr, idx):
+
+        if idx == np.size(dominant_dir,1)-1:  # x.size-1: # TODO: Change to nquadrature loops
+            sqrt2 = np.sqrt(2)
+            x = np.dot(dominant_dir, marginal_x)
+            for i in xrange(0, xi.size):
+                colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
+                colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
+                q = np.dot(dominant_dir, sqrt2 * np.dot(sqrt_Sigma, colloc_xi_arr))
                 fval = QoI_func(x, q)
                 mu_j[:] += np.prod(colloc_w_arr)*fval
             return idx-1

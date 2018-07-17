@@ -170,39 +170,30 @@ class DimensionReduction(object):
             else:
                 self.dominant_indices = usable_pairs[0]
 
+        # Compute the marginal distribution
+        calcMarginals(jdist) # This must be commented when using the original scheme
 
-            # # Now use only a portion of the accumulated energy
-            # ind = []
-            # for i in usable_pairs[0]:
-            #     dominant_eigen_val_ind = usable_pairs[0][0:i+1]
-            #     # print "dominant_eigen_val_ind = ", usable_pairs[0][0:i+1]
-            #     reduced_energy = np.sum(np.square(self.iso_eigenvals[dominant_eigen_val_ind]))
-            #     if reduced_energy <= self.threshold_factor*acc_energy:
-            #             ind.append(dominant_eigen_val_ind[i])
-            #     else:
-            #         break
-            # if len(ind) == 0:
-            #     ind.append(np.argmax(self.iso_eigenvals))
-            # self.dominant_indices = ind
+    #--------------------------------------------------------------------------#
+    # Experimental Section
+    #--------------------------------------------------------------------------#
 
-        # # Next,
-        # # Get the system energy of Hessian_Product
-        # system_energy = np.sum(self.iso_eigenvals)
-        # ind = []
+    def calcMarginals(self, jdist):
+        """
+        Compute the marginal density object for the dominant space. The current
+        implementation is only for Gaussian distribution.
+        """
 
-        # # get the indices of dominant eigenvalues in descending order
-        # sort_ind = self.iso_eigenvals.argsort()[::-1]
+        # marginal_size = len(self.dominant_indices)
+        # marginal_covariance = np.zeros([marginal_size, marginal_size])
+        # marginal_mean = np.zeros(marginal_size)
+        orig_mean = cp.E(jdist)
+        orig_covariance = cp.Cov(jdist)
 
-        # # Check the threshold
-        # for i in xrange(0, self.num_sample):
-        #     dominant_eigen_val_ind = sort_ind[0:i+1]
-        #     reduced_energy = np.sum(self.iso_eigenvals[dominant_eigen_val_ind])
-        #     if reduced_energy <= self.threshold_factor*system_energy:
-        #         ind.append(dominant_eigen_val_ind[i])
-        #     else:
-        #         break
+        # Step 1: Rotate the mean & covariance matrix of the the original joint
+        # distribution along the eigenve
+        dominant_vecs = self.iso_eigenvecs[:,self.dominant_indices]
+        marginal_mean = np.dot(dominant_vecs.T, orig_mean)
+        marginal_covariance = np.matmul(dominant_vecs.T,np.matmul(orig_covariance, dominant_vecs))
 
-        # if len(ind) == 0:
-        #     ind.append(np.argmax(self.iso_eigenvals))
-
-        # self.dominant_indices = ind
+        # Step 2: Create the new marginal distribution
+        self.marginal_distribution = cp.MvNormal(marginal_mean, marginal_covariance)
