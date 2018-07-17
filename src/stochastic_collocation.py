@@ -1,6 +1,7 @@
 # StochasticCollocation.py
 import numpy as np
 import chaospy as cp
+import utils
 
 class StochasticCollocation(object):
     """
@@ -132,8 +133,8 @@ class NormalDistribution(StochasticCollocation):
         marginal_x = cp.E(marginal_dist)
         marginal_covariance = cp.Cov(marginal_dist)
         # Compute the square root of the covariance matrix
-        if np.count_nonzero(marginal_covariance - np.diag(np.diagonal(marginal_covariance))) == 0:
-            sqrt_Sigma = np.sqrt(covariance)
+        if utils.isDiag(marginal_covariance) == True:
+            sqrt_Sigma = np.sqrt(marginal_covariance)
         else:
             cov_eigenval, cov_eigenvecs = np.linalg.eig(marginal_covariance)
             sqrt_Sigma = np.sqrt(cov_eigenval)*cov_eigenvecs

@@ -39,10 +39,12 @@ def run2DQuadratic(theta, std_dev, nx):
 
             # Get dominant directions and perform reduced collocation
             dominant_space.getDominantDirections(QoI, jdist)
-            mu_j_bar = collocation.normal.reduced_mean(QoI, jdist, dominant_space)
+            QoI_func = QoI.eval_QoI
+            # mu_j_bar = collocation.normal.reduced_mean(QoI_func, jdist, dominant_space)
+            mu_j_bar = collocation.normal.reduced_mean2(QoI_func, jdist, dominant_space)
 
             # Check agaisnt full stochastic collocation
-            mu_j = collocation.normal.mean(x, std_dev, QoI)
+            mu_j = collocation.normal.mean(x, std_dev, QoI_func)
 
             error_mu_j[i,j] = abs((mu_j_bar - mu_j)/mu_j)
 
@@ -68,7 +70,8 @@ def test_orientation():
     print "max_err = ", max_err
 
     # fname = "max_err_01_01.txt"
-    fname = "max_err_02_01.txt"
+    # fname = "max_err_02_01.txt"
+    fname = "max_err_02_01_new_surrogate.txt"
     np.savetxt(fname, max_err, delimiter=',')
 
 
@@ -91,5 +94,5 @@ def test_sigmaRatio():
 
     np.savetxt("max_err_sigma_ratio_no_iso.txt", max_err)
 
-# test_orientation()
-test_sigmaRatio()
+test_orientation()
+# test_sigmaRatio()

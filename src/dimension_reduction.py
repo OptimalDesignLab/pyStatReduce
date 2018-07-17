@@ -171,7 +171,7 @@ class DimensionReduction(object):
                 self.dominant_indices = usable_pairs[0]
 
         # Compute the marginal distribution
-        calcMarginals(jdist) # This must be commented when using the original scheme
+        self.calcMarginals(jdist) # This must be commented when using the original scheme
 
     #--------------------------------------------------------------------------#
     # Experimental Section
@@ -183,9 +183,7 @@ class DimensionReduction(object):
         implementation is only for Gaussian distribution.
         """
 
-        # marginal_size = len(self.dominant_indices)
-        # marginal_covariance = np.zeros([marginal_size, marginal_size])
-        # marginal_mean = np.zeros(marginal_size)
+        marginal_size = len(self.dominant_indices)
         orig_mean = cp.E(jdist)
         orig_covariance = cp.Cov(jdist)
 
@@ -196,4 +194,10 @@ class DimensionReduction(object):
         marginal_covariance = np.matmul(dominant_vecs.T,np.matmul(orig_covariance, dominant_vecs))
 
         # Step 2: Create the new marginal distribution
-        self.marginal_distribution = cp.MvNormal(marginal_mean, marginal_covariance)
+        if marginal_size == 1: # Univariate distributions have to be treated separately
+            marginal_std_dev = np.sqrt(np.asscalar(marginal_covariance))
+            self.marginal_distribution = cp.Normal(np.asscalar(marginal_mean),
+                                         marginal_std_dev)
+        else:
+            self.marginal_distribution = cp.MvNormal(marginal_mean,
+                                         marginal_covariance)
