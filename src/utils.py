@@ -37,3 +37,14 @@ def mult_diag(d, mtx, left=True):
         return (d*mtx.T).T
     else:
         return d*mtx
+
+def matvecprod(x, y, left=True):
+    if left:
+        # Check if they are scalar
+        if np.isscalar(y) or y.size == 1:
+            val = x * y
+            return val.reshape(x.shape)
+        elif len(x) > 1 and len(y) == 1 and y.size > 1:
+            return np.dot(x, y)
+    else:
+        raise NotImplementedError

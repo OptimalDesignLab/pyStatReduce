@@ -131,7 +131,12 @@ class NormalDistribution(StochasticCollocation):
     def reduced_mean2(self, QoI_func, jdist, dominant_space):
         marginal_dist = dominant_space.marginal_distribution
         marginal_x = cp.E(marginal_dist)
+        if np.isscalar(marginal_x) is True:
+            marginal_x2 = np.asarray([marginal_x])
         marginal_covariance = cp.Cov(marginal_dist)
+        # print "marginal_x = ", marginal_x
+        # print "marginal covariance = ", marginal_covariance
+
         # Compute the square root of the covariance matrix
         if utils.isDiag(marginal_covariance) == True:
             sqrt_Sigma = np.sqrt(marginal_covariance)
@@ -147,6 +152,8 @@ class NormalDistribution(StochasticCollocation):
         colloc_xi_arr = np.zeros(n_quadrature_loops)
         colloc_w_arr = np.zeros(n_quadrature_loops)
         mu_j = np.zeros(self.QoI_dimensions)
+        # print '\n', "self.QoI_dimensions = ", self.QoI_dimensions
+        # print 'mu_j = ', mu_j
 
         idx = self.doReducedNormalMean2(marginal_x, sqrt_Sigma, dominant_dir, mu_j,
                                         ref_collocation_pts, ref_collocation_w,
@@ -347,12 +354,18 @@ class NormalDistribution(StochasticCollocation):
 
         if idx == np.size(dominant_dir,1)-1:  # x.size-1: # TODO: Change to nquadrature loops
             sqrt2 = np.sqrt(2)
-            x = np.dot(dominant_dir, marginal_x)
+            x = utils.matvecprod(dominant_dir, marginal_x) # np.dot(dominant_dir, marginal_x)
+            x = x.reshape(x.size)
             for i in xrange(0, xi.size):
                 colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
                 colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
-                q = np.dot(dominant_dir, sqrt2 * np.dot(sqrt_Sigma, colloc_xi_arr))
+                q = utils.matvecprod(dominant_dir, sqrt2 * utils.matvecprod(sqrt_Sigma, colloc_xi_arr))
+                q = q.reshape(q.size)
+                # print "q = ", q
+                # print "x = ", x
                 fval = QoI_func(x, q)
+                # print "fval = ", fval
+                # print "mu_j = ", mu_j
                 mu_j[:] += np.prod(colloc_w_arr)*fval
             return idx-1
         else:
