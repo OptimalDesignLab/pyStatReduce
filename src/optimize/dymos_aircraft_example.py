@@ -87,7 +87,7 @@ exp_out = phase.simulate(times=np.linspace(0, p['phase0.t_duration'], 500), reco
 
 print(phase.get_values('range', units='NM')[-1])
 
-# # Compute the derivatives
+# Compute the derivatives
 totals = p.compute_totals(of=['phase0.states:range'], wrt=['phase0.controls:alt'])
 print(totals[('phase0.states:range','phase0.controls:alt')])
 print(p['phase0.controls:alt'])
