@@ -9,7 +9,7 @@ try:
 except:
     from openmdao.vectors.default_vector import DefaultVector
     vector = DefaultVector
-    
+
 
 class StochasticCollocation(ExplicitComponent):
     """
@@ -22,7 +22,6 @@ class StochasticCollocation(ExplicitComponent):
         self.options.declare('weights', types=np.ndarray)
 
     def setup(self):
-        print('Within StochasticCollocation setup')
         systemsize = self.options['n_random']
         degree = self.options['degree']
 
@@ -46,6 +45,11 @@ class StochasticCollocation(ExplicitComponent):
         # Outputs
         self.add_output('mu_j', val=0.0)
 
+        # Declare partial derivatives
+        for i in range(degree**systemsize):
+            # self.declare_partials('mu_j', 'fval{}'.format(i), method='fd')
+            self.declare_partials('mu_j', 'fval{}'.format(i))
+
     def compute(self, inputs, outputs):
         systemsize = self.options['n_random']
         degree = self.options['degree']
@@ -56,17 +60,25 @@ class StochasticCollocation(ExplicitComponent):
 
         mu_j = np.sum(J_determ * self.quadrature_weights) / (np.sqrt(np.pi)**systemsize)
         outputs['mu_j'] = mu_j
-        print('mu_j = ', mu_j)
+        # print('mu_j = ', mu_j)
+
+    def compute_partials(self, inputs, J):
+        systemsize = self.options['n_random']
+        degree = self.options['degree']
+        n_sample = degree**systemsize
+
+        for i in range(n_sample):
+            # Get the input value of the given system
+            deterministic_J = inputs['fval{}'.format(i)]
+            len_J = deterministic_J.size
+            # print('len_J = ', len_J)
+            J['mu_j', 'fval{}'.format(i)] = self.quadrature_weights[i]*np.eye(len_J) \
+                                             / (np.sqrt(np.pi)**systemsize)
+
+
 
     def compute_weights(self, ref_collocation_w, colloc_w_arr, quadrature_weights, idx, ctr):
-        """
-        ref_collocation_w = self.options['weights']
-        for i in xrange(0, DEGREE):
-            for j in xrange(0, DEGREE):
-                idx = DEGREE*i + j
-                self.quadrature_weights[idx] = ref_collocation_w[i] \
-                                               * ref_collocation_w[j]
-        """
+
         if idx == colloc_w_arr.size-1:
             for i in xrange(0, ref_collocation_w.size):
                 colloc_w_arr[idx] = ref_collocation_w[i] # Get the array of all the weights needed
