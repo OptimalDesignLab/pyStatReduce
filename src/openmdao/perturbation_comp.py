@@ -48,8 +48,6 @@ class PerturbationComp(ExplicitComponent):
         outputs['xi'] = inputs['mu'] + self.xi
 
     def compute_partials(self, inputs, J):
-        # J['xi', 'mu'] = np.eye(self.options['n_random']) # TODO: Check if this
-        #                                                  # can be made sparse
         sc_degree = self.options['degree']
         uq_systemsize = self.options['n_random']
         n_sample = sc_degree**uq_systemsize
