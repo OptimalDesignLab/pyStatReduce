@@ -47,10 +47,11 @@ surface = {
             # Airfoil properties for viscous drag calculation
             'k_lam' : 0.05,         # percentage of chord with laminar
                                     # flow, used for viscous drag
-            't_over_c' : 0.15,      # thickness over chord ratio (NACA0015)
+            't_over_c_cp' : np.array([0.15]),      # thickness over chord ratio (NACA0015)
             'c_max_t' : .303,       # chordwise location of maximum (NACA0015)
                                     # thickness
             'with_viscous' : True,  # if true, compute viscous drag
+            'with_wave' : False,     # if true, compute wave drag
             }
 
 # Create the OpenMDAO problem
@@ -92,6 +93,8 @@ prob.model.connect(name + '.mesh', point_name + '.' + name + '.def_mesh')
 # 'aero_states' group.
 prob.model.connect(name + '.mesh', point_name + '.aero_states.' + name + '_def_mesh')
 
+prob.model.connect(name + '.t_over_c', point_name + '.' + name + '_perf.' + 't_over_c')
+
 # Import the Scipy Optimizer and set the driver of the problem to use
 # it, which defaults to an SLSQP optimization method
 from openmdao.api import ScipyOptimizeDriver
@@ -101,6 +104,7 @@ prob.driver.options['tol'] = 1e-9
 recorder = SqliteRecorder("aero.db")
 prob.driver.add_recorder(recorder)
 prob.driver.recording_options['record_derivatives'] = True
+prob.driver.recording_options['includes'] = ['*']
 
 # Setup problem and add design variables, constraint, and objective
 prob.model.add_design_var('wing.twist_cp', lower=-10., upper=15.)
@@ -112,4 +116,10 @@ prob.setup()
 prob.run_model()
 # prob.check_partials(compact_print=True)
 # exit()
+print('CD = ', prob['aero_point_0.wing_perf.CD'][0])
+print('CL = ', prob['aero_point_0.wing_perf.CL'][0])
+print('CM = ', prob['aero_point_0.CM'][1])
 prob.run_driver()
+print('CD = ', prob['aero_point_0.wing_perf.CD'][0])
+print('CL = ', prob['aero_point_0.wing_perf.CL'][0])
+print('CM = ', prob['aero_point_0.CM'][1])

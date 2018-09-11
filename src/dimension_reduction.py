@@ -133,11 +133,6 @@ class DimensionReduction(object):
             dim, error_estimate = arnoldi.arnoldiSample(QoI, jdist, mu_iso, gdata0,
                                                         self.iso_eigenvals, self.iso_eigenvecs)
 
-            # print "gdata0 = ", '\n', gdata0
-            # print "dim = ", dim
-            # print "iso_eigenvecs.size = ", self.iso_eigenvecs.shape
-            # print "error_estimate = ", error_estimate
-
             # Check how many eigen pairs are good. We will exploit the fact that
             # the eigen pairs are already sorted in a descending order. We will
             # only use "good" eigen pairs to estimate the dominant directions.
@@ -147,8 +142,6 @@ class DimensionReduction(object):
                     ctr += 1
                 else:
                     break
-            # print "ctr = ", ctr
-            # print "self.iso_eigenvals[0:ctr] = ", self.iso_eigenvals[0:ctr]
 
             # Compute the accumulated energy
             # acc_energy = np.sum(np.square(self.iso_eigenvals[0:ctr]))
@@ -171,7 +164,7 @@ class DimensionReduction(object):
                 self.dominant_indices = usable_pairs[0]
 
         # Compute the marginal distribution
-        self.calcMarginals(jdist) # This must be commented when using the original scheme
+        # self.calcMarginals(jdist) # This must be commented when using the original scheme
 
     #--------------------------------------------------------------------------#
     # Experimental Section

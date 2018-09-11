@@ -27,12 +27,12 @@ mean_re = 1.e6
 mean_rho = 0.38
 mean_cg = np.zeros((3))
 # mu = np.array([mean_alpha, mean_Ma])
-# mu = np.array([mean_re, mean_rho])
-mu = np.array([mean_v, mean_cg])
+mu = np.array([mean_re, mean_rho])
+# mu = np.array([mean_v, mean_cg])
 
 covariance_matrix = np.eye(uq_systemsize) # corresponding covariance matrix
-covariance_matrix[0,0] = 5
-covariance_matrix[1,1] = np.ones((3))
+covariance_matrix[0,0] = 1.e2
+covariance_matrix[1,1] = 0.02 # np.ones((3))
 jdist = cp.MvNormal(mu, covariance_matrix)
 
 # Stochastic collocation specific variables
@@ -61,8 +61,8 @@ p.model.add_subsystem('multi_point', Group())
 for i in range(n_colloc_samples):
     name = 'OAS{}'.format(i)
     p.model.multi_point.add_subsystem(name, OASAerodynamic())
-    p.model.connect('perturb.xi', 'multi_point.{}.v'.format(name), src_indices=[(i,0)])
-    p.model.connect('perturb.xi', 'multi_point.{}.cg'.format(name), src_indices=[(i,1)])
+    p.model.connect('perturb.xi', 'multi_point.{}.re'.format(name), src_indices=[(i,0)])
+    p.model.connect('perturb.xi', 'multi_point.{}.rho'.format(name), src_indices=[(i,1)])
 
 p.model.add_subsystem('stochastic_colloc', StochasticCollocation(degree=sc_degree,
                                                                  n_random=uq_systemsize,
@@ -75,5 +75,6 @@ for i in range(n_colloc_samples):
 
 p.setup()
 p.run_model()
-p.check_totals(of=['mu_j'], wrt=['mu'])
+deriv = p.compute_totals(of=['mu_j'], wrt=['mu'])
+print('deriv = ', deriv)
 # data = p.check_partials()
