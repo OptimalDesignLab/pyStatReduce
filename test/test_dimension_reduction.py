@@ -35,7 +35,8 @@ class DimensionReductionTest(unittest.TestCase):
 
         # Create dimension reduction object
         threshold_factor = 0.9
-        dominant_space = DimensionReduction(threshold_factor, exact_Hessian=True)
+        dominant_space = DimensionReduction(threshold_factor=threshold_factor,
+                                            exact_Hessian=True)
 
         # Initialize chaospy distribution
         std_dev = 0.2*np.ones(QoI.systemsize)
@@ -70,7 +71,8 @@ class DimensionReductionTest(unittest.TestCase):
 
         # Create dimension reduction object
         threshold_factor = 0.9
-        dominant_space = DimensionReduction(threshold_factor, exact_Hessian=True)
+        dominant_space = DimensionReduction(threshold_factor=threshold_factor,
+                                            exact_Hessian=True)
 
         # Initialize chaospy distribution
         std_dev = 0.2*np.ones(QoI.systemsize)
@@ -98,8 +100,9 @@ class DimensionReductionTest(unittest.TestCase):
 
         # Create dimension reduction object
         threshold_factor = 0.9
-        dominant_space_exactHess = DimensionReduction(threshold_factor, exact_Hessian=True)
-        dominant_space_arnoldi = DimensionReduction(threshold_factor, exact_Hessian=False, n_arnoldi_sample=71)
+        dominant_space_exactHess = DimensionReduction(threshold_factor=threshold_factor,
+                                                      exact_Hessian=True)
+        dominant_space_arnoldi = DimensionReduction(exact_Hessian=False, n_arnoldi_sample=71)
 
         # Initialize chaospy distribution
         std_dev = np.random.rand(QoI.systemsize)

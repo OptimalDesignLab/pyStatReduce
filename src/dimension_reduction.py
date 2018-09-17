@@ -32,8 +32,8 @@ class DimensionReduction(object):
 
     """
 
-    def __init__(self, threshold_factor, **kwargs):
-        self.threshold_factor = threshold_factor
+    def __init__(self, **kwargs):
+        # self.threshold_factor = threshold_factor
 
         # Decide between using arnoldi-iteration or exact Hessian
         if kwargs['exact_Hessian'] == False:
@@ -48,8 +48,18 @@ class DimensionReduction(object):
                 self.sample_radius = kwargs.get('sample_radius')
             else:
                 self.sample_radius = 1.e-6
+
+            if 'eigen_discard_ratio' in kwargs:
+                self.discard_ratio = kwargs.get('eigen_discard_ratio')
+            else:
+                self.discard_ratio = 1.e-10
         else:
             self.use_exact_Hessian = True
+
+            if 'threshold_factor' in kwargs:
+                self.threshold_factor = kwargs.get('threshold_factor')
+            else:
+                self.threshold_factor = 0.9
         # TODO: Check if isoprobabilistic eigen modes can be initialized here
 
     def getDominantDirections(self, QoI, jdist, **kwargs):
@@ -149,10 +159,9 @@ class DimensionReduction(object):
             # Compute the magnitude of the eigenvalues w.r.t the largest eigenvalues
             relative_ratio = self.iso_eigenvals[0:ctr] / self.iso_eigenvals[0]
 
-            discard_ratio = 1.e-10 # 0.1
             # We will only use eigenpairs which whose relative size > discard_ratio
-            usable_pairs = np.where(relative_ratio > discard_ratio)
-            # print "usable_pairs[0].size = ", usable_pairs[0].size
+            # Since we are considering the size we consider the absolute magnitude
+            usable_pairs = np.where(np.abs(relative_ratio) > self.discard_ratio)
 
             if 'max_eigenmodes' in kwargs:
                 max_eigenmodes = kwargs['max_eigenmodes']
