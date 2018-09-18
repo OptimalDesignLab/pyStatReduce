@@ -86,7 +86,7 @@ class ArnoldiSampling(object):
             error_estimate[k] = H[i+1,i]*abs(np.dot(e_m,eigenvecs_red[:,k]))
 
         # Finally, sort the system eigen pairs in descending order
-        idx = np.argsort(eigenvals)[::-1]
+        idx = np.argsort(np.abs(eigenvals))[::-1]
         eigenvecs[:,:] = eigenvecs[:,idx]
         eigenvals[:] = eigenvals[idx]
         error_estimate = error_estimate[idx]

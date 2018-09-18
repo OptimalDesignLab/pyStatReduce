@@ -67,6 +67,31 @@ class OASExample1Test(unittest.TestCase):
         np.testing.assert_array_almost_equal(QoI.deriv['oas_example1.aero_point_0.CD', 'mu'][0], expected_dCD, decimal=7)
         np.testing.assert_array_almost_equal(QoI.deriv['oas_example1.aero_point_0.CL', 'mu'][0], expected_dCL, decimal=7)
 
+    def test_optimization(self):
+        pass
+
+    def test_dominant_directions(self):
+        uq_systemsize = 5
+        mean_v = 248.136 # Mean value of input random variable
+        mean_alpha = 5   #
+        mean_Ma = 0.84
+        mean_re = 1.e6
+        mean_rho = 0.38
+        mean_cg = np.zeros((3))
+
+        std_dev = np.diag([1.0, 0.2, 0.01, 1.e2, 0.01]) # np.eye(uq_systemsize)
+        mu_init = np.array([mean_v, mean_alpha, mean_Ma, mean_re, mean_rho])
+
+        QoI = examples.OASAerodynamicWrapper(uq_systemsize)
+        jdist = cp.MvNormal(mu_init, std_dev)
+        threshold_factor = 0.9
+        dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
+                                            exact_Hessian=False)
+        dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=3)
+        print('iso_eigenvals = ', dominant_space.iso_eigenvals)
+        print('iso_eigenvecs = ', dominant_space.iso_eigenvecs)
+        print('dominant_indices = ', dominant_space.dominant_indices)
+
 
 if __name__ == "__main__":
     unittest.main()

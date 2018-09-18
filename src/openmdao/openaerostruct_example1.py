@@ -99,6 +99,7 @@ prob.model.connect(name + '.t_over_c', point_name + '.' + name + '_perf.' + 't_o
 # it, which defaults to an SLSQP optimization method
 from openmdao.api import ScipyOptimizeDriver
 prob.driver = ScipyOptimizeDriver()
+print prob.driver.options['optimizer']
 prob.driver.options['tol'] = 1e-9
 
 recorder = SqliteRecorder("aero.db")
@@ -114,12 +115,21 @@ prob.model.add_objective(point_name + '.wing_perf.CD', scaler=1e4)
 # Set up and run the optimization problem
 prob.setup()
 prob.run_model()
+# deriv = prob.compute_totals(of=['aero_point_0.CL'],
+#                             wrt=['v', 'alpha', 'M', 're', 'rho'])
+# print(deriv['aero_point_0.CL','v'])
+# print(deriv['aero_point_0.CL','alpha'])
+# print(deriv['aero_point_0.CL','M'])
+# print(deriv['aero_point_0.CL','re'])
+# print(deriv['aero_point_0.CL','rho'])
+
 # prob.check_partials(compact_print=True)
 # exit()
-print('CD = ', prob['aero_point_0.wing_perf.CD'][0])
-print('CL = ', prob['aero_point_0.wing_perf.CL'][0])
-print('CM = ', prob['aero_point_0.CM'][1])
+
+# print('CD = ', prob['aero_point_0.wing_perf.CD'][0])
+# print('CL = ', prob['aero_point_0.wing_perf.CL'][0])
+# print('CM = ', prob['aero_point_0.CM'][1])
 prob.run_driver()
 print('CD = ', prob['aero_point_0.wing_perf.CD'][0])
-print('CL = ', prob['aero_point_0.wing_perf.CL'][0])
-print('CM = ', prob['aero_point_0.CM'][1])
+# print('CL = ', prob['aero_point_0.wing_perf.CL'][0])
+# print('CM = ', prob['aero_point_0.CM'][1])
