@@ -84,7 +84,6 @@ class OASExample1Test(unittest.TestCase):
 
         QoI = examples.OASAerodynamicWrapper(uq_systemsize)
         jdist = cp.MvNormal(mu_init, std_dev)
-        threshold_factor = 0.9
         dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                             exact_Hessian=False)
         dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=3)

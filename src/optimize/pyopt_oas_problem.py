@@ -1,4 +1,7 @@
-# pyopt_uq_oas_example.py
+# pyopt_oas_problem.py
+# The following file contains the optimization of the deterministic problem shown
+# in the quick example within OpenAeroStruct tutorial, the difference being,
+# pyOptSparse is called separately, whereas the Quick example uses a driver.
 import numpy as np
 import chaospy as cp
 
@@ -142,4 +145,4 @@ if __name__ == "__main__":
     # opt = pyoptsparse.SLSQP(tol=1.e-9)
     opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-10})
     sol = opt(optProb, sens=sens)
-    print sol.fStar
+    print sol
