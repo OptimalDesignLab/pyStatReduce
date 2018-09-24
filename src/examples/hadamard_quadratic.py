@@ -45,6 +45,17 @@ class HadamardQuadratic(QuantityOfInterest):
 
         return mu_fval
 
+    def eval_analytical_QoI_variance(self, mu, covariance_mat):
+
+        sysmat = np.dot(self.eigen_vectors,
+                        (self.eigen_vals*self.eigen_vectors.T).T)
+        # Intermediate variables
+        mat1 = np.matmul(sysmat, covariance_mat)
+        vec1 = sysmat.dot(covariance_mat.dot(sysmat.dot(mu)))
+        variance_j = 2*np.trace(np.matmul(mat1,mat1)) + 4*np.dot(mu, vec1)
+
+        return variance_j
+
     def applyHadamard(self, x, y):
         """
         Multiplies `x` by a scaled orthonormal Hadamard matrix and returns `y`.

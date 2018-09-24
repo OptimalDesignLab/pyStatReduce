@@ -83,10 +83,18 @@ class DimensionReductionTest(unittest.TestCase):
         dominant_space.getDominantDirections(QoI, jdist)
 
         QoI_func = QoI.eval_QoI
+        # Check the mean
         mu_j = collocation.normal.reduced_mean(QoI_func, jdist, dominant_space)
         true_value_mu_j = 4.05
         err = abs(mu_j - true_value_mu_j)
-        self.assertTrue(err < 1.e-15)
+        self.assertTrue(err < 1.e-13)
+
+        # Check the variance
+        red_var_j = collocation.normal.reduced_variance(QoI_func, jdist, dominant_space, mu_j)
+        # var_j = collocation.normal.variance(QoI_func, jdist, mu_j)
+        analytical_var_j = QoI.eval_analytical_QoI_variance(x, cp.Cov(jdist))
+        err = abs(analytical_var_j - red_var_j)
+        self.assertTrue(err < 1.e-4)
 
     def test_dimensionReduction_arnoldi_enlarge(self):
         systemsize = 128
