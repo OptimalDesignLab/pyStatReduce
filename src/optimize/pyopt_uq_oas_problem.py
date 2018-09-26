@@ -48,7 +48,6 @@ class UQOASExample1Opt(object):
         self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                             exact_Hessian=False)
         self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=2)
-        # print "wing.twist_cp",  self.QoI.p['oas_example1.wing.twist_cp']
 
     def compute_sens(self):
         pass
@@ -59,8 +58,22 @@ def objfunc(xdict):
     obj_func = UQObj.QoI.eval_QoI
     con_func = UQObj.QoI.eval_ConstraintQoI
     funcs = {}
-    funcs['obj'] = collocation_obj.normal.reduced_mean(obj_func, UQObj.jdist, UQObj.dominant_space)
-    funcs['con'] = collocation_con.normal.reduced_mean(con_func, UQObj.jdist, UQObj.dominant_space)
+
+    # Objective function
+
+    # Full integration
+    mu_j = collocation_obj.normal.mean(cp.E(UQObj.jdist), cp.Std(UQObj.jdist), obj_func)
+    var_j = collocation_obj.normal.variance(obj_func, UQObj.jdist, mu_j)
+    # # Reduced integration
+    # mu_j = collocation_obj.normal.reduced_mean(obj_func, UQObj.jdist, UQObj.dominant_space)
+    # var_j = collocation_obj.normal.reduced_variance(obj_func, UQObj.jdist, UQObj.dominant_space, mu_j)
+    funcs['obj'] = mu_j + 2*np.sqrt(var_j)
+
+    # Constraint function
+    # Full integration
+    funcs['con'] = collocation_con.normal.mean(cp.E(UQObj.jdist), cp.Std(UQObj.jdist), con_func)
+    # # Reduced integration
+    # funcs['con'] = collocation_con.normal.reduced_mean(con_func, UQObj.jdist, UQObj.dominant_space)
     fail = False
     return funcs, fail
 
@@ -70,12 +83,35 @@ def sens(xdict, funcs):
     obj_func = UQObj.QoI.eval_ObjGradient
     con_func = UQObj.QoI.eval_ConstraintQoIGradient
     funcsSens = {}
-    funcsSens['obj', 'xvars'] = collocation_grad_obj.normal.reduced_mean(obj_func, UQObj.jdist, UQObj.dominant_space)
-    funcsSens['con', 'xvars'] = collocation_grad_con.normal.reduced_mean(con_func, UQObj.jdist, UQObj.dominant_space)
+
+    # Objective function
+    # Full integration
+    g_mu_j = collocation_grad_obj.normal.mean(cp.E(UQObj.jdist),
+                                              cp.Std(UQObj.jdist), obj_func)
+    g_var_j = collocation_grad_obj.normal.variance(obj_func, UQObj.jdist, g_mu_j)
+    # # Reduced integration
+    # g_mu_j = collocation_grad_obj.normal.reduced_mean(obj_func, UQObj.jdist, UQObj.dominant_space)
+    # g_var_j = collocation_grad_obj.normal.reduced_variance(obj_func, UQObj.jdist, UQObj.dominant_space, g_mu_j)
+
+    funcsSens['obj', 'xvars'] = g_mu_j + 2*np.sqrt(g_var_j) # collocation_grad_obj.normal.reduced_mean(obj_func, UQObj.jdist, UQObj.dominant_space)
+
+    # Constraint function
+    # Reduced integration
+    funcsSens['con', 'xvars'] = collocation_grad_con.normal.mean(cp.E(UQObj.jdist), cp.Std(UQObj.jdist), con_func)
+    # # Full integration
+    # funcsSens['con', 'xvars'] = collocation_grad_con.normal.reduced_mean(con_func, UQObj.jdist, UQObj.dominant_space)
     fail = False
     return funcsSens, fail
 
 if __name__ == "__main__":
+    """
+    The following script aims to solve the following problem
+
+            min      mu_CD(twist_cp, rv) + 2 * sigma_CD(twist_cp, rv)
+         twist_cp
+
+        subject to   mu_CL = 0.5
+    """
 
     uq_systemsize = 5
     UQObj = UQOASExample1Opt()

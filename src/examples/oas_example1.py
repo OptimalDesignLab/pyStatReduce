@@ -29,7 +29,9 @@ from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
 class OASAerodynamicWrapper(QuantityOfInterest):
-
+    """
+    Wrapper class that sets up the OpenMDAO class of the first OAS problem
+    """
     def __init__(self, systemsize):
         QuantityOfInterest.__init__(self, systemsize)
         # self.input_dict = input_dict # TODO: Add this feature

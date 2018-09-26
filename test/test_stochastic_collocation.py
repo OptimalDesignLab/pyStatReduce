@@ -20,7 +20,7 @@ class StochasticCollocationTest(unittest.TestCase):
 
     def test_normalStochasticCollocation2D(self):
         systemsize = 2
-        x = np.zeros(systemsize)
+        x = np.random.rand(systemsize) # np.zeros(systemsize)
         theta = 0
         sigma = np.array([0.2, 0.1])
         tuple = (theta,)
@@ -61,7 +61,7 @@ class StochasticCollocationTest(unittest.TestCase):
         # - Numerical Value
         sigma_j = collocation.normal.variance(QoI_func, jdist, mu_j)
         diff = abs(variance_analytical - sigma_j)
-        self.assertTrue(diff < 1.e-15)
+        self.assertTrue(diff < 1.e-12)
 
 
     def test_normalStochasticCollocation3D(self):

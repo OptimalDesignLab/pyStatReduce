@@ -35,7 +35,9 @@ from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
 class OASExample1Test(unittest.TestCase):
-
+    """
+    Base class that checks the wrapper for the first openaerostruct example.
+    """
     def test_evaluation(self):
         uq_systemsize = 5
         mean_v = 248.136 # Mean value of input random variable
