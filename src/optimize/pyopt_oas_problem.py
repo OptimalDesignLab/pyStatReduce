@@ -19,7 +19,6 @@ class OASExample1Opt(object):
     """
     Trial test to see if I can ge the optimization running using my framework
     """
-
     def __init__(self):
         # Create a dictionary to store options about the mesh
         mesh_dict = {'num_y' : 7,

@@ -32,7 +32,7 @@ class OASAerodynamicWrapper(QuantityOfInterest):
     """
     Wrapper class that sets up the OpenMDAO class of the first OAS problem
     """
-    def __init__(self, systemsize):
+    def __init__(self, systemsize, rv_dict):
         QuantityOfInterest.__init__(self, systemsize)
         # self.input_dict = input_dict # TODO: Add this feature
         # Default recommended values for the problem
@@ -45,15 +45,41 @@ class OASAerodynamicWrapper(QuantityOfInterest):
 
         self.p = Problem() # Create problem object
         self.rvs = self.p.model.add_subsystem('random_variables', IndepVarComp(), promotes_outputs=['*'])
+        self.rvs.add_output('mu', val=np.zeros(len(rv_dict)))
+        self.p.model.add_subsystem('oas_example1', OASAerodynamic(rv_dict=rv_dict))
 
-        self.rvs.add_output('mu', val=np.array([mean_v, mean_alpha, mean_Ma, mean_re, mean_rho]))
-        self.p.model.add_subsystem('oas_example1', OASAerodynamic())
-        self.p.model.connect('mu', 'oas_example1.v', src_indices=[0])
-        self.p.model.connect('mu', 'oas_example1.alpha', src_indices=[1])
-        self.p.model.connect('mu', 'oas_example1.Mach_number', src_indices=[2])
-        self.p.model.connect('mu', 'oas_example1.re', src_indices=[3])
-        self.p.model.connect('mu', 'oas_example1.rho', src_indices=[4])
+        # Figure out what are the random variables
+        ctr = 0
+        self.rv_array = np.array([])
+        rv_indices = []
+        if "v" in rv_dict:
+            self.rv_array = np.append(self.rv_array, mean_v)
+            rv_indices.append(ctr)
+            self.p.model.connect('mu', 'oas_example1.v', src_indices=[ctr])
+            ctr += 1
+        if "alpha" in rv_dict:
+            self.rv_array = np.append(self.rv_array, mean_alpha)
+            rv_indices.append(ctr)
+            self.p.model.connect('mu', 'oas_example1.alpha', src_indices=[ctr])
+            ctr += 1
+        if "Mach_number" in rv_dict:
+            self.rv_array = np.append(self.rv_array, mean_Ma)
+            rv_indices.append(ctr)
+            self.p.model.connect('mu', 'oas_example1.Mach_number', src_indices=[ctr])
+            ctr += 1
+        if "re" in rv_dict:
+            self.rv_array = np.append(self.rv_array, mean_re)
+            rv_indices.append(ctr)
+            self.p.model.connect('mu', 'oas_example1.re', src_indices=[ctr])
+            ctr += 1
+        if "rho" in rv_dict:
+            self.rv_array = np.append(self.rv_array, mean_rho)
+            rv_indices.append(ctr)
+            self.p.model.connect('mu', 'oas_example1.rho', src_indices=[ctr])
+            ctr += 1
+
         self.p.setup(force_alloc_complex=True)
+        self.p['mu'] = self.rv_array
 
     def eval_QoI(self, mu, xi):
         rv = mu + xi
@@ -94,10 +120,13 @@ class OASAerodynamicWrapper(QuantityOfInterest):
 
 #-------------------------------------------------------------------------------
 class OASAerodynamic(Group):
-
     # First example from OpenAeroStruct packaged into a class
+    def initialize(self):
+        self.options.declare('rv_dict', types=dict)
 
     def setup(self):
+        rv_dict = self.options['rv_dict']
+
         # Create a dictionary to store options about the mesh
         mesh_dict = {'num_y' : 7,
                      'num_x' : 2,
@@ -145,11 +174,17 @@ class OASAerodynamic(Group):
                     }
 
         indep_var_comp = IndepVarComp()
-        # indep_var_comp.add_output('v', val=248.136, units='m/s')
-        # indep_var_comp.add_output('alpha', val=5., units='deg')
-        # indep_var_comp.add_output('M', val=0.84)
-        # indep_var_comp.add_output('re', val=1.e6, units='1/m')
-        # indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
+        if "v" not in rv_dict:
+            indep_var_comp.add_output('v', val=248.136, units='m/s')
+        if "alpha" not in rv_dict:
+            indep_var_comp.add_output('alpha', val=5., units='deg')
+        if "Mach_number" not in rv_dict:
+            indep_var_comp.add_output('M', val=0.84)
+        if "re" not in rv_dict:
+            indep_var_comp.add_output('re', val=1.e6, units='1/m')
+        if "rho" not in rv_dict:
+            indep_var_comp.add_output('rho', val=0.38, units='kg/m**3')
+
         indep_var_comp.add_output('cg', val=np.zeros((3)), units='m')
 
         # Add this IndepVarComp to the problem model

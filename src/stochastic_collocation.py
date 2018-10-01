@@ -272,7 +272,7 @@ class NormalDistribution(StochasticCollocation):
             for i in xrange(0, xi.size):
                 colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
                 colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
-                fval = QoI_func(x, sqrt2*sqrt_rv_covariance.dot(colloc_xi_arr)) - mu_j
+                fval = QoI_func(x, sqrt2*np.dot(sqrt_rv_covariance, colloc_xi_arr)) - mu_j
                 variance_j[:] += np.prod(colloc_w_arr)*fval*fval
             return idx-1
         else:

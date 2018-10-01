@@ -32,8 +32,8 @@ from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
 class UQOASExample1Opt(object):
 
-    def __init__(self):
-        uq_systemsize = 5
+    def __init__(self, uq_systemsize):
+
         mean_v = 248.136 # Mean value of input random variable
         mean_alpha = 5   #
         mean_Ma = 0.84
@@ -41,16 +41,26 @@ class UQOASExample1Opt(object):
         mean_rho = 0.38
         mean_cg = np.zeros((3))
 
-        std_dev = np.diag([1.0, 0.2, 0.01, 1.e2, 0.01]) # np.eye(uq_systemsize)
-        mu_init = np.array([mean_v, mean_alpha, mean_Ma, mean_re, mean_rho])
-        self.QoI = examples.OASAerodynamicWrapper(uq_systemsize)
-        self.jdist = cp.MvNormal(mu_init, std_dev)
+        std_dev = np.diag([0.2, 0.01]) # np.diag([1.0, 0.2, 0.01, 1.e2, 0.01])
+        rv_dict = {# 'v' : mean_v,
+                   'alpha': mean_alpha,
+                   'Mach_number' : mean_Ma,
+                   # 're' : mean_re,
+                   # 'rho' : mean_rho,
+                  }
+        self.QoI = examples.OASAerodynamicWrapper(uq_systemsize, rv_dict)
+        self.jdist = cp.Normal(self.QoI.rv_array, std_dev)
         self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                             exact_Hessian=False)
-        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=2)
+        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=1)
 
-    def compute_sens(self):
-        pass
+        # print 'iso_eigenvals = ', self.dominant_space.iso_eigenvals
+        # print 'iso_eigenvecs = ', '\n', self.dominant_space.iso_eigenvecs
+        # print 'dominant_indices = ', self.dominant_space.dominant_indices
+        # print 'ratio = ', abs(self.dominant_space.iso_eigenvals[0] / self.dominant_space.iso_eigenvals[1])
+        print 'std_dev = ', cp.Std(self.jdist), '\n'
+        print 'cov = ', cp.Cov(self.jdist), '\n'
+
 
 def objfunc(xdict):
     dv = xdict['xvars'] # Get the design variable out
@@ -96,9 +106,9 @@ def sens(xdict, funcs):
     funcsSens['obj', 'xvars'] = g_mu_j + 2*np.sqrt(g_var_j) # collocation_grad_obj.normal.reduced_mean(obj_func, UQObj.jdist, UQObj.dominant_space)
 
     # Constraint function
-    # Reduced integration
+    # Full integration
     funcsSens['con', 'xvars'] = collocation_grad_con.normal.mean(cp.E(UQObj.jdist), cp.Std(UQObj.jdist), con_func)
-    # # Full integration
+    # # Reduced integration
     # funcsSens['con', 'xvars'] = collocation_grad_con.normal.reduced_mean(con_func, UQObj.jdist, UQObj.dominant_space)
     fail = False
     return funcsSens, fail
@@ -113,16 +123,27 @@ if __name__ == "__main__":
         subject to   mu_CL = 0.5
     """
 
-    uq_systemsize = 5
-    UQObj = UQOASExample1Opt()
+    uq_systemsize = 2
+    ndv = 5
+    UQObj = UQOASExample1Opt(uq_systemsize)
     collocation_obj = StochasticCollocation(5, "Normal")
     collocation_con = collocation_obj
-    collocation_grad_obj = StochasticCollocation(5, "Normal", QoI_dimensions=uq_systemsize)
+    collocation_grad_obj = StochasticCollocation(5, "Normal", QoI_dimensions=ndv)
     collocation_grad_con = collocation_grad_obj
     optProb = pyoptsparse.Optimization('UQ_OASExample1', objfunc)
-    optProb.addVarGroup('xvars', 5, 'c', lower=-10., upper=15.)
+    optProb.addVarGroup('xvars', ndv, 'c', lower=-10., upper=15.)
     optProb.addConGroup('con', 1, lower=0.5, upper=0.5)
     optProb.addObj('obj')
     opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-10})
     sol = opt(optProb, sens=sens)
+    # sol = opt(optProb, sens='FD')
+
+    # Error Calculation
+    full_integration_val = 0.03428059998452251
+    reduced_fval = sol.fStar
+    err = abs(full_integration_val - reduced_fval)
+    rel_err = abs((full_integration_val - reduced_fval)/full_integration_val)
     print sol
+    print "integration val = ", sol.fStar
+    print "error val = ", err
+    print "rel_err val = ", rel_err
