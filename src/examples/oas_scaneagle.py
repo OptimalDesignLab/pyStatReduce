@@ -28,6 +28,35 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 from openmdao.api import IndepVarComp, Problem, SqliteRecorder
 
+class OASScanEagleWrapper(QuantityOfInterest):
+    """
+    Wrapper class for the ScanEagle problem in OpenAeroStruct, that is being called
+    through the Group OASScanEagle below
+    """
+    def __init__(self):
+        QuantityOfInterest.__init__(self, systemsize)
+        self.p = Problem()
+        self.rvs = self.p.model.add_subsystem('random_variables', IndepVarComp(), promotes_outputs=['*'])
+        self.p.model.add_subsystem('oas_scaneagle', OASScanEagle())
+
+        # Declare rvs units to ensure type stability
+        self.rvs.add_output('Mach_number', val=0.071)
+        self.rvs.add_output('CT', val=9.80665 * 8.6e-6, units='1/s') # TSFC
+        self.rvs.add_output('W0', val=10.,  units='kg')
+
+        self.p.setup()
+
+    def eval_QoI(self, mu, xi):
+        rv = mu + xi
+        self.p['Mach_number'] = rv[0]
+        self.p['CT'] = rv[1]
+        self.p['W0'] = rv[2]
+        self.p.run_model()
+        return self.p['oas_scaneagle.AS_point_0.fuelburn']
+
+    def eval_QoIGradient(self, mu, xi):
+        pass
+
 #-------------------------------------------------------------------------------
 
 class OASScanEagle(Group):
@@ -116,10 +145,10 @@ class OASScanEagle(Group):
                     'with_wave' : False,     # if true, compute wave drag
 
                     # Material properties taken from http://www.performance-composites.com/carbonfibre/mechanicalproperties_2.asp
-                    'E' : 85.e9,
-                    'G' : 25.e9,
+                    'E' : 85.e9, # RV
+                    'G' : 25.e9, # RV
                     'yield' : 350.e6,
-                    'mrho' : 1.6e3,
+                    'mrho' : 1.6e3, #RV
 
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'wing_weight_ratio' : 1., # multiplicative factor on the computed structural weight
@@ -136,12 +165,12 @@ class OASScanEagle(Group):
         indep_var_comp = IndepVarComp()
         indep_var_comp.add_output('v', val=22.876, units='m/s')
         indep_var_comp.add_output('alpha', val=5., units='deg')
-        indep_var_comp.add_output('Mach_number', val=0.071)
+        # indep_var_comp.add_output('Mach_number', val=0.071) # RV
         indep_var_comp.add_output('re', val=1.e6, units='1/m')
         indep_var_comp.add_output('rho', val=0.770816, units='kg/m**3')
-        indep_var_comp.add_output('CT', val=9.80665 * 8.6e-6, units='1/s')
+        # indep_var_comp.add_output('CT', val=9.80665 * 8.6e-6, units='1/s') # RV
         indep_var_comp.add_output('R', val=1800e3, units='m')
-        indep_var_comp.add_output('W0', val=10.,  units='kg')
+        # indep_var_comp.add_output('W0', val=10.,  units='kg') # RV
         indep_var_comp.add_output('speed_of_sound', val=322.2, units='m/s')
         indep_var_comp.add_output('load_factor', val=1.)
         indep_var_comp.add_output('empty_cg', val=np.array([0.2, 0., 0.]), units='m')
