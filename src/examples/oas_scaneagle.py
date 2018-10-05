@@ -33,16 +33,23 @@ class OASScanEagleWrapper(QuantityOfInterest):
     Wrapper class for the ScanEagle problem in OpenAeroStruct, that is being called
     through the Group OASScanEagle below
     """
-    def __init__(self):
+    def __init__(self, systemsize, dv_dict):
         QuantityOfInterest.__init__(self, systemsize)
+        self.dv_dict = dv_dict
+
         self.p = Problem()
         self.rvs = self.p.model.add_subsystem('random_variables', IndepVarComp(), promotes_outputs=['*'])
         self.p.model.add_subsystem('oas_scaneagle', OASScanEagle())
 
         # Declare rvs units to ensure type stability
         self.rvs.add_output('Mach_number', val=0.071)
+        self.p.model.connect('Mach_number', 'oas_scaneagle.Mach_number')
+
         self.rvs.add_output('CT', val=9.80665 * 8.6e-6, units='1/s') # TSFC
+        self.p.model.connect('CT', 'oas_scaneagle.CT')
+
         self.rvs.add_output('W0', val=10.,  units='kg')
+        self.p.model.connect('W0', 'oas_scaneagle.W0')
 
         self.p.setup()
 
@@ -55,7 +62,46 @@ class OASScanEagleWrapper(QuantityOfInterest):
         return self.p['oas_scaneagle.AS_point_0.fuelburn']
 
     def eval_QoIGradient(self, mu, xi):
-        pass
+        rv = mu + xi
+        deriv_arr = np.zeros(self.systemsize)
+        self.p['Mach_number'] = rv[0]
+        self.p['CT'] = rv[1]
+        self.p['W0'] = rv[2]
+        self.p.run_model()
+        deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.fuelburn'],
+                            wrt=['Mach_number', 'CT', 'W0'])
+        deriv_arr[0] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'Mach_number']
+        deriv_arr[1] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'CT']
+        deriv_arr[2] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'W0']
+
+        return deriv_arr
+
+    def eval_ObjGradient_dv(self, mu, xi):
+        rv = mu + xi
+        self.p['Mach_number'] = rv[0]
+        self.p['CT'] = rv[1]
+        self.p['W0'] = rv[2]
+        self.p.run_model()
+        deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.fuelburn'],
+                wrt=['wing.twist_cp', 'wing.thickness_cp', 'wing.sweep', 'alpha'])
+
+        dJ_ddv = np.zeros(self.ndv)
+        n_cp = n_twist_cp + n_thickness_cp
+        dJ_ddv[0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'wing.twist_cp']
+        dJ_ddv[n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'wing.thickness_cp']
+        dJ_ddv[n_cp:n_cp+1] = deriv_arr['oas_scaneagle.AS_point_0.fuelburn', 'wing.sweep']
+        dJ_ddv[n_cp+1:n_cp+2] = deriv_arr['oas_scaneagle.AS_point_0.fuelburn', 'wing.sweep']
+
+        return dJ_ddv
+
+    def eval_ConstraintQoI(self, mu, xi):
+        rv = mu + xi
+        self.p['Mach_number'] = rv[0]
+        self.p['CT'] = rv[1]
+        self.p['W0'] = rv[2]
+        self.p.run_model()
+        return nothing
+
 
 #-------------------------------------------------------------------------------
 
@@ -148,7 +194,7 @@ class OASScanEagle(Group):
                     'E' : 85.e9, # RV
                     'G' : 25.e9, # RV
                     'yield' : 350.e6,
-                    'mrho' : 1.6e3, #RV
+                    'mrho' : 1.6e3, # RV
 
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'wing_weight_ratio' : 1., # multiplicative factor on the computed structural weight
@@ -201,7 +247,7 @@ class OASScanEagle(Group):
         # Issue quite a few connections within the model to make sure all of the
         # parameters are connected correctly.
         com_name = point_name + '.' + name + '_perf'
-        self.connect(name + '.K', point_name + '.coupled.' + name + '.K')
+        self.connect(name + '.local_stiff_transformed', point_name + '.coupled.' + name + '.local_stiff_transformed')
         self.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
         # Connect aerodyamic mesh to coupled group mesh

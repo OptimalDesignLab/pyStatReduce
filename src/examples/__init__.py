@@ -8,3 +8,4 @@ from rosenbrock import Rosenbrock
 # from dymos_aircraft_ode import AircraftODE
 # from mission_optimization import MissionOpt
 from oas_example1 import OASAerodynamicWrapper
+from oas_scaneagle import OASScanEagleWrapper
