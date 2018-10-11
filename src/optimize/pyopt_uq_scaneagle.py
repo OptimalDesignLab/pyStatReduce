@@ -43,6 +43,10 @@ class UQScanEagleOpt(object):
         dv_dict = {
                    'n_twist_cp' : 3,
                    'n_thickness_cp' : 3,
+                   'n_CM' : 3,
+                   'n_thickness_intersects' : 10,
+                   'n_constraints' : 1 + 10 + 1 + 3 + 3,
+                   'ndv' : 3 + 3 + 2,
                     }
 
         # Standard deviation
@@ -57,38 +61,44 @@ class UQScanEagleOpt(object):
         # print 'iso_eigenvecs = ', '\n', self.dominant_space.iso_eigenvecs
         # print 'dominant_indices = ', self.dominant_space.dominant_indices
         # print 'ratio = ', abs(self.dominant_space.iso_eigenvals[0] / self.dominant_space.iso_eigenvals[1])
-"""
-def objfunc(xdict):
-    dv = xdict['xvars']
-    # Get the different design variable sizes
-    n_twist_cp = UQObj.QoI.dv_dict['n_twist_cp']
-    n_thickness_cp = UQObj.QoI.dv_dict['n_thickness_cp']
-    n_cp = n_twist_cp + n_thickness_cp
-    UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = dv[0:n_twist_cp]
-    UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = dv[n_twist_cp:n_cp]
-    UQObj.QoI.p['oas_scaneagle.wing.sweep'] = dv[-2]
-    UQObj.QoI.p['oas_scaneagle.alpha'] = dv[-1]
+
+def objfunc_uq(xdict):
+    rdo_factor = 2.0
+    UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = xdict['twist_cp']
+    UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
+    UQObj.QoI.p['oas_scaneagle.wing.sweep'] = xdict['sweep']
+    UQObj.QoI.p['oas_scaneagle.alpha'] = xdict['alpha']
+    obj_func = UQObj.QoI.eval_QoI
+    con_func = UQObj.QoI.eval_ConstraintQoI
     funcs = {}
 
-    # Deterministic
-    UQObj.QoI.p.run_model()
-    funcs['obj'] = UQObj.QoI.p['oas_scaneagle.AS_point_0.fuelburn']
-    # - Get the requisite sizes of the different constraints
-    n_fail = 1
+    # Objective function
+    # # Full integration
+    # mu_j = collocation_obj.normal.mean(cp.E(UQObj.jdist), cp.Std(UQObj.jdist), obj_func)
+    # var_j = collocation_obj.normal.variance(obj_func, UQObj.jdist, mu_j)
+    # Reduced Integration
+    mu_j = collocation_obj.normal.reduced_mean(obj_func, UQObj.jdist, UQObj.dominant_space)
+    var_j = collocation_obj.normal.reduced_variance(obj_func, UQObj.jdist, UQObj.dominant_space, mu_j)
+    funcs['obj'] = mu_j + rdo_factor * np.sqrt(var_j)
+
+    # Constraint function
+    # # full Integration
+    # mu_con = collocation_con.normal.mean(cp.E(UQObj.jdist), cp.Std(UQObj.jdist), con_func)
+    # var_con = collocation_con.normal.variance(con_func, UQObj.jdist, mu_con)
+    # Reduced Integration
+    mu_con = collocation_con.normal.reduced_mean(con_func, UQObj.jdist, UQObj.dominant_space)
+    var_con = collocation_con.normal.reduced_variance(con_func, UQObj.jdist, UQObj.dominant_space, mu_con)
     n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
-    n_LW = 1
-    n_CM = 3
-    n_constraints = n_fail + n_thickness_intersects + n_LW + n_CM
-    constraint_arr = np.zeros(n_constraints)
-    constraint_arr[0] = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.failure'][0]
-    constraint_arr[1:n_thickness_intersects+1] = \
-          UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects']
-    constraint_arr[n_thickness_intersects+1] = UQObj.QoI.p['oas_scaneagle.AS_point_0.L_equals_W']
-    constraint_arr[n_thickness_intersects+2:n_constraints] = UQObj.QoI.p['oas_scaneagle.AS_point_0.CM']
-    funcs['con'] = constraint_arr
+    n_CM = UQObj.QoI.p['oas_scaneagle.AS_point_0.CM'].size
+    funcs['con_failure'] = mu_con[0] + rdo_factor * var_con[0]
+    funcs['con_thickness_intersects'] = mu_con[1:n_thickness_intersects+1]
+    funcs['con_L_equals_W'] = mu_con[n_thickness_intersects+1]
+    funcs['con_CM'] = mu_con[n_thickness_intersects+2:n_thickness_intersects+2+n_CM]
+    funcs['con_twist_cp'] = mu_con[n_thickness_intersects+2+n_CM:]
+
     fail = False
     return funcs, fail
-"""
+
 def objfunc(xdict):
     UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = xdict['twist_cp']
     UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
@@ -107,6 +117,77 @@ def objfunc(xdict):
     fail = False
     # print funcs['obj']
     return funcs, fail
+
+def sens_uq(xdict, funcs):
+    rdo_factor = 2.0
+    UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = xdict['twist_cp']
+    UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
+    UQObj.QoI.p['oas_scaneagle.wing.sweep'] = xdict['sweep']
+    UQObj.QoI.p['oas_scaneagle.alpha'] = xdict['alpha']
+    obj_func = UQObj.QoI.eval_ObjGradient_dv
+    con_func = UQObj.QoI.eval_ConGradient_dv
+    funcsSens = {}
+
+    # Objective function
+    # # Full integration
+    # mu_j = collocation_obj.normal.mean(cp.E(UQObj.jdist), cp.Std(UQObj.jdist), obj_func)
+    # var_j = collocation_obj.normal.variance(obj_func, UQObj.jdist, mu_j)
+    # Reduced Integration
+    mu_j = collocation_obj_grad.normal.reduced_mean(obj_func, UQObj.jdist, UQObj.dominant_space)
+    var_j = collocation_obj_grad.normal.reduced_variance(obj_func, UQObj.jdist, UQObj.dominant_space, mu_j)
+    funcs['obj'] = mu_j + rdo_factor * np.sqrt(var_j)
+
+    # Constraint function
+    # # full Integration
+    # mu_con = collocation_con.normal.mean(cp.E(UQObj.jdist), cp.Std(UQObj.jdist), con_func)
+    # var_con = collocation_con.normal.variance(con_func, UQObj.jdist, mu_con)
+    # Reduced Integration
+    mu_con = collocation_con_grad.normal.reduced_mean(con_func, UQObj.jdist, UQObj.dominant_space)
+    var_con = collocation_con_grad.normal.reduced_variance(con_func, UQObj.jdist, UQObj.dominant_space, mu_con)
+
+
+    # Get some of the intermediate variables
+    n_twist_cp = UQObj.QoI.input_dict['n_twist_cp']
+    n_cp = n_twist_cp + UQObj.QoI.input_dict['n_thickness_cp']
+    n_CM = UQObj.QoI.input_dict['n_CM']
+    n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
+
+    # Populate the dictionary
+    funcsSens['obj', 'twist_cp'] = mu_j[0:n_twist_cp] + rdo_factor * var_j[0:n_twist_cp]
+    funcsSens['obj', 'thickness_cp'] = mu_j[n_twist_cp:n_cp] + rdo_factor * var_j[n_twist_cp:n_cp]
+    funcsSens['obj', 'sweep'] = mu_j[n_cp:n_cp+1] + rdo_factor * var_j[n_cp:n_cp+1]
+    funcsSens['obj', 'alpha'] = mu_j[n_cp+1:n_cp+2] + rdo_factor * var_j[n_cp+1:n_cp+2]
+
+    funcsSens['con_failure', 'twist_cp'] = mu_con[0,0:n_twist_cp] + rdo_factor * var_con[0,0:n_twist_cp]
+    funcsSens['con_failure', 'thickness_cp'] = mu_con[0,n_twist_cp:n_cp] + rdo_factor * var_con[0,n_twist_cp:n_cp]
+    funcsSens['con_failure', 'sweep'] = mu_con[0,n_cp] + rdo_factor * var_con[0,n_cp]
+    funcsSens['con_failure', 'alpha'] = mu_con[0,n_cp+1] + rdo_factor * var_con[0,n_cp+1]
+
+    funcsSens['con_thickness_intersects', 'twist_cp'] = mu_con[1:n_thickness_intersects+1,0:n_twist_cp]
+    funcsSens['con_thickness_intersects', 'thickness_cp'] = mu_con[1:n_thickness_intersects+1,n_twist_cp:n_cp]
+    # print "mu_con[1:n_thickness_intersects+1,n_cp].shape = ", mu_con[1:n_thickness_intersects+1,n_cp].shape
+    funcsSens['con_thickness_intersects', 'sweep'] = mu_con[1:n_thickness_intersects+1,n_cp:n_cp+1]
+    funcsSens['con_thickness_intersects', 'alpha'] = mu_con[1:n_thickness_intersects+1,n_cp+1:]
+
+    funcsSens['con_L_equals_W', 'twist_cp'] = mu_con[n_thickness_intersects+1,0:n_twist_cp]
+    funcsSens['con_L_equals_W', 'thickness_cp'] = mu_con[n_thickness_intersects+1,n_twist_cp:n_cp]
+    funcsSens['con_L_equals_W', 'sweep'] = mu_con[n_thickness_intersects+1,n_cp]
+    funcsSens['con_L_equals_W', 'alpha'] = mu_con[n_thickness_intersects+1,n_cp+1]
+
+    idx = n_thickness_intersects + 2
+    funcsSens['con_CM', 'twist_cp'] = mu_con[idx:idx+n_CM,0:n_twist_cp]
+    funcsSens['con_CM', 'thickness_cp'] = mu_con[idx:idx+n_CM,n_twist_cp:n_cp]
+    funcsSens['con_CM', 'sweep'] = mu_con[idx:idx+n_CM,n_cp:n_cp+1]
+    funcsSens['con_CM', 'alpha'] = mu_con[idx:idx+n_CM,n_cp+1:]
+
+    idx = n_thickness_intersects + 2 + n_CM
+    funcsSens['con_twist_cp', 'twist_cp'] = mu_con[idx:,0:n_twist_cp]
+    funcsSens['con_twist_cp', 'thickness_cp'] = mu_con[idx:,n_twist_cp:n_cp]
+    funcsSens['con_twist_cp', 'sweep'] = mu_con[idx:,n_cp:n_cp+1]
+    funcsSens['con_twist_cp', 'alpha'] = mu_con[idx:,n_cp+1:]
+
+    fail = False
+    return funcsSens, fail
 
 def sens(xdict, funcs):
     UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = xdict['twist_cp']
@@ -161,77 +242,73 @@ def sens(xdict, funcs):
     return funcsSens, fail
 
 if __name__ == "__main__":
+
     uq_systemsize = 3
     UQObj = UQScanEagleOpt(uq_systemsize)
     xi = np.zeros(uq_systemsize)
     mu = np.array([0.071, 9.80665 * 8.6e-6, 10.])
-    fval = UQObj.QoI.eval_QoI(mu, xi)
-    UQObj.QoI.p.run_model()
+
+    if sys.argv[1] == "stochastic":
+        # Stochastic collocation Objects
+        ndv = 3 + 3 + 1 + 1
+        collocation_obj = StochasticCollocation(5, "Normal")
+        collocation_obj_grad = StochasticCollocation(5, "Normal", QoI_dimensions=ndv)
+        n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
+        n_CM = 3
+        n_constraints = 1 + n_thickness_intersects  + 1 + n_CM + 3
+        collocation_con = StochasticCollocation(5, "Normal", QoI_dimensions=n_constraints)
+        collocation_con_grad = StochasticCollocation(5, "Normal", QoI_dimensions=(n_constraints, ndv))
+
+        optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc_uq)
+        n_twist_cp = UQObj.QoI.input_dict['n_twist_cp']
+        n_thickness_cp = UQObj.QoI.input_dict['n_thickness_cp']
+        optProb.addVarGroup('twist_cp', n_twist_cp, 'c', lower=-5., upper=10)
+        optProb.addVarGroup('thickness_cp', n_thickness_cp, 'c', lower=0.001, upper=0.01, scale=1.e3)
+        optProb.addVar('sweep', lower=10., upper=30.)
+        optProb.addVar('alpha', lower=-10., upper=10.)
+
+        # Constraints
+        optProb.addConGroup('con_failure', 1, upper=0.)
+        optProb.addConGroup('con_thickness_intersects', n_thickness_intersects, upper=0.)
+        optProb.addConGroup('con_L_equals_W', 1, lower=0., upper=0.)
+        optProb.addConGroup('con_CM', n_CM, lower=-0.001, upper=0.001)
+        optProb.addConGroup('con_twist_cp', 3, lower=np.array([-1e20, -1e20, 5.]), upper=np.array([1e20, 1e20, 5.]))
+
+        # Objective
+        optProb.addObj('obj')
+        opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
+        sol = opt(optProb, sens=sens_uq)
+        # sol = opt(optProb, sens='FD')
+        print sol
+
+    elif sys.argv[1] == "deterministic":
+        fval = UQObj.QoI.eval_QoI(mu, xi)
+        UQObj.QoI.p.run_model()
 
 
-    # Design Variables
-    optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc)
-    n_twist_cp = UQObj.QoI.dv_dict['n_twist_cp']
-    n_thickness_cp = UQObj.QoI.dv_dict['n_thickness_cp']
-    optProb.addVarGroup('twist_cp', n_twist_cp, 'c', lower=-5., upper=10)
-    optProb.addVarGroup('thickness_cp', n_thickness_cp, 'c', lower=0.001, upper=0.01, scale=1.e3)
-    optProb.addVar('sweep', lower=10., upper=30.)
-    optProb.addVar('alpha', lower=-10., upper=10.)
+        # Design Variables
+        optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc)
+        n_twist_cp = UQObj.QoI.dv_dict['n_twist_cp']
+        n_thickness_cp = UQObj.QoI.dv_dict['n_thickness_cp']
+        optProb.addVarGroup('twist_cp', n_twist_cp, 'c', lower=-5., upper=10)
+        optProb.addVarGroup('thickness_cp', n_thickness_cp, 'c', lower=0.001, upper=0.01, scale=1.e3)
+        optProb.addVar('sweep', lower=10., upper=30.)
+        optProb.addVar('alpha', lower=-10., upper=10.)
 
-    # Constraints
-    n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
-    n_CM = 3
-    optProb.addConGroup('con_failure', 1, upper=0.)
-    optProb.addConGroup('con_thickness_intersects', n_thickness_intersects, upper=0.)
-    optProb.addConGroup('con_L_equals_W', 1, lower=0., upper=0.)
-    optProb.addConGroup('con_CM', n_CM, lower=-0.001, upper=0.001)
-    optProb.addConGroup('con_twist_cp', 3, lower=np.array([-1e20, -1e20, 5.]), upper=np.array([1e20, 1e20, 5.]))
+        # Constraints
+        n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
+        n_CM = 3
+        optProb.addConGroup('con_failure', 1, upper=0.)
+        optProb.addConGroup('con_thickness_intersects', n_thickness_intersects, upper=0.)
+        optProb.addConGroup('con_L_equals_W', 1, lower=0., upper=0.)
+        optProb.addConGroup('con_CM', n_CM, lower=-0.001, upper=0.001)
+        optProb.addConGroup('con_twist_cp', 3, lower=np.array([-1e20, -1e20, 5.]), upper=np.array([1e20, 1e20, 5.]))
 
-    # Objective
-    optProb.addObj('obj')
-    opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
-    # sol = opt(optProb, sens='FD')
-    sol = opt(optProb, sens=sens)
-    print sol
-
-    """
-    optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc)
-    # Add the design variables
-    ndv = UQObj.QoI.dv_dict['n_twist_cp'] + \
-          UQObj.QoI.dv_dict['n_thickness_cp'] + 2
-    twist_cp_lb = -5.0 * np.ones(3)
-    twist_cp_ub = 10.0 * np.ones(3)
-    thickness_cp_lb = 0.001 * np.ones(3) #  * 1.e3
-    thickness_cp_ub = 0.01 * np.ones(3) #  * 1.e3
-    dv_lb = np.concatenate([twist_cp_lb, thickness_cp_lb, [10.], [-10.]])
-    dv_ub = np.concatenate([twist_cp_ub, thickness_cp_ub, [30.], [10.]])
-    optProb.addVarGroup('xvars', ndv, 'c', lower=dv_lb, upper=dv_ub)
-
-    # Add the constraints
-    n_fail = 1
-    n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
-    n_LW = 1
-    n_CM = 3
-    n_constraints = n_fail + n_thickness_intersects + n_LW + n_CM
-    con_lb = np.concatenate([[-1.e20], -1.e20*np.ones(n_thickness_intersects), [0.],
-                        -0.001*np.ones(n_CM)])
-    con_ub = np.concatenate([[0.], np.zeros(n_thickness_intersects), [0.],
-                            0.001*np.ones(n_CM)])
-    optProb.addConGroup('con', n_constraints, lower=con_lb, upper=con_ub)
-    optProb.addObj('obj', scale=0.1)
-    opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-10})
-    sol = opt(optProb, sens='FD')
-    print sol
-
-    # Design variables
-    print 'oas_scaneagle.wing.twist_cp = ', UQObj.QoI.p['oas_scaneagle.wing.twist_cp']
-    print 'oas_scaneagle.wing.thickness_cp = ', UQObj.QoI.p['oas_scaneagle.wing.thickness_cp']
-    print 'oas_scaneagle.wing.sweep = ', UQObj.QoI.p['oas_scaneagle.wing.sweep']
-    print 'alpha = ', UQObj.QoI.p['oas_scaneagle.alpha'], '\n'
-
-    # Contraints
-    print 'oas_scaneagle.AS_point_0.wing_perf.failure = ', UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.failure']
-    print 'oas_scaneagle.AS_point_0.wing_perf.thickness_intersects = ', UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects']
-    print 'oas_scaneagle.AS_point_0.L_equals_W = ', UQObj.QoI.p['oas_scaneagle.AS_point_0.L_equals_W']
-    print 'oas_scaneagle.AS_point_0.CM = ', UQObj.QoI.p['oas_scaneagle.AS_point_0.CM']
-    """
+        # Objective
+        optProb.addObj('obj')
+        opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9,
+                                              'Major iterations limit' : 1,
+                                              'Minor iterations limit': 1})
+        # sol = opt(optProb, sens='FD')
+        sol = opt(optProb, sens=sens)
+        print sol
