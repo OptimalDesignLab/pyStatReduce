@@ -14,6 +14,7 @@ import chaospy as cp
 
 from stochastic_collocation import StochasticCollocation
 from quantity_of_interest import QuantityOfInterest
+from dimension_reduction import DimensionReduction
 import examples
 
 class StochasticCollocationTest(unittest.TestCase):
@@ -165,6 +166,80 @@ class StochasticCollocationTest(unittest.TestCase):
         diff = abs(mu_j - mu_j_hat)
         self.assertTrue(diff < 1.e-15)
 
+    def test_gradient_wrt_parameters(self):
+        """
+        Test second and higher order gradients of statistical moments w.r.t
+        independent parameters (i.e. not random variables)
+        """
+        systemsize = 2
+        x = np.random.rand(systemsize)
+        sigma = 0.2*np.ones(systemsize)
+        jdist = cp.MvNormal(x, np.diag(sigma))
+
+        # Create QoI object
+        QoI = examples.PolyRVDV()
+        dv = np.random.rand(QoI.n_parameters)
+        QoI.set_dv(dv)
+
+        # Create a Stochastic collocation object
+        collocation = StochasticCollocation(3, "Normal")
+        collocation_grad = StochasticCollocation(3, "Normal", QoI_dimensions=QoI.n_parameters)
+
+        QoI_func = QoI.eval_QoI
+        dQoI_func = QoI.eval_QoIGradient_dv
+
+        # Check full integration
+        #  - Compute the mean of the QoI and QoI gradient w.r.t dv
+        mu_j = collocation.normal.mean(x, sigma, QoI_func)
+        dmu_j = collocation_grad.normal.mean(x, sigma, dQoI_func)
+
+        # - Compute the corresponding variance
+        dvariance_j = collocation_grad.normal.dVariance(QoI_func, jdist, mu_j, dQoI_func, dmu_j)
+
+        # - Check against finite difference
+        pert = 1.e-7
+        dvariance_j_fd = np.zeros(QoI.n_parameters)
+        var_j = collocation.normal.variance(QoI_func, jdist, mu_j)
+        for i in xrange(0, QoI.n_parameters):
+            dv[i] += pert
+            QoI.set_dv(dv)
+            mu_j_i = collocation.normal.mean(x, sigma, QoI_func)
+            var_j_i = collocation.normal.variance(QoI_func, jdist, mu_j_i)
+            dvariance_j_fd[i] = (var_j_i - var_j) / pert
+            dv[i] -= pert
+
+        err = abs(dvariance_j - dvariance_j_fd)
+        self.assertTrue((err < 1.e-4).all())
+
+        # Check reduced integration
+        #  - Create dimension reduction object
+        threshold_factor = 0.9
+        dominant_space = DimensionReduction(threshold_factor=threshold_factor,
+                                            exact_Hessian=True)
+        dominant_space.getDominantDirections(QoI, jdist)
+        #  - Compute the mean of the QoI and QoI gradient w.r.t dv
+        mu_j = collocation.normal.reduced_mean(QoI_func, jdist, dominant_space)
+        dmu_j = collocation_grad.normal.reduced_mean(QoI_func, jdist, dominant_space)
+        # - Compute the corresponding variance
+        dvariance_j = collocation_grad.normal.reduced_dVariance(QoI_func, jdist,
+                                         dominant_space, mu_j, dQoI_func, dmu_j)
+        # - Check against finite difference
+        var_j = collocation.normal.reduced_variance(QoI_func, jdist, dominant_space, mu_j)
+        for i in xrange(0, QoI.n_parameters):
+            dv[i] += pert
+            QoI.set_dv(dv)
+            mu_j_i = collocation.normal.reduced_mean(QoI_func, jdist, dominant_space)
+            var_j_i = collocation.normal.reduced_variance(QoI_func, jdist, dominant_space, mu_j_i)
+            dvariance_j_fd[i] = (var_j_i - var_j) / pert
+            dv[i] -= pert
+
+        err = abs(dvariance_j - dvariance_j_fd)
+        self.assertTrue((err < 1.e-4).all())
+
+    ############################################################################
+    # Uniform Distibution
+    ############################################################################
+
     def test_uniformStochasticCollocationConstt(self):
         systemsize = 2
         mu = np.random.rand(systemsize)
@@ -226,7 +301,6 @@ class StochasticCollocationTest(unittest.TestCase):
 
         diff = abs(mu_j - mu_j_analytical)
         self.assertTrue(diff < 1.e-12)
-
 
 if __name__ == "__main__":
     unittest.main()

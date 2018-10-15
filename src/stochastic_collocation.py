@@ -113,7 +113,7 @@ class NormalDistribution(StochasticCollocation):
         idx = 0
         colloc_xi_arr = np.zeros(systemsize)
         colloc_w_arr = np.zeros(systemsize)
-        variance_j = np.zeros(self.QoI_dimensions)
+        variance_j = np.zeros([self.QoI_dimensions, self.QoI_dimensions])
 
         idx = self.doVariance(x, rv_covariance, mu_j, variance_j, ref_collocation_pts,
                               ref_collocation_w, QoI_func, colloc_xi_arr,
@@ -135,7 +135,7 @@ class NormalDistribution(StochasticCollocation):
 
         **Inputs**
 
-        * `QoI` : Quantity of Interest Object
+        * `QoI_func` : Quantity of Interest function to be evaluated
         * `jdist` : joint distribution object of the random variables
         * `dominant_space` : Array of vectors along which the stochastic
                              collocation is performed.
@@ -170,6 +170,22 @@ class NormalDistribution(StochasticCollocation):
             return mu_j
 
     def reduced_variance(self, QoI_func, jdist, dominant_space, mu_j):
+        """
+        Public member that is used to perform stochastic collocation only along
+        certain directions to compute the variance of a QoI.
+
+        **Inputs**
+
+        * `QoI_func` : Quantity of Interest function to be evaluated
+        * `jdist` : joint distribution object of the random variables
+        * `dominant_space` : Array of vectors along which the stochastic
+                             collocation is performed.
+
+        **Outputs**
+
+        * `mu_j` : Mean value of the Quantity of Interest for a given mean value
+                   of random variabes
+        """
         x = cp.E(jdist)
         rv_covariance = cp.Cov(jdist)
         n_quadrature_loops = len(dominant_space.dominant_indices)
@@ -179,7 +195,7 @@ class NormalDistribution(StochasticCollocation):
         idx = 0
         colloc_xi_arr = np.zeros(n_quadrature_loops)
         colloc_w_arr = np.zeros(n_quadrature_loops)
-        variance_j = np.zeros(self.QoI_dimensions)
+        variance_j = np.zeros([self.QoI_dimensions, self.QoI_dimensions])
 
         idx = self.doReducedNormalVariance(x, rv_covariance, dominant_dir, mu_j, variance_j,
                                        ref_collocation_pts, ref_collocation_w,
@@ -193,6 +209,135 @@ class NormalDistribution(StochasticCollocation):
             return variance_j[0]
         else:
             return variance_j
+
+    def dVariance(self, QoI_func, jdist, mu_j, dQoI_func, dmu_j):
+        """
+        Computes the partial derivative of the variance
+        This implementation is CURRENTLY ONLY for QoI's that return scalar values.
+        """
+        x = cp.E(jdist)
+        rv_covariance = cp.Cov(jdist)
+        systemsize = x.size
+        ref_collocation_pts = self.q
+        ref_collocation_w = self.w
+        idx = 0
+        colloc_xi_arr = np.zeros(systemsize)
+        colloc_w_arr = np.zeros(systemsize)
+        dvariance_j = np.zeros([self.QoI_dimensions, self.QoI_dimensions])
+        # dvariance_j = np.zeros(self.QoI_dimensions)
+
+        idx = self.do_dVariance(x, rv_covariance, mu_j, dmu_j, dvariance_j,
+                                ref_collocation_pts, ref_collocation_w,
+                                QoI_func, dQoI_func, colloc_xi_arr,
+                                colloc_w_arr, idx)
+        assert idx == -1
+        dvariance_j[:] = dvariance_j[:]/(np.sqrt(np.pi)**systemsize)
+
+        # TODO: figure out a better way of handling arrays and matrices for this routine
+        return dvariance_j.diagonal()
+
+    def reduced_dVariance(self, QoI_func, jdist, dominant_space, mu_j, dQoI_func, dmu_j):
+        """
+        same as dVariance but in the reduced stochastic space.
+        """
+        x = cp.E(jdist)
+        rv_covariance = cp.Cov(jdist)
+        n_quadrature_loops = len(dominant_space.dominant_indices)
+        dominant_dir = dominant_space.iso_eigenvecs[:, dominant_space.dominant_indices]
+        ref_collocation_pts = self.q
+        ref_collocation_w = self.w
+        idx = 0
+        colloc_xi_arr = np.zeros(n_quadrature_loops)
+        colloc_w_arr = np.zeros(n_quadrature_loops)
+        dvariance_j = np.zeros([self.QoI_dimensions, self.QoI_dimensions])
+
+        idx = self.doReduced_dVariance(x, rv_covariance, dominant_dir, mu_j, dmu_j, dvariance_j,
+                                  ref_collocation_pts, ref_collocation_w,
+                                  QoI_func, dQoI_func, colloc_xi_arr,
+                                  colloc_w_arr, idx)
+
+        assert idx == -1
+        dvariance_j[:] = dvariance_j[:]/(np.sqrt(np.pi)**n_quadrature_loops)
+
+        # TODO: figure out a better way of handling arrays and matrices for this routine
+        return dvariance_j.diagonal()
+
+    def do_dVariance(self, x, rv_covariance, mu_j, dmu_j, dvariance_j, xi, w,
+                     QoI_func, dQoI_func, colloc_xi_arr, colloc_w_arr, idx):
+
+        if idx == x.size-1:
+            sqrt2 = np.sqrt(2)
+            sqrt_rv_covariance = np.sqrt(rv_covariance)
+            for i in xrange(0, xi.size):
+                colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
+                colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
+                fval1 = QoI_func(x, sqrt2*np.dot(sqrt_rv_covariance, colloc_xi_arr)) - mu_j
+                fval2 = dQoI_func(x, sqrt2*np.dot(sqrt_rv_covariance, colloc_xi_arr)) - dmu_j
+                dvariance_j[:] += np.prod(colloc_w_arr) * \
+                                  (np.outer(fval1, fval2) + np.outer(fval2, fval1))
+            return idx-1
+        else:
+            for i in xrange(0, xi.size):
+                colloc_xi_arr[idx] = xi[i]
+                colloc_w_arr[idx] = w[i]
+                idx = self.do_dVariance(x, rv_covariance, mu_j, dmu_j, dvariance_j, xi, w,
+                                 QoI_func, dQoI_func, colloc_xi_arr, colloc_w_arr, idx+1)
+            return idx-1
+
+    def doReduced_dVariance(self, x, rv_covariance, dominant_dir, mu_j, dmu_j,
+                            dvariance_j, xi, w, QoI_func, dQoI_func,
+                            colloc_xi_arr, colloc_w_arr, idx):
+
+        if idx == np.size(dominant_dir,1)-1:
+            sqrt2 = np.sqrt(2)
+            sqrt_Sigma = np.sqrt(rv_covariance)
+            for i in xrange(0, xi.size):
+                colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
+                colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
+                q = sqrt2* np.matmul(sqrt_Sigma, dominant_dir.dot(colloc_xi_arr))
+                fval1 = QoI_func(x, q) - mu_j
+                fval2 = dQoI_func(x, q) - dmu_j
+                dvariance_j[:] += np.prod(colloc_w_arr) * \
+                                  (np.outer(fval1, fval2) + np.outer(fval2, fval1))
+            return idx-1
+        else:
+            for i in xrange(0, xi.size):
+                colloc_xi_arr[idx] = xi[i]
+                colloc_w_arr[idx] = w[i]
+                idx = self.doReducedNormalVariance(x, rv_covariance,
+                      dominant_dir, mu_j, variance_j, xi, w, QoI_func, colloc_xi_arr,
+                      colloc_w_arr, idx+1)
+            return idx-1
+
+    def dStdDev(self, QoI_func, jdist, mu_j, dQoI_func, dmu_j):
+        """
+        Compute the partial derivative of th standard deviation based on the
+        input functions supplied. THIS ASSUMES THAT THE VARIANCE IS A SCALAR.
+        """
+        # compute the variance
+        var_j = self.variance(QoI_func, jdist, mu_j)
+        std_dev_j = np.sqrt(var_j)
+
+        # compute the derivative of the variance
+        dvar_j = self.dVariance(QoI_func, jdist, mu_j, dQoI_func, dmu_j)
+        d_std_dev_j = dvar_j / std_dev_j
+        return d_std_dev_j
+
+    def dReducedStdDev(self, QoI_func, jdist, dominant_space, mu_j, dQoI_func, dmu_j):
+        """
+        Compute the partial derivative of the standard deviation based on the
+        input functions supplied in the reduced stochastic space. THIS ASSUMES
+        THAT THE VARIANCE IS A SCALAR.
+        """
+        # compute the variance
+        var_j = self.reduced_variance(QoI_func, jdist, dominant_space, mu_j)
+        std_dev_j = np.sqrt(var_j)
+
+        # compute the derivative of the variance
+        dvar_j = self.reduced_dVariance(QoI_func, jdist, dominant_space, mu_j,
+                                        dQoI_func, dmu_j)
+        d_std_dev_j = dvar_j / std_dev_j
+        return d_std_dev_j
 
     def doNormalMean(self, x, sigma, mu_j, xi, w, QoI_func, colloc_xi_arr,
                             colloc_w_arr, idx):
@@ -273,7 +418,7 @@ class NormalDistribution(StochasticCollocation):
                 colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
                 colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
                 fval = QoI_func(x, sqrt2*np.dot(sqrt_rv_covariance, colloc_xi_arr)) - mu_j
-                variance_j[:] += np.prod(colloc_w_arr)*fval*fval
+                variance_j[:] += np.prod(colloc_w_arr) * np.outer(fval, fval)
             return idx-1
         else:
             for i in xrange(0, xi.size):
@@ -344,8 +489,8 @@ class NormalDistribution(StochasticCollocation):
                 colloc_w_arr[idx] = w[i] # Get the array of all the weights needed
                 colloc_xi_arr[idx] = xi[i] # Get the array of all the locations needed
                 q = sqrt2* np.matmul(sqrt_Sigma, dominant_dir.dot(colloc_xi_arr))
-                fval = (QoI_func(x, q) - mu_j)**2
-                variance_j[:] += np.prod(colloc_w_arr)*fval
+                fval = QoI_func(x, q) - mu_j
+                variance_j[:] += np.prod(colloc_w_arr) * np.outer(fval, fval)
             return idx-1
         else:
             for i in xrange(0, xi.size):

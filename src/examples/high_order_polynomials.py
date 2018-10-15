@@ -32,3 +32,41 @@ class Poly2DOrder4(QuantityOfInterest):
         hess[1,0] = -2.0
         hess[1,1] = 2.0
         return hess
+
+class PolyRVDV(QuantityOfInterest):
+    """
+    Nonlinear polynomial (Poly) that has random variables (RV) and independent
+    parameters (DV). This serves as an example case for unittests.
+    """
+    def __init__(self, systemsize=2, n_parameters=2):
+        QuantityOfInterest.__init__(self, systemsize)
+        self.n_parameters = n_parameters
+        self.dv = np.ones(n_parameters)
+
+    def eval_QoI(self, mu, xi):
+        rv = mu + xi
+        fval = 50 * (rv[0]**2) * (self.dv[0]**2) + 2 * (rv[1]**2) * (self.dv[1]**2)
+        return fval
+
+    def eval_QoIGradient(self, mu, xi):
+        rv = mu + xi
+        grad = np.zeros(self.systemsize)
+        grad[0] = 100 * rv[0] * (self.dv[0]**2)
+        grad[1] = 4 * rv[1] * (self.dv[1]**2)
+
+    def eval_QoIHessian(self, mu, xi):
+        rv = mu + xi
+        hess = np.zeros([self.systemsize, self.systemsize])
+        hess[0,0] = 100 * (self.dv[0]**2)
+        hess[1,1] = 4 * (self.dv[1]**2)
+        return hess
+
+    def set_dv(self, new_dv):
+        self.dv[:] = new_dv
+
+    def eval_QoIGradient_dv(self, mu, xi):
+        rv = mu + xi
+        grad = np.zeros(self.n_parameters)
+        grad[0] = 100 * (rv[0]**2) * self.dv[0]
+        grad[1] = 4 * (rv[1]**2) * self.dv[1]
+        return grad
