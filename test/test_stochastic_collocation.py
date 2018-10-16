@@ -192,23 +192,30 @@ class StochasticCollocationTest(unittest.TestCase):
         #  - Compute the mean of the QoI and QoI gradient w.r.t dv
         mu_j = collocation.normal.mean(x, sigma, QoI_func)
         dmu_j = collocation_grad.normal.mean(x, sigma, dQoI_func)
+        var_j = collocation.normal.variance(QoI_func, jdist, mu_j)
+        std_dev_j = np.sqrt(var_j)
 
-        # - Compute the corresponding variance
+        # - Compute the corresponding variance and standard deviation
         dvariance_j = collocation_grad.normal.dVariance(QoI_func, jdist, mu_j, dQoI_func, dmu_j)
+        dstd_dev_j = collocation_grad.normal.dStdDev(QoI_func, jdist, mu_j, var_j, dQoI_func, dmu_j)
 
         # - Check against finite difference
         pert = 1.e-7
         dvariance_j_fd = np.zeros(QoI.n_parameters)
-        var_j = collocation.normal.variance(QoI_func, jdist, mu_j)
+        dstd_dev_j_fd = np.zeros(QoI.n_parameters)
         for i in xrange(0, QoI.n_parameters):
             dv[i] += pert
             QoI.set_dv(dv)
             mu_j_i = collocation.normal.mean(x, sigma, QoI_func)
             var_j_i = collocation.normal.variance(QoI_func, jdist, mu_j_i)
+            std_dev_j_i = np.sqrt(var_j_i)
             dvariance_j_fd[i] = (var_j_i - var_j) / pert
+            dstd_dev_j_fd[i] = (std_dev_j_i - std_dev_j) / pert
             dv[i] -= pert
 
         err = abs(dvariance_j - dvariance_j_fd)
+        self.assertTrue((err < 1.e-4).all())
+        err = abs(dstd_dev_j_fd - dstd_dev_j)
         self.assertTrue((err < 1.e-4).all())
 
         # Check reduced integration
@@ -220,20 +227,29 @@ class StochasticCollocationTest(unittest.TestCase):
         #  - Compute the mean of the QoI and QoI gradient w.r.t dv
         mu_j = collocation.normal.reduced_mean(QoI_func, jdist, dominant_space)
         dmu_j = collocation_grad.normal.reduced_mean(QoI_func, jdist, dominant_space)
-        # - Compute the corresponding variance
-        dvariance_j = collocation_grad.normal.reduced_dVariance(QoI_func, jdist,
-                                         dominant_space, mu_j, dQoI_func, dmu_j)
-        # - Check against finite difference
         var_j = collocation.normal.reduced_variance(QoI_func, jdist, dominant_space, mu_j)
+        std_dev_j = np.sqrt(var_j)
+        # - Compute the corresponding variance and standard deviation
+        dvariance_j = collocation_grad.normal.reduced_dVariance(QoI_func, jdist,
+                                        dominant_space, mu_j, dQoI_func, dmu_j)
+        dstd_dev_j = collocation_grad.normal.dReducedStdDev(QoI_func, jdist,
+                                  dominant_space, mu_j, var_j, dQoI_func, dmu_j)
+        # - Check against finite difference
+        dvariance_j_fd.fill(0.)
+        dstd_dev_j_fd.fill(0.)
         for i in xrange(0, QoI.n_parameters):
             dv[i] += pert
             QoI.set_dv(dv)
             mu_j_i = collocation.normal.reduced_mean(QoI_func, jdist, dominant_space)
             var_j_i = collocation.normal.reduced_variance(QoI_func, jdist, dominant_space, mu_j_i)
+            std_dev_j_i = np.sqrt(var_j_i)
             dvariance_j_fd[i] = (var_j_i - var_j) / pert
+            dstd_dev_j_fd[i] = (std_dev_j_i - std_dev_j) / pert
             dv[i] -= pert
 
         err = abs(dvariance_j - dvariance_j_fd)
+        self.assertTrue((err < 1.e-4).all())
+        err = abs(dstd_dev_j_fd - dstd_dev_j)
         self.assertTrue((err < 1.e-4).all())
 
     ############################################################################

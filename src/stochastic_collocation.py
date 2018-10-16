@@ -309,35 +309,34 @@ class NormalDistribution(StochasticCollocation):
                       colloc_w_arr, idx+1)
             return idx-1
 
-    def dStdDev(self, QoI_func, jdist, mu_j, dQoI_func, dmu_j):
+    def dStdDev(self, QoI_func, jdist, mu_j, var_j, dQoI_func, dmu_j):
         """
         Compute the partial derivative of th standard deviation based on the
         input functions supplied. THIS ASSUMES THAT THE VARIANCE IS A SCALAR.
         """
-        # compute the variance
-        var_j = self.variance(QoI_func, jdist, mu_j)
+        # compute the standard deviation
         std_dev_j = np.sqrt(var_j)
 
         # compute the derivative of the variance
         dvar_j = self.dVariance(QoI_func, jdist, mu_j, dQoI_func, dmu_j)
-        d_std_dev_j = dvar_j / std_dev_j
-        return d_std_dev_j
+        dstd_dev_j = 0.5 * dvar_j / std_dev_j
+        return dstd_dev_j
 
-    def dReducedStdDev(self, QoI_func, jdist, dominant_space, mu_j, dQoI_func, dmu_j):
+    def dReducedStdDev(self, QoI_func, jdist, dominant_space, mu_j, var_j,
+                       dQoI_func, dmu_j):
         """
         Compute the partial derivative of the standard deviation based on the
         input functions supplied in the reduced stochastic space. THIS ASSUMES
         THAT THE VARIANCE IS A SCALAR.
         """
-        # compute the variance
-        var_j = self.reduced_variance(QoI_func, jdist, dominant_space, mu_j)
+        # compute the standard deviation
         std_dev_j = np.sqrt(var_j)
 
         # compute the derivative of the variance
         dvar_j = self.reduced_dVariance(QoI_func, jdist, dominant_space, mu_j,
                                         dQoI_func, dmu_j)
-        d_std_dev_j = dvar_j / std_dev_j
-        return d_std_dev_j
+        dstd_dev_j = 0.5 * dvar_j / std_dev_j
+        return dstd_dev_j
 
     def doNormalMean(self, x, sigma, mu_j, xi, w, QoI_func, colloc_xi_arr,
                             colloc_w_arr, idx):
