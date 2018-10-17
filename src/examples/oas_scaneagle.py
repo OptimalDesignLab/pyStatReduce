@@ -54,7 +54,16 @@ class OASScanEagleWrapper(QuantityOfInterest):
 
         self.p.setup()
 
+        # Set up reusable arrays
+        self.dJ_ddv = np.zeros(self.input_dict['ndv']) # Used in eval_ObjGradient_dv
+        self.con_arr = np.zeros(self.input_dict['n_constraints']) # Used in eval_ConstraintQoI
+        self.con_jac = np.zeros((self.input_dict['n_constraints'], self.input_dict['ndv']))
+
     def eval_QoI(self, mu, xi):
+        """
+        Computes the Quantity of Interest (in this case the objective function)
+        for a given random variable realization.
+        """
         rv = mu + xi
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
@@ -63,6 +72,9 @@ class OASScanEagleWrapper(QuantityOfInterest):
         return self.p['oas_scaneagle.AS_point_0.fuelburn']
 
     def eval_QoIGradient(self, mu, xi):
+        """
+        Computes the gradient of the QoI w.r.t the random variables
+        """
         rv = mu + xi
         deriv_arr = np.zeros(self.systemsize)
         self.p['Mach_number'] = rv[0]
@@ -78,6 +90,12 @@ class OASScanEagleWrapper(QuantityOfInterest):
         return deriv_arr
 
     def eval_ObjGradient_dv(self, mu, xi):
+        """
+        Computes the gradient of the QoI (in this case the objective function)
+        w.r.t the design variables for a given set of random variable
+        realizations. The design variables for this implementation are NOT the
+        random variables.
+        """
         rv = mu + xi
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
@@ -89,18 +107,22 @@ class OASScanEagleWrapper(QuantityOfInterest):
                                            'oas_scaneagle.wing.sweep',
                                            'oas_scaneagle.alpha'])
 
-        dJ_ddv = np.zeros(self.input_dict['ndv'])
+        self.dJ_ddv.fill(0.0)
+        # dJ_ddv = np.zeros(self.input_dict['ndv'])
         n_twist_cp = self.input_dict['n_twist_cp']
         n_thickness_cp = self.input_dict['n_thickness_cp']
         n_cp = n_twist_cp + n_thickness_cp
-        dJ_ddv[0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'oas_scaneagle.wing.twist_cp']
-        dJ_ddv[n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'oas_scaneagle.wing.thickness_cp']
-        dJ_ddv[n_cp:n_cp+1] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'oas_scaneagle.wing.sweep']
-        dJ_ddv[n_cp+1:n_cp+2] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'oas_scaneagle.alpha']
+        self.dJ_ddv[0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'oas_scaneagle.wing.twist_cp']
+        self.dJ_ddv[n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'oas_scaneagle.wing.thickness_cp']
+        self.dJ_ddv[n_cp:n_cp+1] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'oas_scaneagle.wing.sweep']
+        self.dJ_ddv[n_cp+1:n_cp+2] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'oas_scaneagle.alpha']
 
-        return dJ_ddv
+        return self.dJ_ddv
 
     def eval_ConstraintQoI(self, mu, xi):
+        """
+        Evaluates the constraint function for a given realization of random variables.
+        """
         rv = mu + xi
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
@@ -110,18 +132,22 @@ class OASScanEagleWrapper(QuantityOfInterest):
         # Since the current stochastic collocation method expects a single array
         # as the functional output, we need to assemble the constraints into a
         # single array and redistribute it in the OUU function
-        con_arr = np.zeros(self.input_dict['n_constraints'])
+        self.con_arr.fill(0.0) # = np.zeros(self.input_dict['n_constraints'])
         n_thickness_intersects = self.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
         n_CM = self.p['oas_scaneagle.AS_point_0.CM'].size
-        con_arr[0] = self.p['oas_scaneagle.AS_point_0.wing_perf.failure']
-        con_arr[1:n_thickness_intersects+1] = self.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects']
-        con_arr[n_thickness_intersects+1] = self.p['oas_scaneagle.AS_point_0.L_equals_W']
-        con_arr[n_thickness_intersects+2:n_thickness_intersects+2+n_CM] = self.p['oas_scaneagle.AS_point_0.CM']
-        con_arr[n_thickness_intersects+2+n_CM:] = self.p['oas_scaneagle.wing.twist_cp']
+        self.con_arr[0] = self.p['oas_scaneagle.AS_point_0.wing_perf.failure']
+        self.con_arr[1:n_thickness_intersects+1] = self.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects']
+        self.con_arr[n_thickness_intersects+1] = self.p['oas_scaneagle.AS_point_0.L_equals_W']
+        self.con_arr[n_thickness_intersects+2:n_thickness_intersects+2+n_CM] = self.p['oas_scaneagle.AS_point_0.CM']
+        self.con_arr[n_thickness_intersects+2+n_CM:] = self.p['oas_scaneagle.wing.twist_cp']
 
-        return con_arr
+        return self.con_arr
 
     def eval_ConGradient_dv(self, mu, xi):
+        """
+        Evaluates the gradient of the constraint function with respect to the
+        design variables for a given realization of random variabels
+        """
         rv = mu + xi
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
@@ -133,8 +159,7 @@ class OASScanEagleWrapper(QuantityOfInterest):
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.wing_perf.failure',
                                                'oas_scaneagle.AS_point_0.wing_perf.thickness_intersects',
                                                'oas_scaneagle.AS_point_0.L_equals_W',
-                                               'oas_scaneagle.AS_point_0.CM',
-                                               'oas_scaneagle.wing.twist_cp'],
+                                               'oas_scaneagle.AS_point_0.CM'],
                                            wrt=['oas_scaneagle.wing.twist_cp',
                                                 'oas_scaneagle.wing.thickness_cp',
                                                 'oas_scaneagle.wing.sweep',
@@ -145,36 +170,36 @@ class OASScanEagleWrapper(QuantityOfInterest):
         n_cp = n_twist_cp + self.input_dict['n_thickness_cp']
         n_CM = self.input_dict['n_CM']
         n_thickness_intersects = self.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
-        con_jac = np.zeros((self.input_dict['n_constraints'], self.input_dict['ndv']))
+        self.con_jac.fill(0.0) # = np.zeros((self.input_dict['n_constraints'], self.input_dict['ndv']))
         # Populate con_jac
-        con_jac[0,0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.twist_cp']
-        con_jac[0,n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.thickness_cp']
-        con_jac[0,n_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.sweep']
-        con_jac[0,n_cp+1] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.alpha']
+        self.con_jac[0,0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.twist_cp']
+        self.con_jac[0,n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.thickness_cp']
+        self.con_jac[0,n_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.sweep']
+        self.con_jac[0,n_cp+1] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.alpha']
 
-        con_jac[1:n_thickness_intersects+1,0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.wing.twist_cp']
-        con_jac[1:n_thickness_intersects+1,n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.wing.thickness_cp']
-        con_jac[1:n_thickness_intersects+1,n_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.wing.sweep'][:,0]
-        con_jac[1:n_thickness_intersects+1,n_cp+1] = deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.alpha'][:,0]
+        # con_jac[1:n_thickness_intersects+1,0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.wing.twist_cp']
+        self.con_jac[1:n_thickness_intersects+1,n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.wing.thickness_cp']
+        # con_jac[1:n_thickness_intersects+1,n_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.wing.sweep'][:,0]
+        # con_jac[1:n_thickness_intersects+1,n_cp+1] = deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.alpha'][:,0]
 
-        con_jac[n_thickness_intersects+1,0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.L_equals_W', 'oas_scaneagle.wing.twist_cp']
-        con_jac[n_thickness_intersects+1,n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.L_equals_W', 'oas_scaneagle.wing.thickness_cp']
-        con_jac[n_thickness_intersects+1,n_cp] = deriv['oas_scaneagle.AS_point_0.L_equals_W', 'oas_scaneagle.wing.sweep'] # [:,0]
-        con_jac[n_thickness_intersects+1,n_cp+1] = deriv['oas_scaneagle.AS_point_0.L_equals_W', 'oas_scaneagle.alpha']
+        self.con_jac[n_thickness_intersects+1,0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.L_equals_W', 'oas_scaneagle.wing.twist_cp']
+        self.con_jac[n_thickness_intersects+1,n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.L_equals_W', 'oas_scaneagle.wing.thickness_cp']
+        self.con_jac[n_thickness_intersects+1,n_cp] = deriv['oas_scaneagle.AS_point_0.L_equals_W', 'oas_scaneagle.wing.sweep'] # [:,0]
+        self.con_jac[n_thickness_intersects+1,n_cp+1] = deriv['oas_scaneagle.AS_point_0.L_equals_W', 'oas_scaneagle.alpha']
 
         idx = n_thickness_intersects + 2
-        con_jac[idx:idx+n_CM,0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.wing.twist_cp']
-        con_jac[idx:idx+n_CM,n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.wing.thickness_cp']
-        con_jac[idx:idx+n_CM,n_cp] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.wing.sweep'][:,0]
-        con_jac[idx:idx+n_CM,n_cp+1] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.alpha'][:,0]
+        self.con_jac[idx:idx+n_CM,0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.wing.twist_cp']
+        self.con_jac[idx:idx+n_CM,n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.wing.thickness_cp']
+        self.con_jac[idx:idx+n_CM,n_cp] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.wing.sweep'][:,0]
+        self.con_jac[idx:idx+n_CM,n_cp+1] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.alpha'][:,0]
 
         idx = n_thickness_intersects + 2 + n_CM
-        con_jac[idx:,0:n_twist_cp] = deriv['oas_scaneagle.wing.twist_cp', 'oas_scaneagle.wing.twist_cp']
-        con_jac[idx:,n_twist_cp:n_cp] = deriv['oas_scaneagle.wing.twist_cp', 'oas_scaneagle.wing.thickness_cp']
-        con_jac[idx:,n_cp] = deriv['oas_scaneagle.wing.twist_cp', 'oas_scaneagle.wing.sweep'][:,0]
-        con_jac[idx:,n_cp+1] = deriv['oas_scaneagle.wing.twist_cp', 'oas_scaneagle.alpha'][:,0]
+        self.con_jac[idx:,0:n_twist_cp] = np.eye(self.input_dict['n_twist_cp']) # deriv['oas_scaneagle.wing.twist_cp', 'oas_scaneagle.wing.twist_cp']
+        # con_jac[idx:,n_twist_cp:n_cp] = deriv['oas_scaneagle.wing.twist_cp', 'oas_scaneagle.wing.thickness_cp']
+        # con_jac[idx:,n_cp] = deriv['oas_scaneagle.wing.twist_cp', 'oas_scaneagle.wing.sweep'][:,0]
+        # con_jac[idx:,n_cp+1] = deriv['oas_scaneagle.wing.twist_cp', 'oas_scaneagle.alpha'][:,0]
 
-        return con_jac
+        return self.con_jac
 
 
     def get_constraint_range(self):

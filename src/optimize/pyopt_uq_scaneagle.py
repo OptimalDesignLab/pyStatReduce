@@ -1,6 +1,11 @@
 # pyopt_uq_scaneagle.py
-# The following file will contain the optimization under uncertainty of the
-# ScanEagle problem.
+# The following file contains the deterministic and robust design optimization
+# of the ScanEagle problem. In order to run the deterministic problem, enter the
+# following command in the terminal
+#               python pyopt_uq_scaneagle deterministic
+# else enter
+#               python pyopt_uq_scaneagle stochastic
+
 import os
 import sys
 import errno
@@ -56,13 +61,12 @@ class UQScanEagleOpt(object):
         self.QoI = examples.OASScanEagleWrapper(uq_systemsize, dv_dict)
         self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                             exact_Hessian=False)
-        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=3)
-        # print 'iso_eigenvals = ', self.dominant_space.iso_eigenvals
-        # print 'iso_eigenvecs = ', '\n', self.dominant_space.iso_eigenvecs
-        # print 'dominant_indices = ', self.dominant_space.dominant_indices
-        # print 'ratio = ', abs(self.dominant_space.iso_eigenvals[0] / self.dominant_space.iso_eigenvals[1])
+        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=1)
 
 def objfunc_uq(xdict):
+    """
+    Objective funtion supplied to pyOptSparse for RDO.
+    """
     rdo_factor = 2.0
     UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = xdict['twist_cp']
     UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
@@ -100,6 +104,9 @@ def objfunc_uq(xdict):
     return funcs, fail
 
 def objfunc(xdict):
+    """
+    Objective function supplied to pyOptSparse for deterministic optimization.
+    """
     UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = xdict['twist_cp']
     UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
     UQObj.QoI.p['oas_scaneagle.wing.sweep'] = xdict['sweep']
@@ -119,6 +126,9 @@ def objfunc(xdict):
     return funcs, fail
 
 def sens_uq(xdict, funcs):
+    """
+    Sensitivity function provided to pyOptSparse for RDO.
+    """
     rdo_factor = 2.0
     UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = xdict['twist_cp']
     UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
@@ -190,6 +200,9 @@ def sens_uq(xdict, funcs):
     return funcsSens, fail
 
 def sens(xdict, funcs):
+    """
+    Sensitivity function provided to pyOptSparse for deterministic optimization.
+    """
     UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = xdict['twist_cp']
     UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
     UQObj.QoI.p['oas_scaneagle.wing.sweep'] = xdict['sweep']
@@ -201,8 +214,7 @@ def sens(xdict, funcs):
                                            'oas_scaneagle.AS_point_0.wing_perf.failure',
                                            'oas_scaneagle.AS_point_0.wing_perf.thickness_intersects',
                                            'oas_scaneagle.AS_point_0.L_equals_W',
-                                           'oas_scaneagle.AS_point_0.CM',
-                                           'oas_scaneagle.wing.twist_cp'],
+                                           'oas_scaneagle.AS_point_0.CM'],
                                        wrt=['oas_scaneagle.wing.twist_cp',
                                             'oas_scaneagle.wing.thickness_cp',
                                             'oas_scaneagle.wing.sweep',
@@ -213,30 +225,56 @@ def sens(xdict, funcs):
     funcsSens['obj', 'sweep'] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'oas_scaneagle.wing.sweep']
     funcsSens['obj', 'alpha'] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'oas_scaneagle.alpha']
 
+    # print "funcsSens['obj', 'twist_cp'] = ", funcsSens['obj', 'twist_cp']
+    # print "funcsSens['obj', 'thickness_cp'] = ", funcsSens['obj', 'thickness_cp']
+    # print "funcsSens['obj', 'sweep'] = ", funcsSens['obj', 'sweep']
+    # print "funcsSens['obj', 'alpha'] = ", funcsSens['obj', 'alpha'], '\n'
+
     funcsSens['con_failure', 'twist_cp'] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.twist_cp']
     funcsSens['con_failure', 'thickness_cp'] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.thickness_cp']
     funcsSens['con_failure', 'sweep'] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.sweep']
     funcsSens['con_failure', 'alpha'] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.alpha']
 
-    funcsSens['con_thickness_intersects', 'twist_cp'] = deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.wing.twist_cp']
+    # print "funcsSens['con_failure', 'twist_cp'] = ", funcsSens['con_failure', 'twist_cp']
+    # print "funcsSens['con_failure', 'thickness_cp'] = ", funcsSens['con_failure', 'thickness_cp']
+    # print "funcsSens['con_failure', 'sweep'] = ", funcsSens['con_failure', 'sweep']
+    # print "funcsSens['con_failure', 'alpha'] = ", funcsSens['con_failure', 'alpha'], '\n'
+
+    # con_thickness_intersects only depends on thickness_cp
     funcsSens['con_thickness_intersects', 'thickness_cp'] = deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.wing.thickness_cp']
-    funcsSens['con_thickness_intersects', 'sweep'] = deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.wing.sweep']
-    funcsSens['con_thickness_intersects', 'alpha'] = deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.alpha']
+
+    # print "funcsSens['con_thickness_intersects', 'twist_cp'] = \n", funcsSens['con_thickness_intersects', 'twist_cp']
+    # print "funcsSens['con_thickness_intersects', 'thickness_cp'] = \n", funcsSens['con_thickness_intersects', 'thickness_cp']
+    # print "funcsSens['con_thickness_intersects', 'sweep'] = \n", funcsSens['con_thickness_intersects', 'sweep']
+    # print "funcsSens['con_thickness_intersects', 'alpha'] = \n", funcsSens['con_thickness_intersects', 'alpha'], '\n'
 
     funcsSens['con_L_equals_W', 'twist_cp'] = deriv['oas_scaneagle.AS_point_0.L_equals_W', 'oas_scaneagle.wing.twist_cp']
     funcsSens['con_L_equals_W', 'thickness_cp'] = deriv['oas_scaneagle.AS_point_0.L_equals_W', 'oas_scaneagle.wing.thickness_cp']
     funcsSens['con_L_equals_W', 'sweep'] = deriv['oas_scaneagle.AS_point_0.L_equals_W', 'oas_scaneagle.wing.sweep']
     funcsSens['con_L_equals_W', 'alpha'] = deriv['oas_scaneagle.AS_point_0.L_equals_W', 'oas_scaneagle.alpha']
 
+    # print "funcsSens['con_L_equals_W', 'twist_cp'] = ", funcsSens['con_L_equals_W', 'twist_cp']
+    # print "funcsSens['con_L_equals_W', 'thickness_cp'] = ", funcsSens['con_L_equals_W', 'thickness_cp']
+    # print "funcsSens['con_L_equals_W', 'sweep'] = ", funcsSens['con_L_equals_W', 'sweep']
+    # print "funcsSens['con_L_equals_W', 'alpha'] = ", funcsSens['con_L_equals_W', 'alpha'], '\n'
+
     funcsSens['con_CM', 'twist_cp'] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.wing.twist_cp']
     funcsSens['con_CM', 'thickness_cp'] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.wing.thickness_cp']
     funcsSens['con_CM', 'sweep'] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.wing.sweep']
     funcsSens['con_CM', 'alpha'] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.alpha']
 
-    funcsSens['con_twist_cp', 'twist_cp'] = deriv['oas_scaneagle.wing.twist_cp', 'oas_scaneagle.wing.twist_cp']
-    funcsSens['con_twist_cp', 'thickness_cp'] = deriv['oas_scaneagle.wing.twist_cp', 'oas_scaneagle.wing.thickness_cp']
-    funcsSens['con_twist_cp', 'sweep'] = deriv['oas_scaneagle.wing.twist_cp', 'oas_scaneagle.wing.sweep']
-    funcsSens['con_twist_cp', 'alpha'] = deriv['oas_scaneagle.wing.twist_cp', 'oas_scaneagle.alpha']
+    # print "funcsSens['con_CM', 'twist_cp'] = \n", funcsSens['con_CM', 'twist_cp']
+    # print "funcsSens['con_CM', 'thickness_cp'] = \n", funcsSens['con_CM', 'thickness_cp']
+    # print "funcsSens['con_CM', 'sweep'] = \n", funcsSens['con_CM', 'sweep']
+    # print "funcsSens['con_CM', 'alpha'] = \n", funcsSens['con_CM', 'alpha'], '\n'
+
+    # con_twist_cp only depends on twist_cp and is an identity matrix
+    funcsSens['con_twist_cp', 'twist_cp'] = np.eye(UQObj.QoI.input_dict['n_twist_cp'])
+
+    # print "funcsSens['con_twist_cp', 'twist_cp'] = \n", funcsSens['con_twist_cp', 'twist_cp']
+    # print "funcsSens['con_twist_cp', 'thickness_cp'] = \n", funcsSens['con_twist_cp', 'thickness_cp']
+    # print "funcsSens['con_twist_cp', 'sweep'] = ", funcsSens['con_twist_cp', 'sweep']
+    # print "funcsSens['con_twist_cp', 'alpha'] = ", funcsSens['con_twist_cp', 'alpha'], '\n'
 
     fail = False
     return funcsSens, fail
@@ -249,6 +287,9 @@ if __name__ == "__main__":
     mu = np.array([0.071, 9.80665 * 8.6e-6, 10.])
 
     if sys.argv[1] == "stochastic":
+        """
+        This piece of code runs the RDO of the ScanEagle program.
+        """
         # Stochastic collocation Objects
         ndv = 3 + 3 + 1 + 1
         collocation_obj = StochasticCollocation(5, "Normal")
@@ -265,7 +306,8 @@ if __name__ == "__main__":
         optProb.addVarGroup('twist_cp', n_twist_cp, 'c', lower=-5., upper=10)
         optProb.addVarGroup('thickness_cp', n_thickness_cp, 'c', lower=0.001, upper=0.01, scale=1.e3)
         optProb.addVar('sweep', lower=10., upper=30.)
-        optProb.addVar('alpha', lower=-10., upper=10.)
+        # optProb.addVar('alpha', lower=-10., upper=10.)
+        optProb.addVar('alpha', lower=0., upper=10.)
 
         # Constraints
         optProb.addConGroup('con_failure', 1, upper=0.)
@@ -277,19 +319,23 @@ if __name__ == "__main__":
         # Objective
         optProb.addObj('obj')
         opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
-        sol = opt(optProb, sens=sens_uq)
-        # sol = opt(optProb, sens='FD')
+        # sol = opt(optProb, sens=sens_uq)
+        sol = opt(optProb, sens='FD')
         print sol
 
     elif sys.argv[1] == "deterministic":
-        fval = UQObj.QoI.eval_QoI(mu, xi)
-        UQObj.QoI.p.run_model()
+        """
+        This problem runs the deterministic problem which is equivalent to
+        `run_scaneagle.py`
+        """
 
+        # fval = UQObj.QoI.eval_QoI(mu, xi)
+        # UQObj.QoI.p.run_model()
 
         # Design Variables
         optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc)
-        n_twist_cp = UQObj.QoI.dv_dict['n_twist_cp']
-        n_thickness_cp = UQObj.QoI.dv_dict['n_thickness_cp']
+        n_twist_cp = UQObj.QoI.input_dict['n_twist_cp']
+        n_thickness_cp = UQObj.QoI.input_dict['n_thickness_cp']
         optProb.addVarGroup('twist_cp', n_twist_cp, 'c', lower=-5., upper=10)
         optProb.addVarGroup('thickness_cp', n_thickness_cp, 'c', lower=0.001, upper=0.01, scale=1.e3)
         optProb.addVar('sweep', lower=10., upper=30.)
@@ -299,16 +345,17 @@ if __name__ == "__main__":
         n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
         n_CM = 3
         optProb.addConGroup('con_failure', 1, upper=0.)
-        optProb.addConGroup('con_thickness_intersects', n_thickness_intersects, upper=0.)
+        optProb.addConGroup('con_thickness_intersects', n_thickness_intersects,
+                            upper=0., wrt=['thickness_cp'])
         optProb.addConGroup('con_L_equals_W', 1, lower=0., upper=0.)
         optProb.addConGroup('con_CM', n_CM, lower=-0.001, upper=0.001)
-        optProb.addConGroup('con_twist_cp', 3, lower=np.array([-1e20, -1e20, 5.]), upper=np.array([1e20, 1e20, 5.]))
+        optProb.addConGroup('con_twist_cp', 3, lower=np.array([-1e20, -1e20, 5.]),
+                            upper=np.array([1e20, 1e20, 5.]), wrt=['twist_cp'])
 
         # Objective
-        optProb.addObj('obj')
-        opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9,
-                                              'Major iterations limit' : 1,
-                                              'Minor iterations limit': 1})
+        optProb.addObj('obj', scale=0.1)
+        opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
         # sol = opt(optProb, sens='FD')
         sol = opt(optProb, sens=sens)
         print sol
+        print sol.fStar
