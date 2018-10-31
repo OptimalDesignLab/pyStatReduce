@@ -1,19 +1,11 @@
-import sys
-import os
-
-# Get the directory of this file
-TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-SRC_DIR = TEST_DIR + '/../src'
-sys.path.insert(0, SRC_DIR)
-
 import unittest
 import numpy as np
 import chaospy as cp
 import numdifftools as nd
 
-from stochastic_collocation import StochasticCollocation
-from quantity_of_interest import QuantityOfInterest
-import examples
+from pystatreduce.stochastic_collocation import StochasticCollocation
+from pystatreduce.quantity_of_interest import QuantityOfInterest
+import pystatreduce.examples as examples
 
 class HadamardQuadraticTest(unittest.TestCase):
 

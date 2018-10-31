@@ -1,20 +1,12 @@
 # test_arnoldi_sampling.py
-import sys
-import os
-
-# Get the directory of this file
-TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-SRC_DIR = TEST_DIR + '/../src'
-sys.path.insert(0, SRC_DIR)
-
 import unittest
 import numpy as np
 import chaospy as cp
 
-from stochastic_collocation import StochasticCollocation
-from quantity_of_interest import QuantityOfInterest
-from stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
-import examples
+from pystatreduce.stochastic_collocation import StochasticCollocation
+from pystatreduce.quantity_of_interest import QuantityOfInterest
+from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
+import pystatreduce.examples as examples
 
 class ArnoldiSamplingTest(unittest.TestCase):
 
@@ -35,14 +27,14 @@ class ArnoldiSamplingTest(unittest.TestCase):
         H = np.zeros([num_sample, num_sample-1])
 
         # Populate Z
-        for i in xrange(-1, num_sample-1):
+        for i in range(-1, num_sample-1):
             arnoldi.modified_GramSchmidt(i, H, Z)
             # Check that the vectors are unit normal
             self.assertAlmostEqual(np.linalg.norm(Z[:,i+1]), 1, places=14)
 
         # Check that the vectors are orthogonal
-        for i in xrange(0, num_sample):
-            for j in xrange(i+1, num_sample):
+        for i in range(0, num_sample):
+            for j in range(i+1, num_sample):
                 self.assertAlmostEqual(np.dot(Z[:,i], Z[:,j]), 0, places=14)
 
     def test_modified_GramSchmidt_RankDeficient(self):
@@ -62,7 +54,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
         Z[:,num_sample-1] = Z[:,0:num_sample-1].dot(np.random.rand(num_sample-1))
         H = np.zeros([num_sample, num_sample-1])
 
-        for i in xrange(-1, num_sample-2):
+        for i in range(-1, num_sample-2):
             arnoldi.modified_GramSchmidt(i, H, Z)
             # Check that the vectors are unit normal
             self.assertAlmostEqual(np.linalg.norm(Z[:,i+1]), 1, places=14)
@@ -121,7 +113,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
         V_exact = exact_eigenvecs[:, sort_ind1]
         V_arnoldi = eigenvecs[:, sort_ind2]
         product = np.zeros(QoI.systemsize)
-        for i in xrange(0, systemsize):
+        for i in range(0, systemsize):
             product[i] = abs(np.dot(V_exact[:,i], V_arnoldi[:,i]))
             self.assertAlmostEqual(product[i], 1.0, places=7)
 
@@ -170,7 +162,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
         lambda_arnoldi = eigenvals[sort_ind2]
 
         # Compare the eigenvalues
-        for i in xrange(0, num_sample-1):
+        for i in range(0, num_sample-1):
             if i < 10:
                 self.assertAlmostEqual(lambda_arnoldi[i], lambda_exact[i], places=6)
             else:
@@ -180,7 +172,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
         # Compare the eigenvectors
         V_exact = exact_eigenvecs[:, sort_ind1]
         V_arnoldi = eigenvecs[:, sort_ind2]
-        for i in xrange(0, num_sample-1):
+        for i in range(0, num_sample-1):
             product = abs(np.dot(V_exact[:,i], V_arnoldi[:,i]))
             if i < 10:
                 self.assertAlmostEqual(product, 1.0, places=6)
@@ -219,7 +211,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
                               grad_red)
 
         # Check that eigenvalues and eigenvectors agree
-        for i in xrange(0, systemsize):
+        for i in range(0, systemsize):
             self.assertAlmostEqual(eigenvals[i], QoI.E[i], places=7)
             self.assertAlmostEqual(abs(np.dot(eigenvecs[:,i], QoI.V[:,i])), 1.0, places=7)
 
@@ -258,7 +250,7 @@ class ArnoldiSamplingTest(unittest.TestCase):
         self.assertEqual(dim, systemsize-1)
 
         # Check that eigenvalues and eigenvectors agree
-        for i in xrange(0, dim):
+        for i in range(0, dim):
             self.assertAlmostEqual(eigenvals[i], QoI.E[i+1], places=7)
             self.assertAlmostEqual(abs(np.dot(eigenvecs[:,i], QoI.V[:,i+1])), 1.0, places=7)
 

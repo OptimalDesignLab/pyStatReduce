@@ -1,6 +1,6 @@
 import numpy as np
 import numdifftools as nd
-from quantity_of_interest import QuantityOfInterest
+from pystatreduce.quantity_of_interest import QuantityOfInterest
 
 class RandomQuadratic(QuantityOfInterest):
     """
@@ -32,8 +32,8 @@ class RandomQuadratic(QuantityOfInterest):
         Vx = self.V.transpose().dot(x)
         g = np.zeros(self.systemsize)
         f = 0.0
-        for i in xrange(0, self.systemsize):
-            for j in xrange(0, self.systemsize):
+        for i in range(0, self.systemsize):
+            for j in range(0, self.systemsize):
                 g[i] += self.V[i,j]*self.E[j]*Vx[j]
             f += 0.5*g[i]*x[i]
 
@@ -43,8 +43,8 @@ class RandomQuadratic(QuantityOfInterest):
         x = mu + xi
         Vx = self.V.transpose().dot(x)
         g = np.zeros(self.systemsize)
-        for i in xrange(0, self.systemsize):
-            for j in xrange(0, self.systemsize):
+        for i in range(0, self.systemsize):
+            for j in range(0, self.systemsize):
                 g[i] += self.V[i,j]*self.E[j]*Vx[j]
 
         return g

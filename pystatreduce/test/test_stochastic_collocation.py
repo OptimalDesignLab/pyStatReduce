@@ -1,21 +1,12 @@
 # Test stochastic collocation module
-
-import sys
-import os
-
-# Get the directory of this file
-TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-SRC_DIR = TEST_DIR + '/../src'
-sys.path.insert(0, SRC_DIR)
-
 import unittest
 import numpy as np
 import chaospy as cp
 
-from stochastic_collocation import StochasticCollocation
-from quantity_of_interest import QuantityOfInterest
-from dimension_reduction import DimensionReduction
-import examples
+from pystatreduce.stochastic_collocation import StochasticCollocation
+from pystatreduce.quantity_of_interest import QuantityOfInterest
+from pystatreduce.dimension_reduction import DimensionReduction
+import pystatreduce.examples as examples
 
 class StochasticCollocationTest(unittest.TestCase):
 
@@ -40,8 +31,8 @@ class StochasticCollocationTest(unittest.TestCase):
         # Test against nested loops
         mu_j_hat = 0.0
         sqrt2 = np.sqrt(2)
-        for i in xrange(0, collocation.normal.q.size):
-            for j in xrange(0, collocation.normal.q.size):
+        for i in range(0, collocation.normal.q.size):
+            for j in range(0, collocation.normal.q.size):
                 f_val = QoI.eval_QoI(x, sqrt2*sigma*[collocation.normal.q[i],
                         collocation.normal.q[j]])
                 mu_j_hat += collocation.normal.w[i]*collocation.normal.w[j]*f_val
@@ -83,9 +74,9 @@ class StochasticCollocationTest(unittest.TestCase):
         # Test against nested loops
         mu_j_hat = 0.0
         sqrt2 = np.sqrt(2)
-        for i in xrange(0, collocation.normal.q.size):
-            for j in xrange(0, collocation.normal.q.size):
-                for k in xrange(0, collocation.normal.q.size):
+        for i in range(0, collocation.normal.q.size):
+            for j in range(0, collocation.normal.q.size):
+                for k in range(0, collocation.normal.q.size):
                     f_val = QoI.eval_QoI(x, sqrt2*sigma*[collocation.normal.q[i],
                             collocation.normal.q[j], collocation.normal.q[k]])
                     mu_j_hat += collocation.normal.w[i]*collocation.normal.w[j]* \
@@ -114,9 +105,9 @@ class StochasticCollocationTest(unittest.TestCase):
         # Test against nested loops
         mu_j_hat = np.zeros(systemsize) # 0.0
         sqrt2 = np.sqrt(2)
-        for i in xrange(0, collocation.normal.q.size):
-            for j in xrange(0, collocation.normal.q.size):
-                for k in xrange(0, collocation.normal.q.size):
+        for i in range(0, collocation.normal.q.size):
+            for j in range(0, collocation.normal.q.size):
+                for k in range(0, collocation.normal.q.size):
                     f_val = QoI.eval_QoIGradient(x, sqrt2*sigma*[collocation.normal.q[i],
                             collocation.normal.q[j], collocation.normal.q[k]])
                     mu_j_hat[:] += collocation.normal.w[i]*collocation.normal.w[j]* \
@@ -152,11 +143,11 @@ class StochasticCollocationTest(unittest.TestCase):
         sqrt2 = np.sqrt(2)
         q = collocation.normal.q
         w = collocation.normal.w
-        for i in xrange(0, q.size):
-            for j in xrange(0, q.size):
-                for k in xrange(0, q.size):
-                    for l in xrange(0, q.size):
-                        for m in xrange(0, q.size):
+        for i in range(0, q.size):
+            for j in range(0, q.size):
+                for k in range(0, q.size):
+                    for l in range(0, q.size):
+                        for m in range(0, q.size):
                             fval = QoI.eval_QoI(x, sqrt2*sigma*[q[i], q[j], q[k],
                                    q[l], q[m]])
                             mu_j_hat += w[i]*w[j]*w[k]*w[l]*w[m]*fval
@@ -203,7 +194,7 @@ class StochasticCollocationTest(unittest.TestCase):
         pert = 1.e-7
         dvariance_j_fd = np.zeros(QoI.n_parameters)
         dstd_dev_j_fd = np.zeros(QoI.n_parameters)
-        for i in xrange(0, QoI.n_parameters):
+        for i in range(0, QoI.n_parameters):
             dv[i] += pert
             QoI.set_dv(dv)
             mu_j_i = collocation.normal.mean(x, sigma, QoI_func)
@@ -237,7 +228,7 @@ class StochasticCollocationTest(unittest.TestCase):
         # - Check against finite difference
         dvariance_j_fd.fill(0.)
         dstd_dev_j_fd.fill(0.)
-        for i in xrange(0, QoI.n_parameters):
+        for i in range(0, QoI.n_parameters):
             dv[i] += pert
             QoI.set_dv(dv)
             mu_j_i = collocation.normal.reduced_mean(QoI_func, jdist, dominant_space)

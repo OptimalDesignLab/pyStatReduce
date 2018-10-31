@@ -1,18 +1,18 @@
 # Use the OpenMDAO framework for OUU for optimizing a Rosenbrock function
 from __future__ import division, print_function
-import os
-import sys
-import errno
-sys.path.insert(0, '../../src')
+# import os
+# import sys
+# import errno
+# sys.path.insert(0, '../../src')
 
 # pyStatReduce specific imports
 import numpy as np
 import chaospy as cp
-from stochastic_collocation import StochasticCollocation
-from quantity_of_interest import QuantityOfInterest
-from dimension_reduction import DimensionReduction
-from stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
-import examples
+from pystatreduce.stochastic_collocation import StochasticCollocation
+from pystatreduce.quantity_of_interest import QuantityOfInterest
+from pystatreduce.dimension_reduction import DimensionReduction
+from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
+import pystatreduce.examples
 
 #pyoptsparse sepecific imports
 from scipy import sparse

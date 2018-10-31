@@ -2,7 +2,7 @@
 import math
 import numpy as np
 import numdifftools as nd
-from quantity_of_interest import QuantityOfInterest
+from pystatreduce.quantity_of_interest import QuantityOfInterest
 
 class Poly2DOrder4(QuantityOfInterest):
 

@@ -1,1 +1,1 @@
-import examples
+import pystatreduce.examples

@@ -1,7 +1,7 @@
 # exponential_function.py
 import numpy as np
 import numdifftools as nd
-from quantity_of_interest import QuantityOfInterest
+from pystatreduce.quantity_of_interest import QuantityOfInterest
 
 class ExponentialFunction(QuantityOfInterest):
 
@@ -20,7 +20,7 @@ class ExponentialFunction(QuantityOfInterest):
         dfdx = np.zeros(self.systemsize)
         xs = x/np.arange(1, self.systemsize+1)
         f = np.exp(np.dot(xs,xs))
-        for i in xrange(0, self.systemsize):
+        for i in range(0, self.systemsize):
             dfdx[i] = 2.0*x[i]*f / ((i+1)*(i+1))
 
         return dfdx

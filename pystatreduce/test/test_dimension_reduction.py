@@ -1,21 +1,13 @@
 # Test dimension reduction
-import sys
-import os
-
-# Get the directory of this file
-TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-SRC_DIR = TEST_DIR + '/../src'
-sys.path.insert(0, SRC_DIR)
-
 import unittest
 import numpy as np
 import chaospy as cp
 
-from stochastic_collocation import StochasticCollocation
-from quantity_of_interest import QuantityOfInterest
-from dimension_reduction import DimensionReduction
-from stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
-import examples
+from pystatreduce.stochastic_collocation import StochasticCollocation
+from pystatreduce.quantity_of_interest import QuantityOfInterest
+from pystatreduce.dimension_reduction import DimensionReduction
+from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
+import pystatreduce.examples as examples
 
 np.set_printoptions(linewidth=150)
 
@@ -56,7 +48,7 @@ class DimensionReductionTest(unittest.TestCase):
 
         self.assertTrue((err_eigenvals < 1.e-15).all())
         self.assertTrue((err_eigenvecs < 1.e-15).all())
-        self.assertItemsEqual(dominant_space.dominant_indices, [0,1])
+        self.assertEqual(dominant_space.dominant_indices, [0,1])
 
     def test_reducedCollocation(self):
 

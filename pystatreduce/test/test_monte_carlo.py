@@ -2,21 +2,21 @@
 import sys
 import os
 
-# Get the directory of this file
-TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-SRC_DIR = TEST_DIR + '/../src'
-sys.path.insert(0, SRC_DIR)
+# # Get the directory of this file
+# TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+# SRC_DIR = TEST_DIR + '/../src'
+# sys.path.insert(0, SRC_DIR)
 
 import unittest
 import numpy as np
 import chaospy as cp
 
-from monte_carlo import MonteCarlo
-from stochastic_collocation import StochasticCollocation
-from quantity_of_interest import QuantityOfInterest
-from dimension_reduction import DimensionReduction
+from pystatreduce.monte_carlo import MonteCarlo
+from pystatreduce.stochastic_collocation import StochasticCollocation
+from pystatreduce.quantity_of_interest import QuantityOfInterest
+from pystatreduce.dimension_reduction import DimensionReduction
 
-import examples
+from pystatreduce.examples import Paraboloid3D
 
 class MonteCarloTest(unittest.TestCase):
 
@@ -26,7 +26,7 @@ class MonteCarloTest(unittest.TestCase):
         std_dev = np.diag(np.random.rand(systemsize))
         jdist = cp.MvNormal(mu, std_dev)
         # Create QoI Object
-        QoI = examples.Paraboloid3D(systemsize)
+        QoI = Paraboloid3D(systemsize)
 
         # Create the Monte Carlo object
         QoI_dict = {'paraboloid' : {'QoI_func' : QoI.eval_QoI,

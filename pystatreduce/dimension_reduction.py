@@ -2,7 +2,7 @@
 
 import numpy as np
 import chaospy as cp
-from stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
+from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 
 class DimensionReduction(object):
     """
@@ -105,7 +105,7 @@ class DimensionReduction(object):
             sort_ind = self.iso_eigenvals.argsort()[::-1]
 
             # Check the threshold
-            for i in xrange(0, self.num_sample):
+            for i in range(0, self.num_sample):
                 dominant_eigen_val_ind = sort_ind[0:i+1]
                 reduced_energy = np.sum(self.iso_eigenvals[dominant_eigen_val_ind])
                 if reduced_energy <= self.threshold_factor*system_energy:
@@ -147,7 +147,7 @@ class DimensionReduction(object):
             # the eigen pairs are already sorted in a descending order. We will
             # only use "good" eigen pairs to estimate the dominant directions.
             ctr = 0
-            for i in xrange(0, dim):
+            for i in range(0, dim):
                 if error_estimate[i] < self.min_eigen_accuracy:
                     ctr += 1
                 else:

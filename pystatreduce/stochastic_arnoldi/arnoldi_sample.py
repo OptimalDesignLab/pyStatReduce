@@ -37,7 +37,7 @@ class ArnoldiSampling(object):
         else:
             raise NotImplementedError
 
-        for i in xrange(0, m):
+        for i in range(0, m):
             # Find new sample point and data; Compute function and gradient values
             xdata_i[:] = xdata0 + self.alpha * Z[:,i]
 
@@ -81,7 +81,7 @@ class ArnoldiSampling(object):
         e_m = np.zeros(i+1)
         e_m[-1] = 1.0 # Last value of the basis = 1
         error_estimate = np.zeros(i+1)
-        for k in xrange(0, i+1):
+        for k in range(0, i+1):
             eigenvecs[:,k] = Z[:,0:i+1].dot(eigenvecs_red[0:i+1, k])
             error_estimate[k] = H[i+1,i]*abs(np.dot(e_m,eigenvecs_red[:,k]))
 
@@ -119,7 +119,7 @@ class ArnoldiSampling(object):
             return False
 
         # Begin main Gram-Schmidt loop
-        for k in xrange(0,i+1):
+        for k in range(0,i+1):
             prod = np.dot(w[:,i+1], w[:,k])
             Hsbg[k,i] = prod
             w[:,i+1] -= prod*w[:,k]
@@ -189,7 +189,7 @@ class ArnoldiSampling(object):
         Z[:,0] = gdata[:,0]/np.linalg.norm(gdata[:,0])
         linear_dependence = False
 
-        for i in xrange(0, m):
+        for i in range(0, m):
             # Find new sample point and data; Compute function and gradient values
             xdata[:,i+1] = xdata[:,0] + self.alpha * Z[:,i]
             fdata[i+1] = QoI.eval_QoI(xdata[:,0], self.alpha*Z[:,i]) # TODO: Figure out a consistrnt API for function and gradient evaluation
@@ -220,7 +220,7 @@ class ArnoldiSampling(object):
         error_estimate = np.linalg.norm(0.5*(H[0:i+1,0:i+1] - H[0:i+1,0:i+1].transpose()))
 
         # Generate the full-space eigenvector approximations
-        for k in xrange(0, i+1):
+        for k in range(0, i+1):
             eigenvecs[:,k] = Z[:,0:i+1].dot(eigenvecs_red[0:i+1, k])
 
         # Finally, sort the system eigenvalues and eigenvectors

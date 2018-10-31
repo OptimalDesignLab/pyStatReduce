@@ -171,7 +171,7 @@ prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.'
 prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
 # Set the optimizer type
-from openmdao.api import ScipyOptimizeDriver
+# from openmdao.api import ScipyOptimizeDriver
 prob.driver = pyOptSparseDriver() # ScipyOptimizeDriver()
 # prob.driver.options['tol'] = 1e-7
 prob.driver.options['optimizer'] = 'SNOPT'

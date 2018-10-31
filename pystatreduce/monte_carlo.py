@@ -25,7 +25,7 @@ class MonteCarlo(object):
         n_rv = cp.E(jdist).shape
         pert = np.zeros(n_rv)
         # Get the all the function values for the given set of samples
-        for i in xrange(0,self.num_samples):
+        for i in range(0,self.num_samples):
             for j in self.QoI_dict:
                 QoI_func = self.QoI_dict[j]['QoI_func']
                 # print "self.samples = ", self.samples[:,i]
@@ -45,7 +45,7 @@ class MonteCarlo(object):
                 mu = np.sum(self.QoI_dict[i]['fvals'], axis=0) / self.num_samples
                 val = np.zeros((self.QoI_dict[i]['output_dimensions'],
                                 self.QoI_dict[i]['output_dimensions']))
-                for j in xrange(0,self.num_samples):
+                for j in range(0,self.num_samples):
                     val += np.outer((self.QoI_dict[i]['fvals'][j,:] - mu),
                                        (self.QoI_dict[i]['fvals'][j,:] - mu))
                 variance_val[i] = val / (self.num_samples - 1)

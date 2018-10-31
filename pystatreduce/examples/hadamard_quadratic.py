@@ -1,6 +1,6 @@
 # Hadamard quadratic
 import numpy as np
-from quantity_of_interest import QuantityOfInterest
+from pystatreduce.quantity_of_interest import QuantityOfInterest
 
 class HadamardQuadratic(QuantityOfInterest):
 
@@ -88,7 +88,7 @@ class HadamardQuadratic(QuantityOfInterest):
             y_2D[n2:n,:] = fac*(Hx1 - Hx2)
 
     def getSyntheticEigenValues(self):
-        for i in xrange (0, self.systemsize):
+        for i in range (0, self.systemsize):
             self.eigen_vals[i] = 1/(i+1)**self.eigen_decayrate
 
     def getSyntheticEigenVectors(self):
