@@ -58,6 +58,15 @@ class Paraboloid3D(QuantityOfInterest):
     def eval_QoIHessian(self, mu, xi):
         return np.diag([100, 50, 2])
 
+    def eval_QoI_analyticalmean(self, mu, cov):
+        mu_j = np.trace(np.matmul(self.quadratic_matrix, cov)) \
+               + mu.dot(self.quadratic_matrix.dot(mu))
+        return mu_j
+    def eval_QoI_analyticalvariance(self, mu, cov):
+        mat1 = np.matmul(self.quadratic_matrix, cov)
+        vec1 = self.quadratic_matrix.dot(cov.dot(self.quadratic_matrix.dot(mu)))
+        var_j = 2*np.trace(np.matmul(mat1,mat1)) + 4*np.dot(mu, vec1)
+        return var_j
 
 class Paraboloid5D(QuantityOfInterest):
 
