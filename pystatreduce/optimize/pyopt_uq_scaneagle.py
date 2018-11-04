@@ -14,11 +14,11 @@ sys.path.insert(0, '../../src')
 # pyStatReduce specific imports
 import numpy as np
 import chaospy as cp
-from stochastic_collocation import StochasticCollocation
-from quantity_of_interest import QuantityOfInterest
-from dimension_reduction import DimensionReduction
-from stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
-import examples
+from pystatreduce.stochastic_collocation import StochasticCollocation
+from pystatreduce.quantity_of_interest import QuantityOfInterest
+from pystatreduce.dimension_reduction import DimensionReduction
+from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
+import pystatreduce.examples as examples
 
 #pyoptsparse sepecific imports
 from scipy import sparse
@@ -122,7 +122,7 @@ def objfunc(xdict):
     funcs['con_twist_cp'] = UQObj.QoI.p['oas_scaneagle.wing.twist_cp']
 
     fail = False
-    print "fuel burn = ", funcs['obj']
+    print("fuel burn = ", funcs['obj'])
     return funcs, fail
 
 def sens_uq(xdict, funcs):
@@ -310,7 +310,7 @@ if __name__ == "__main__":
         opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
         # sol = opt(optProb, sens=sens_uq)
         sol = opt(optProb)
-        print sol
+        print(sol)
 
     elif sys.argv[1] == "deterministic":
         """
@@ -319,13 +319,12 @@ if __name__ == "__main__":
         """
 
         # fval = UQObj.QoI.eval_QoI(mu, xi)
-        print "twist_cp = ", UQObj.QoI.p['oas_scaneagle.wing.twist_cp']
-        print "thickness_cp = ", UQObj.QoI.p['oas_scaneagle.wing.thickness_cp']
-        print "sweep = ", UQObj.QoI.p['oas_scaneagle.wing.sweep']
-        # print "rho = ",  UQObj.QoI.p['oas_scaneagle.rho']
-        print "alpha = ", UQObj.QoI.p['oas_scaneagle.alpha'], '\n'
+        # print "twist_cp = ", UQObj.QoI.p['oas_scaneagle.wing.twist_cp']
+        # print "thickness_cp = ", UQObj.QoI.p['oas_scaneagle.wing.thickness_cp']
+        # print "sweep = ", UQObj.QoI.p['oas_scaneagle.wing.sweep']
+        # print "alpha = ", UQObj.QoI.p['oas_scaneagle.alpha'], '\n'
         UQObj.QoI.p.run_model()
-        print "init_fuel_burn = ", UQObj.QoI.p['oas_scaneagle.AS_point_0.fuelburn'], '\n'
+        # print "init_fuel_burn = ", UQObj.QoI.p['oas_scaneagle.AS_point_0.fuelburn'], '\n'
 
         # Design Variables
         optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc)
@@ -352,5 +351,5 @@ if __name__ == "__main__":
         opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9,
                                               'Verify level':[int,0],})
         sol = opt(optProb, sens=sens, storeHistory='deterministic.hst')
-        print sol
-        print sol.fStar
+        print(sol)
+        print(sol.fStar)

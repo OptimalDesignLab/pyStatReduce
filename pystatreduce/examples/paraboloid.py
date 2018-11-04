@@ -62,6 +62,7 @@ class Paraboloid3D(QuantityOfInterest):
         mu_j = np.trace(np.matmul(self.quadratic_matrix, cov)) \
                + mu.dot(self.quadratic_matrix.dot(mu))
         return mu_j
+        
     def eval_QoI_analyticalvariance(self, mu, cov):
         mat1 = np.matmul(self.quadratic_matrix, cov)
         vec1 = self.quadratic_matrix.dot(cov.dot(self.quadratic_matrix.dot(mu)))
