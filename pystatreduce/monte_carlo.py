@@ -62,7 +62,6 @@ class MonteCarlo(object):
         for i in of:
             if i in self.QoI_dict:
                 dmean_val[i] = {}
-                QoI_func = self.QoI_dict[i]['QoI_func']
                 for j in wrt:
                     if j in self.QoI_dict[i]['deriv_dict']:
                         dmean_val[i][j] = np.mean(self.QoI_dict[i]['deriv_dict'][j]['fvals'], 0)

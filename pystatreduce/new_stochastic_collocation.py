@@ -107,6 +107,26 @@ class StochasticCollocation2(object):
                 variance_val[i] = variance_val[i] / (np.sqrt(np.pi)**self.n_rv)
         return variance_val
 
+    def dmean(self, of=None, wrt=None):
+        """
+        Compute the derivative of a given QoI w.r.t an input variable. it doesn't
+        necessarily have to be a random variable. It can be any independent
+        parameter.
+        """
+        dmean_val = {}
+        for i in of:
+            if i in self.QoI_dict:
+                dmean_val[i] = {}
+                for j in wrt:
+                    if j in self.QoI_dict[i]['deriv_dict']:
+                        dmean_val[i][j] = np.zeros(self.QoI_dict[i]['deriv_dict'][j]['output_dimensions'])
+                        for k in range(0, self.n_points):
+                            dmean_val[i][j] += self.QoI_dict[i]['deriv_dict'][j]['fvals'][k,:] *\
+                                                self.quadrature_weights[k]
+                        dmean_val[i][j] = dmean_val[i][j] / (np.sqrt(np.pi)**self.n_rv)
+        return dmean_val
+
+
     def __compute_quad(self, sqrt_Sigma, ref_collocation_pts, ref_collocation_w,
     				   colloc_xi_arr, colloc_w_arr, actual_location,
     				   quadrature_weights, idx, ctr):
