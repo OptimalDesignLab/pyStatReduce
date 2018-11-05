@@ -81,7 +81,8 @@ class MonteCarlo(object):
                         # Finally, do the loop for the product
                         dval_j = np.zeros(self.QoI_dict[i]['deriv_dict'][j]['output_dimensions'], dtype=self.data_type)
                         for k in range(0, self.num_samples):
-                            dval_j[:] += self.QoI_dict[i]['fvals'][k,:] * self.QoI_dict[i]['deriv_dict'][j]['fvals'][k,:]
+                            dval_j[:] += self.QoI_dict[i]['fvals'][k,:] *\
+                                         self.QoI_dict[i]['deriv_dict'][j]['fvals'][k,:]
                         dvariance_val[i][j] = (dval_j - self.num_samples*mu_j*dmu_j) * 2 / (self.num_samples-1)
 
         return dvariance_val
