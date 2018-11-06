@@ -10,7 +10,7 @@ class StochasticCollocation2(object):
     """
     def __init__(self, jdist, quadrature_degree, distribution_type, QoI_dict,
                  include_derivs=False, reduced_collocation=False,
-                 data_type=np.float):
+                 dominant_dir=None, data_type=np.float):
         assert quadrature_degree > 0, "Need at least 1 collocation point for \
                                         uncertainty propagation"
         self.n_rv = cp.E(jdist).size
@@ -22,7 +22,11 @@ class StochasticCollocation2(object):
         # approximated
         if distribution_type == "Normal" or distribution_type == "MvNormal":
             self.q, self.w = np.polynomial.hermite.hermgauss(quadrature_degree)
-            self.getQuadratureInfo(jdist, quadrature_degree, self.q, self.w)
+            if reduced_collocation == False:
+                self.getQuadratureInfo(jdist, quadrature_degree, self.q, self.w)
+            else:
+                self.getReducedQuadratureInfo(jdist, dominant_dir, quadrature_degree, self.q, self.w)
+
             self.allocateQoISpace(include_derivs)
         else:
             raise NotImplementedError
@@ -33,7 +37,8 @@ class StochasticCollocation2(object):
         Generates the integration points at which the deterministic QoI needs
         to be evaluated, and also the corresponding quadrature weights.
         """
-        self.n_points = quadrature_degree**self.n_rv
+        self.n_quadrature_loops = self.n_rv
+        self.n_points = quadrature_degree**self.n_quadrature_loops
         covariance = cp.Cov(jdist)
         idx = 0
         ctr = 0
@@ -46,6 +51,29 @@ class StochasticCollocation2(object):
                                        ref_collocation_w, colloc_xi_arr,
                                        colloc_w_arr, self.points,
                                        self.quadrature_weights, idx, ctr)
+        assert idx == -1
+        self.points += cp.E(jdist)
+
+    def getReducedQuadratureInfo(self, jdist, dominant_dir, quadrature_degree,
+                                 ref_collocation_pts, ref_collocation_w):
+        """
+        Generates the integration points at which the deterministic QoI needs
+        to be evaluated for the reduced stochastic space, and also the
+        corresponding quadrature weights.
+        """
+        self.n_quadrature_loops = dominant_dir.shape[1]
+        self.n_points = quadrature_degree**self.n_quadrature_loops
+        covariance = cp.Cov(jdist)
+        idx = 0
+        ctr = 0
+        colloc_xi_arr = np.zeros(self.n_quadrature_loops)
+        colloc_w_arr = np.zeros(self.n_quadrature_loops)
+        self.points = np.zeros([self.n_points, self.n_rv], dtype=self.data_type)
+        self.quadrature_weights = np.zeros(self.n_points, dtype=self.data_type)
+        sqrt_Sigma = np.sqrt(covariance)
+        idx, ctr = self.__compute_reduced_quad(sqrt_Sigma, dominant_dir, ref_collocation_pts,
+                                   ref_collocation_w, colloc_xi_arr, colloc_w_arr,
+                                   self.points, self.quadrature_weights, idx, ctr)
         assert idx == -1
         self.points += cp.E(jdist)
 
@@ -87,7 +115,7 @@ class StochasticCollocation2(object):
                 mean_val[i] = np.zeros(self.QoI_dict[i]['output_dimensions'], dtype=self.data_type)
                 for j in range(0, self.n_points):
                     mean_val[i] += self.QoI_dict[i]['fvals'][j,:] * self.quadrature_weights[j]
-                mean_val[i] = mean_val[i]#  / (np.sqrt(np.pi)**self.n_rv)
+                mean_val[i] = mean_val[i]
         return mean_val
 
     def variance(self, of=None):
@@ -96,7 +124,7 @@ class StochasticCollocation2(object):
         precomputed function values.
         """
         variance_val = {}
-        mu = self.mean(of=of) # np.sum(self.QoI_dict[i]['fvals'] * self.quadrature_weights)
+        mu = self.mean(of=of)
         for i in of:
             if i in self.QoI_dict:
                 qoi_dim = self.QoI_dict[i]['output_dimensions']
@@ -124,7 +152,7 @@ class StochasticCollocation2(object):
                         for k in range(0, self.n_points):
                             dmean_val[i][j] += self.QoI_dict[i]['deriv_dict'][j]['fvals'][k,:] *\
                                                 self.quadrature_weights[k]
-                        dmean_val[i][j] = dmean_val[i][j]#  / (np.sqrt(np.pi)**self.n_rv)
+                        dmean_val[i][j] = dmean_val[i][j]
         return dmean_val
 
     def dvariance(self, of=None, wrt=None):
@@ -165,7 +193,7 @@ class StochasticCollocation2(object):
                 colloc_xi_arr[idx] = ref_collocation_pts[i] # Get the array of all the locations needed
                 colloc_w_arr[idx] = ref_collocation_w[i] # Get the array of all the weights needed
                 actual_location[ctr,:] = sqrt2*np.dot(sqrt_Sigma, colloc_xi_arr)
-                quadrature_weights[ctr] = np.prod(colloc_w_arr) / (np.sqrt(np.pi)**self.n_rv)
+                quadrature_weights[ctr] = np.prod(colloc_w_arr) / (np.sqrt(np.pi)**self.n_quadrature_loops)
                 ctr += 1
             return idx-1, ctr
         else:
@@ -178,47 +206,28 @@ class StochasticCollocation2(object):
     				   						   quadrature_weights, idx+1, ctr)
             return idx-1, ctr
 
-    """
-    def __compute_perturbation(self, sqrt_Sigma, ref_collocation_pts, colloc_xi_arr,
-                             actual_location, idx, ctr):
-
-    # The recursive function that actually does all of the heavylifting for
-    # the function getQuadPts.
-
-        if idx == colloc_xi_arr.size-1:
+    def __compute_reduced_quad(self, sqrt_Sigma, dominant_dir, ref_collocation_pts,
+                               ref_collocation_w, colloc_xi_arr, colloc_w_arr,
+                               actual_location, quadrature_weights, idx, ctr):
+        """
+        The recursive function that actually does the heavy lifting for
+        getReducedQuadratureInfo.
+        """
+        if idx == self.n_quadrature_loops - 1:
             sqrt2 = np.sqrt(2)
             for i in range(0, ref_collocation_pts.size):
                 colloc_xi_arr[idx] = ref_collocation_pts[i] # Get the array of all the locations needed
-                actual_location[ctr,:] = sqrt2*np.dot(sqrt_Sigma, colloc_xi_arr)
+                colloc_w_arr[idx] = ref_collocation_w[i] # Get the array of all the weights needed
+                actual_location[ctr,:] = sqrt2*np.dot(sqrt_Sigma, np.dot(dominant_dir,colloc_xi_arr))
+                quadrature_weights[ctr] = np.prod(colloc_w_arr) / (np.sqrt(np.pi)**self.n_quadrature_loops)
                 ctr += 1
             return idx-1, ctr
         else:
             for i in range(0, ref_collocation_pts.size):
                 colloc_xi_arr[idx] = ref_collocation_pts[i]
-                idx, ctr = self.__compute_perturbation(sqrt_Sigma, ref_collocation_pts,
-                                        colloc_xi_arr,
-                                        actual_location,
-                                        idx+1, ctr)
-            return idx-1, ctr
-
-    def __compute_weights(self, ref_collocation_w, colloc_w_arr,
-    					  quadrature_weights, idx, ctr):
-
-    # Recursive function that computes the specific weights corresponding to
-    # the multidimensional quadrature point. This code is specific to normal
-    # distribution.
-
-    	 if idx == colloc_w_arr.size-1:
-            for i in xrange(0, ref_collocation_w.size):
-                colloc_w_arr[idx] = ref_collocation_w[i] # Get the array of all the weights needed
-                quadrature_weights[ctr] = np.prod(colloc_w_arr)
-                ctr += 1
-            return idx-1, ctr
-        else:
-            for i in xrange(0, ref_collocation_w.size):
                 colloc_w_arr[idx] = ref_collocation_w[i]
-                idx, ctr = self.compute_weights(ref_collocation_w, colloc_w_arr,
-                                                quadrature_weights,
-                                                idx+1, ctr)
-    return idx-1, ctr
-    """
+                idx, ctr = self.__compute_reduced_quad(sqrt_Sigma, dominant_dir,
+                                ref_collocation_pts, ref_collocation_w,
+                                colloc_xi_arr, colloc_w_arr, actual_location,
+                                quadrature_weights, idx+1, ctr)
+            return idx-1, ctr

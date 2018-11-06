@@ -43,6 +43,44 @@ class NewStochasticCollocationTest(unittest.TestCase):
         err = abs((var_js['paraboloid'][0,0] - var_j_analytical) / var_j_analytical)
         self.assertTrue(err < 1.e-15)
 
+    def test_reduced_normalStochasticCollocation3D(self):
+        """
+        This is not a very good test because we are comparing the reduced collocation
+        against the analytical expected value. The only hting it tells us is that
+        the solution is within the ball park of actual value. We still need to
+        come up with a better test.
+        """
+        systemsize = 3
+        mu = np.random.randn(systemsize)
+        std_dev = abs(np.diag(np.random.randn(systemsize)))
+        jdist = cp.MvNormal(mu, std_dev)
+        # Create QoI Object
+        QoI = examples.Paraboloid3D(systemsize)
+        dominant_dir = np.array([[1.0, 0.0],[0.0, 1.0],[0.0, 0.0]], dtype=np.float)
+        # Create the Stochastic Collocation object
+        deriv_dict = {'xi' : {'dQoI_func' : QoI.eval_QoIGradient,
+                              'output_dimensions' : systemsize}
+                     }
+        QoI_dict = {'paraboloid' : {'QoI_func' : QoI.eval_QoI,
+                                    'output_dimensions' : 1,
+                                    'deriv_dict' : deriv_dict
+                                    }
+                    }
+        sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict,
+                                        reduced_collocation=True,
+                                        dominant_dir=dominant_dir)
+        sc_obj.evaluateQoIs(jdist)
+        mu_js = sc_obj.mean(of=['paraboloid'])
+        var_js = sc_obj.variance(of=['paraboloid'])
+        # Analytical mean
+        mu_j_analytical = QoI.eval_QoI_analyticalmean(mu, cp.Cov(jdist))
+        err = abs((mu_js['paraboloid'][0] - mu_j_analytical)/ mu_j_analytical)
+        self.assertTrue(err < 1e-2)
+        # Analytical variance
+        var_j_analytical = QoI.eval_QoI_analyticalvariance(mu, cp.Cov(jdist))
+        err = abs((var_js['paraboloid'][0,0] - var_j_analytical) / var_j_analytical)
+        self.assertTrue(err < 1e-4)
+
     def test_derivatives_scalarQoI(self):
         systemsize = 3
         mu = np.random.randn(systemsize)
