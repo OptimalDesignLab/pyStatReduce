@@ -158,6 +158,58 @@ class NewStochasticCollocationTest(unittest.TestCase):
         err2 = dvar_j['PolyRVDV']['dv'] - dvar_j_complex
         self.assertTrue((err2 < 1.e-13).all())
 
+    def test_nonrv_derivatives_reduced_collocation(self):
+        # This test checks the analytical derivative w.r.t complex step
+        systemsize = 2
+        n_parameters = 2
+        mu = np.random.randn(systemsize)
+        std_dev = abs(np.diag(np.random.randn(systemsize)))
+        jdist = cp.MvNormal(mu, std_dev)
+        QoI = examples.PolyRVDV(data_type=complex)
+        # Create the Stochastic Collocation object
+        deriv_dict = {'dv' : {'dQoI_func' : QoI.eval_QoIGradient_dv,
+                              'output_dimensions' : n_parameters}
+                     }
+        QoI_dict = {'PolyRVDV' : {'QoI_func' : QoI.eval_QoI,
+                                  'output_dimensions' : 1,
+                                  'deriv_dict' : deriv_dict
+                                  }
+                    }
+        dv = np.random.randn(systemsize) + 0j
+        QoI.set_dv(dv)
+        # Create dimension reduction object
+        threshold_factor = 0.9
+        dominant_space = DimensionReduction(threshold_factor=threshold_factor,
+                                            exact_Hessian=True)
+        # Get the eigenmodes of the Hessian product and the dominant indices
+        dominant_space.getDominantDirections(QoI, jdist)
+        dominant_dir = dominant_space.iso_eigenvecs[:, dominant_space.dominant_indices]
+        sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict,
+                                        include_derivs=True, reduced_collocation=True,
+                                        dominant_dir=dominant_dir, data_type=complex)
+        sc_obj.evaluateQoIs(jdist, include_derivs=True)
+        dmu_j = sc_obj.dmean(of=['PolyRVDV'], wrt=['dv'])
+        dvar_j = sc_obj.dvariance(of=['PolyRVDV'], wrt=['dv'])
+
+        # Lets do complex step
+        pert = complex(0, 1e-30)
+        dmu_j_complex = np.zeros(n_parameters, dtype=complex)
+        dvar_j_complex = np.zeros(n_parameters, dtype=complex)
+        for i in range(0, n_parameters):
+            dv[i] += pert
+            QoI.set_dv(dv)
+            sc_obj.evaluateQoIs(jdist, include_derivs=False)
+            mu_j = sc_obj.mean(of=['PolyRVDV'])
+            var_j = sc_obj.variance(of=['PolyRVDV'])
+            dmu_j_complex[i] = mu_j['PolyRVDV'].imag / pert.imag
+            dvar_j_complex[i] = var_j['PolyRVDV'].imag / pert.imag
+            dv[i] -= pert
+
+        err1 = dmu_j['PolyRVDV']['dv'] - dmu_j_complex
+        self.assertTrue((err1 < 1.e-13).all())
+
+        err2 = dvar_j['PolyRVDV']['dv'] - dvar_j_complex
+        self.assertTrue((err2 < 1.e-13).all())
 
 if __name__ == "__main__":
     unittest.main()
