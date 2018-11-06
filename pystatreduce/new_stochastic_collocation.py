@@ -84,10 +84,10 @@ class StochasticCollocation2(object):
         mean_val = {}
         for i in of:
             if i in self.QoI_dict:
-                mean_val[i] = np.zeros(self.QoI_dict[i]['output_dimensions'])
+                mean_val[i] = np.zeros(self.QoI_dict[i]['output_dimensions'], dtype=self.data_type)
                 for j in range(0, self.n_points):
                     mean_val[i] += self.QoI_dict[i]['fvals'][j,:] * self.quadrature_weights[j]
-                mean_val[i] = mean_val[i] / (np.sqrt(np.pi)**self.n_rv)
+                mean_val[i] = mean_val[i]#  / (np.sqrt(np.pi)**self.n_rv)
         return mean_val
 
     def variance(self, of=None):
@@ -100,18 +100,18 @@ class StochasticCollocation2(object):
         for i in of:
             if i in self.QoI_dict:
                 qoi_dim = self.QoI_dict[i]['output_dimensions']
-                variance_val[i] = np.zeros([qoi_dim, qoi_dim])
+                variance_val[i] = np.zeros([qoi_dim, qoi_dim], dtype=self.data_type)
                 for j in range(0, self.n_points):
                     val = self.QoI_dict[i]['fvals'][j,:] - mu[i]
                     variance_val[i] += self.quadrature_weights[j]*np.outer(val, val)
-                variance_val[i] = variance_val[i] / (np.sqrt(np.pi)**self.n_rv)
+                variance_val[i] = variance_val[i]#  / (np.sqrt(np.pi)**self.n_rv)
         return variance_val
 
     def dmean(self, of=None, wrt=None):
         """
-        Compute the derivative of a given QoI w.r.t an input variable. it doesn't
-        necessarily have to be a random variable. It can be any independent
-        parameter.
+        Compute the derivative of the mean of a given QoI w.r.t an input variable.
+        It doesn't necessarily have to be a random variable. It can be any
+        independent parameter.
         """
         dmean_val = {}
         for i in of:
@@ -119,13 +119,38 @@ class StochasticCollocation2(object):
                 dmean_val[i] = {}
                 for j in wrt:
                     if j in self.QoI_dict[i]['deriv_dict']:
-                        dmean_val[i][j] = np.zeros(self.QoI_dict[i]['deriv_dict'][j]['output_dimensions'])
+                        dmean_val[i][j] = np.zeros(self.QoI_dict[i]['deriv_dict'][j]['output_dimensions'],
+                                                   dtype=self.data_type)
                         for k in range(0, self.n_points):
                             dmean_val[i][j] += self.QoI_dict[i]['deriv_dict'][j]['fvals'][k,:] *\
                                                 self.quadrature_weights[k]
-                        dmean_val[i][j] = dmean_val[i][j] / (np.sqrt(np.pi)**self.n_rv)
+                        dmean_val[i][j] = dmean_val[i][j]#  / (np.sqrt(np.pi)**self.n_rv)
         return dmean_val
 
+    def dvariance(self, of=None, wrt=None):
+        """
+        Compute the derivative of the variance of a given QoI w.r.t an input variable.
+        It doesn't necessarily have to be a random variable. It can be any
+        independent parameter.
+        **This implementation is ONLY for scalar QoI**
+        """
+        dvariance_val = {}
+        mu = self.mean(of=of)
+        for i in of:
+            if i in self.QoI_dict:
+                dvariance_val[i] = {}
+                dmu_j = self.dmean(of=of, wrt=wrt)
+                for j in wrt:
+                    if j in self.QoI_dict[i]['deriv_dict']:
+                        intarr = mu[i]*dmu_j[i][j]
+                        val = np.zeros(self.QoI_dict[i]['deriv_dict'][j]['output_dimensions'],
+                                       dtype=self.data_type)
+                        for k in range(0, self.n_points):
+                            fval = self.QoI_dict[i]['fvals'][k,:]
+                            dfval = self.QoI_dict[i]['deriv_dict'][j]['fvals'][k,:]
+                            val += self.quadrature_weights[k]*fval*dfval
+                        dvariance_val[i][j] = 2*(val + mu[i]*dmu_j[i][j]*(np.sum(self.quadrature_weights)-2)) #  / (np.sqrt(np.pi)**self.n_rv)
+        return dvariance_val
 
     def __compute_quad(self, sqrt_Sigma, ref_collocation_pts, ref_collocation_w,
     				   colloc_xi_arr, colloc_w_arr, actual_location,
@@ -140,7 +165,7 @@ class StochasticCollocation2(object):
                 colloc_xi_arr[idx] = ref_collocation_pts[i] # Get the array of all the locations needed
                 colloc_w_arr[idx] = ref_collocation_w[i] # Get the array of all the weights needed
                 actual_location[ctr,:] = sqrt2*np.dot(sqrt_Sigma, colloc_xi_arr)
-                quadrature_weights[ctr] = np.prod(colloc_w_arr)#  / (np.sqrt(np.pi)**self.n_rv)
+                quadrature_weights[ctr] = np.prod(colloc_w_arr) / (np.sqrt(np.pi)**self.n_rv)
                 ctr += 1
             return idx-1, ctr
         else:
