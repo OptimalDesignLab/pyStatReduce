@@ -13,6 +13,9 @@ import pystatreduce.examples as examples
 
 np.set_printoptions(precision=16)
 
+# Declare some global variables that will be used for testing. This is done to
+# prevent possible discrepancies while adding more test or using a different
+# computing platform.
 mean_2dim = np.random.randn(2)
 mean_3dim = np.random.randn(3)
 std_dev_2dim = abs(np.diag(np.random.randn(2)))
