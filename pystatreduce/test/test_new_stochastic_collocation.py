@@ -2,6 +2,7 @@
 # Test stochastic collocation module
 import unittest
 import numpy as np
+import cmath
 import chaospy as cp
 
 from pystatreduce.new_stochastic_collocation import StochasticCollocation2
@@ -136,19 +137,23 @@ class NewStochasticCollocationTest(unittest.TestCase):
         sc_obj.evaluateQoIs(jdist, include_derivs=True)
         dmu_j = sc_obj.dmean(of=['PolyRVDV'], wrt=['dv'])
         dvar_j = sc_obj.dvariance(of=['PolyRVDV'], wrt=['dv'])
+        dstd_dev = sc_obj.dStdDev(of=['PolyRVDV'], wrt=['dv'])
 
         # Lets do complex step
         pert = complex(0, 1e-30)
         dmu_j_complex = np.zeros(n_parameters, dtype=complex)
         dvar_j_complex = np.zeros(n_parameters, dtype=complex)
+        dstd_dev_complex = np.zeros(n_parameters, dtype=complex)
         for i in range(0, n_parameters):
             dv[i] += pert
             QoI.set_dv(dv)
             sc_obj.evaluateQoIs(jdist, include_derivs=False)
             mu_j = sc_obj.mean(of=['PolyRVDV'])
             var_j = sc_obj.variance(of=['PolyRVDV'])
+            std_dev_j = np.sqrt(var_j['PolyRVDV'][0,0])
             dmu_j_complex[i] = mu_j['PolyRVDV'].imag / pert.imag
             dvar_j_complex[i] = var_j['PolyRVDV'].imag / pert.imag
+            dstd_dev_complex[i] = std_dev_j.imag / pert.imag
             dv[i] -= pert
 
         np.set_printoptions(precision=12)
@@ -156,6 +161,9 @@ class NewStochasticCollocationTest(unittest.TestCase):
         self.assertTrue((err1 < 1.e-13).all())
 
         err2 = dvar_j['PolyRVDV']['dv'] - dvar_j_complex
+        self.assertTrue((err2 < 1.e-13).all())
+
+        err3 = dstd_dev['PolyRVDV']['dv'] - dstd_dev_complex
         self.assertTrue((err2 < 1.e-13).all())
 
     def test_nonrv_derivatives_reduced_collocation(self):
@@ -190,25 +198,32 @@ class NewStochasticCollocationTest(unittest.TestCase):
         sc_obj.evaluateQoIs(jdist, include_derivs=True)
         dmu_j = sc_obj.dmean(of=['PolyRVDV'], wrt=['dv'])
         dvar_j = sc_obj.dvariance(of=['PolyRVDV'], wrt=['dv'])
+        dstd_dev = sc_obj.dStdDev(of=['PolyRVDV'], wrt=['dv'])
 
         # Lets do complex step
         pert = complex(0, 1e-30)
         dmu_j_complex = np.zeros(n_parameters, dtype=complex)
         dvar_j_complex = np.zeros(n_parameters, dtype=complex)
+        dstd_dev_complex = np.zeros(n_parameters, dtype=complex)
         for i in range(0, n_parameters):
             dv[i] += pert
             QoI.set_dv(dv)
             sc_obj.evaluateQoIs(jdist, include_derivs=False)
             mu_j = sc_obj.mean(of=['PolyRVDV'])
             var_j = sc_obj.variance(of=['PolyRVDV'])
+            std_dev_j = np.sqrt(var_j['PolyRVDV'][0,0])
             dmu_j_complex[i] = mu_j['PolyRVDV'].imag / pert.imag
             dvar_j_complex[i] = var_j['PolyRVDV'].imag / pert.imag
+            dstd_dev_complex[i] = std_dev_j.imag / pert.imag
             dv[i] -= pert
 
         err1 = dmu_j['PolyRVDV']['dv'] - dmu_j_complex
         self.assertTrue((err1 < 1.e-13).all())
 
         err2 = dvar_j['PolyRVDV']['dv'] - dvar_j_complex
+        self.assertTrue((err2 < 1.e-13).all())
+
+        err3 = dstd_dev['PolyRVDV']['dv'] - dstd_dev_complex
         self.assertTrue((err2 < 1.e-13).all())
 
 if __name__ == "__main__":

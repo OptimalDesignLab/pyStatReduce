@@ -180,6 +180,24 @@ class StochasticCollocation2(object):
                         dvariance_val[i][j] = 2*(val + mu[i]*dmu_j[i][j]*(np.sum(self.quadrature_weights)-2)) #  / (np.sqrt(np.pi)**self.n_rv)
         return dvariance_val
 
+    def dStdDev(self, of=None, wrt=None):
+        """
+        Compute the derivative of the standard deviation of a given QoI w.r.t an
+        input variable. It doesn't necessarily have to be a random variable. It
+        can be any independent parameter.
+        **This implementation is ONLY for scalar QoI**
+        """
+        dstd_dev_val = {}
+        var = self.variance(of=of)
+        dvar = self.dvariance(of=of, wrt=wrt)
+        for i in of:
+            if i in self.QoI_dict:
+                dstd_dev_val[i] = {}
+                for j in wrt:
+                    if j in self.QoI_dict[i]['deriv_dict']:
+                        dstd_dev_val[i][j] = 0.5 * dvar[i][j] / np.sqrt(var[i])
+        return dstd_dev_val
+
     def __compute_quad(self, sqrt_Sigma, ref_collocation_pts, ref_collocation_w,
     				   colloc_xi_arr, colloc_w_arr, actual_location,
     				   quadrature_weights, idx, ctr):
