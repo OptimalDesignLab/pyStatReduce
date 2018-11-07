@@ -44,6 +44,38 @@ class NewStochasticCollocationTest(unittest.TestCase):
         err = abs((var_js['paraboloid'][0,0] - var_j_analytical) / var_j_analytical)
         self.assertTrue(err < 1.e-15)
 
+    def test_multipleQoI(self):
+        """
+        This tests for multiple QoIs. We only compute the mean in this test,
+        because it is only checking if it can do multiple loops
+        """
+        systemsize = 2
+        theta = 0
+        mu = np.random.randn(systemsize)
+        std_dev = np.diag(np.random.rand(systemsize))
+        jdist = cp.MvNormal(mu, std_dev)
+        QoI1 = examples.Paraboloid2D(systemsize, (theta,))
+        QoI2 = examples.PolyRVDV()
+        QoI_dict = {'paraboloid2' : {'QoI_func' : QoI1.eval_QoI,
+                                    'output_dimensions' : 1,
+                                    },
+                    'PolyRVDV' : {'QoI_func' : QoI2.eval_QoI,
+                                              'output_dimensions' : 1,
+                                              }
+                    }
+        sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict)
+        sc_obj.evaluateQoIs(jdist)
+        mu_js = sc_obj.mean(of=['paraboloid2', 'PolyRVDV'])
+
+        # Compare against known values
+        # 1. Paraboloid2D, we use nested loops
+        mu_j1_analytical = QoI1.eval_QoI_analyticalmean(mu, cp.Cov(jdist))
+        err = abs((mu_js['paraboloid2'][0] - mu_j1_analytical)/ mu_j1_analytical)
+        self.assertTrue(err < 1.e-15)
+
+
+
+
     def test_reduced_normalStochasticCollocation3D(self):
         """
         This is not a very good test because we are comparing the reduced collocation
@@ -221,6 +253,7 @@ class NewStochasticCollocationTest(unittest.TestCase):
         self.assertTrue((err1 < 1.e-13).all())
 
         err2 = dvar_j['PolyRVDV']['dv'] - dvar_j_complex
+        print("err2 = ", err2)
         self.assertTrue((err2 < 1.e-13).all())
 
         err3 = dstd_dev['PolyRVDV']['dv'] - dstd_dev_complex

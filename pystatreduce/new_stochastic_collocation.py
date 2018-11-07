@@ -177,7 +177,7 @@ class StochasticCollocation2(object):
                             fval = self.QoI_dict[i]['fvals'][k,:]
                             dfval = self.QoI_dict[i]['deriv_dict'][j]['fvals'][k,:]
                             val += self.quadrature_weights[k]*fval*dfval
-                        dvariance_val[i][j] = 2*(val + mu[i]*dmu_j[i][j]*(np.sum(self.quadrature_weights)-2)) #  / (np.sqrt(np.pi)**self.n_rv)
+                        dvariance_val[i][j] = 2*(val + mu[i]*dmu_j[i][j]*(np.sum(self.quadrature_weights)-2))
         return dvariance_val
 
     def dStdDev(self, of=None, wrt=None):
