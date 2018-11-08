@@ -119,9 +119,9 @@ class OASScanEagleWrapper(QuantityOfInterest):
 
         return self.dJ_ddv
 
-    def eval_ConstraintQoI(self, mu, xi):
+    def eval_AllConstraintQoI(self, mu, xi):
         """
-        Evaluates the constraint function for a given realization of random variables.
+        Evaluates ALL the constraint function for a given realization of random variables.
         """
         rv = mu + xi
         self.p['Mach_number'] = rv[0]
@@ -142,6 +142,18 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.con_arr[n_thickness_intersects+2+n_CM:] = self.p['oas_scaneagle.wing.twist_cp']
 
         return self.con_arr
+
+    def eval_confailureQoI(self, mu, xi):
+        """
+        Evaluates only the failure constraint for a given realization of random variabels.
+        """
+        rv = mu + xi
+        self.p['Mach_number'] = rv[0]
+        self.p['CT'] = rv[1]
+        self.p['W0'] = rv[2]
+        self.p.run_model()
+
+        return self.p['oas_scaneagle.AS_point_0.wing_perf.failure']
 
     def eval_ConGradient_dv(self, mu, xi):
         """
@@ -201,9 +213,26 @@ class OASScanEagleWrapper(QuantityOfInterest):
 
         return self.con_jac
 
+    def eval_ConFailureGradient_dv(self, mu, xi):
+        rv = mu + xi
+        self.p['Mach_number'] = rv[0]
+        self.p['CT'] = rv[1]
+        self.p['W0'] = rv[2]
+        self.p.run_model()
+        deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.wing_perf.failure'],
+                                      wrt=['oas_scaneagle.wing.twist_cp',
+                                           'oas_scaneagle.wing.thickness_cp',
+                                           'oas_scaneagle.wing.sweep',
+                                           'oas_scaneagle.alpha'])
+        n_twist_cp = self.input_dict['n_twist_cp']
+        n_cp = n_twist_cp + self.input_dict['n_thickness_cp']
+        dcon_failure = np.zeros(self.input_dict['ndv'])
+        dcon_failure[0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.twist_cp']
+        dcon_failure[n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.thickness_cp']
+        dcon_failure[n_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.sweep']
+        dcon_failure[n_cp+1] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.alpha']
 
-    def get_constraint_range(self):
-        pass # TODO: Make this a standalone function
+        return dcon_failure
 
 #-------------------------------------------------------------------------------
 

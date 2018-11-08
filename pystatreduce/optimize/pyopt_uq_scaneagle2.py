@@ -1,8 +1,10 @@
 # pyopt_uq_scaneagle2.py
+import sys
 
 # pyStatReduce specific imports
 import numpy as np
 import chaospy as cp
+from pystatreduce.new_stochastic_collocation import StochasticCollocation2
 from pystatreduce.stochastic_collocation import StochasticCollocation
 from pystatreduce.quantity_of_interest import QuantityOfInterest
 from pystatreduce.dimension_reduction import DimensionReduction
@@ -51,6 +53,31 @@ class UQScanEagleOpt(object):
         self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                             exact_Hessian=False)
         self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=1)
+        dfuelburn_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ObjGradient_dv,
+                                  'output_dimensions' : dv_dict['ndv'],
+                                  }
+                         }
+        dcon_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ConGradient_dv,
+                             'output_dimensions' : (dv_dict['ndv'], dv_dict['ndv'])
+                            }
+                    }
+        dcon_failure_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ConFailureGradient_dv,
+                                     'output_dimensions' : dv_dict['ndv'],
+                                    }
+                            }
+        self.QoI_dict = {'fuelburn' : {'QoI_func' : self.QoI.eval_QoI,
+                                       'output_dimensions' : 1,
+                                       'deriv_dict' : dfuelburn_dict
+                                      },
+                         'constraints' : {'QoI_func' : self.QoI.eval_AllConstraintQoI,
+                                          'output_dimensions' : dv_dict['n_constraints'],
+                                          'deriv_dict' : dcon_dict
+                                         },
+                         'con_failure' : {'QoI_func' : self.QoI.eval_confailureQoI,
+                                          'output_dimensions' : 1,
+                                          'deriv_dict' : dcon_failure_dict
+                                         }
+                        }
 
 def objfunc_uq(xdict):
     """
@@ -61,33 +88,24 @@ def objfunc_uq(xdict):
     UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
     UQObj.QoI.p['oas_scaneagle.wing.sweep'] = xdict['sweep']
     UQObj.QoI.p['oas_scaneagle.alpha'] = xdict['alpha']
-    obj_func = UQObj.QoI.eval_QoI
-    con_func = UQObj.QoI.eval_ConstraintQoI
     funcs = {}
 
-    # Objective function
-    # # Full integration
-    # mu_j = collocation_obj.normal.mean(cp.E(UQObj.jdist), cp.Std(UQObj.jdist), obj_func)
-    # var_j = collocation_obj.normal.variance(obj_func, UQObj.jdist, mu_j)
-    # Reduced Integration
-    mu_j = collocation_obj.normal.reduced_mean(obj_func, UQObj.jdist, UQObj.dominant_space)
-    var_j = collocation_obj.normal.reduced_variance(obj_func, UQObj.jdist, UQObj.dominant_space, mu_j)
-    funcs['obj'] = mu_j + rdo_factor * np.sqrt(var_j)
+    # Compute statistical metrics
+    sc_obj.evaluateQoIs(UQObj.jdist)
+    mu_j = sc_obj.mean(of=['fuelburn', 'constraints'])
+    var_j = sc_obj.variance(of=['fuelburn', 'con_failure'])
 
-    # Constraint function
-    # # full Integration
-    # mu_con = collocation_con.normal.mean(cp.E(UQObj.jdist), cp.Std(UQObj.jdist), con_func)
-    # var_con = collocation_con.normal.variance(con_func, UQObj.jdist, mu_con)
-    # Reduced Integration
-    mu_con = collocation_con.normal.reduced_mean(con_func, UQObj.jdist, UQObj.dominant_space)
-    var_con = collocation_con.normal.reduced_variance(con_func, UQObj.jdist, UQObj.dominant_space, mu_con)
+    # The RDO Objective function is
+    funcs['obj'] = mu_j['fuelburn'] + rdo_factor * np.sqrt(var_j['fuelburn'])
+
+    # The RDO Constraint function is
     n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
     n_CM = UQObj.QoI.p['oas_scaneagle.AS_point_0.CM'].size
-    funcs['con_failure'] = mu_con[0] + rdo_factor * np.sqrt(var_con[0,0])
-    funcs['con_thickness_intersects'] = mu_con[1:n_thickness_intersects+1]
-    funcs['con_L_equals_W'] = mu_con[n_thickness_intersects+1]
-    funcs['con_CM'] = mu_con[n_thickness_intersects+2:n_thickness_intersects+2+n_CM]
-    funcs['con_twist_cp'] = mu_con[n_thickness_intersects+2+n_CM:]
+    funcs['con_failure'] = mu_j['constraints'][0] + rdo_factor * np.sqrt(var_j['con_failure'][0,0])
+    funcs['con_thickness_intersects'] = mu_j['constraints'][1:n_thickness_intersects+1]
+    funcs['con_L_equals_W'] = mu_j['constraints'][n_thickness_intersects+1]
+    funcs['con_CM'] = mu_j['constraints'][n_thickness_intersects+2:n_thickness_intersects+2+n_CM]
+    funcs['con_twist_cp'] = mu_j['constraints'][n_thickness_intersects+2+n_CM:]
 
     fail = False
     return funcs, fail
@@ -101,39 +119,11 @@ def sens_uq(xdict, funcs):
     UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
     UQObj.QoI.p['oas_scaneagle.wing.sweep'] = xdict['sweep']
     UQObj.QoI.p['oas_scaneagle.alpha'] = xdict['alpha']
-    obj_func = UQObj.QoI.eval_QoI
-    dobj_func = UQObj.QoI.eval_ObjGradient_dv
-    dcon_func = UQObj.QoI.eval_ConGradient_dv
-    var_con_func = UQObj.QoI.eval_confailureQoI
-    dvar_con_func = UQObj.QoI.eval_failureGrad_dv
-    funcsSens = {}
 
-    # Objective function
-    # # Full integration
-    # mu_j = collocation_obj.normal.mean(cp.E(UQObj.jdist), cp.Std(UQObj.jdist), obj_func)
-    # var_j = collocation_obj.normal.variance(obj_func, UQObj.jdist, mu_j)
-    # Reduced Integration
-    mu_j = collocation_obj.normal.reduced_mean(obj_func, UQObj.jdist, UQObj.dominant_space)
-    var_j = collocation_obj.normal.reduced_variance(obj_func, UQObj.jdist, UQObj.dominant_space, mu_j)
-    dmu_j = collocation_obj_grad.normal.reduced_mean(dobj_func, UQObj.jdist, UQObj.dominant_space)
-    dstd_dev_j = collocation_obj_grad.normal.dReducedStdDev(obj_func, UQObj.jdist,
-                 UQObj.dominant_space, mu_j, var_j, dobj_func, dmu_j)
-
-    # Constraint function
-    # # full Integration
-    # mu_con = collocation_con.normal.mean(cp.E(UQObj.jdist), cp.Std(UQObj.jdist), con_func)
-    # var_con = collocation_con.normal.variance(con_func, UQObj.jdist, mu_con)
-    # Reduced Integration
-    dmu_con = collocation_con_grad.normal.reduced_mean(dcon_func, UQObj.jdist, UQObj.dominant_space)
-    # - We only need the variance of the of the failure constraint
-    #
-    mu_confailure = collocation_obj.normal.reduced_mean(var_con_func, UQObj.jdist, UQObj.dominant_space)
-    var_confailure = collocation_obj.normal.reduced_variance(var_con_func, UQObj.jdist,
-                     UQObj.dominant_space, mu_confailure)
-    std_dev_con = collocation_obj_grad.normal.dReducedStdDev(var_con_func, UQObj.jdist,
-                  UQObj.dominant_space, mu_confailure, var_confailure, dvar_con_func, dmu_con[0,:])
-
-
+    # Compute the statistical metrics
+    sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
+    dmu_js = sc_obj.dmean(of=['fuelburn', 'constraints'], wrt=['dv'])
+    dstd_dev_js = sc_obj.dStdDev(of=['fuelburn', 'con_failure'], wrt=['dv'])
 
     # Get some of the intermediate variables
     n_twist_cp = UQObj.QoI.input_dict['n_twist_cp']
@@ -142,19 +132,23 @@ def sens_uq(xdict, funcs):
     n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
 
     # Populate the dictionary
+    funcsSens = {}
+    dmu_j = dmu_js['fuelburn']['dv']
+    dstd_dev_j = dstd_dev_js['fuelburn']['dv']
     funcsSens['obj', 'twist_cp'] = dmu_j[0:n_twist_cp] + rdo_factor * dstd_dev_j[0:n_twist_cp]
     funcsSens['obj', 'thickness_cp'] = dmu_j[n_twist_cp:n_cp] + rdo_factor * dstd_dev_j[n_twist_cp:n_cp]
     funcsSens['obj', 'sweep'] = dmu_j[n_cp:n_cp+1] + rdo_factor * dstd_dev_j[n_cp:n_cp+1]
     funcsSens['obj', 'alpha'] = dmu_j[n_cp+1:n_cp+2] + rdo_factor * dstd_dev_j[n_cp+1:n_cp+2]
 
-    funcsSens['con_failure', 'twist_cp'] = dmu_con[0,0:n_twist_cp] + rdo_factor * std_dev_con[0:n_twist_cp]
-    funcsSens['con_failure', 'thickness_cp'] = dmu_con[0,n_twist_cp:n_cp] + rdo_factor * std_dev_con[n_twist_cp:n_cp]
-    funcsSens['con_failure', 'sweep'] = dmu_con[0,n_cp] + rdo_factor * std_dev_con[n_cp]
-    funcsSens['con_failure', 'alpha'] = dmu_con[0,n_cp+1] + rdo_factor * std_dev_con[n_cp+1]
+    dmu_con = dmu_js['constraints']['dv']
+    dstd_dev_con = dstd_dev_js['con_failure']['dv']
+    funcsSens['con_failure', 'twist_cp'] = dmu_con[0,0:n_twist_cp] + rdo_factor * dstd_dev_con[0:n_twist_cp]
+    funcsSens['con_failure', 'thickness_cp'] = dmu_con[0,n_twist_cp:n_cp] + rdo_factor * dstd_dev_con[n_twist_cp:n_cp]
+    funcsSens['con_failure', 'sweep'] = dmu_con[0,n_cp] + rdo_factor * dstd_dev_con[n_cp]
+    funcsSens['con_failure', 'alpha'] = dmu_con[0,n_cp+1] + rdo_factor * dstd_dev_con[n_cp+1]
 
     funcsSens['con_thickness_intersects', 'twist_cp'] = dmu_con[1:n_thickness_intersects+1,0:n_twist_cp]
     funcsSens['con_thickness_intersects', 'thickness_cp'] = dmu_con[1:n_thickness_intersects+1,n_twist_cp:n_cp]
-    # print "mu_con[1:n_thickness_intersects+1,n_cp].shape = ", mu_con[1:n_thickness_intersects+1,n_cp].shape
     funcsSens['con_thickness_intersects', 'sweep'] = dmu_con[1:n_thickness_intersects+1,n_cp:n_cp+1]
     funcsSens['con_thickness_intersects', 'alpha'] = dmu_con[1:n_thickness_intersects+1,n_cp+1:]
 
@@ -196,13 +190,17 @@ if __name__ == "__main__":
         """
         # Stochastic collocation Objects
         ndv = 3 + 3 + 1 + 1
-        collocation_obj = StochasticCollocation(5, "Normal")
-        collocation_obj_grad = StochasticCollocation(5, "Normal", QoI_dimensions=ndv)
         n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
         n_CM = 3
         n_constraints = 1 + n_thickness_intersects  + 1 + n_CM + 3
-        collocation_con = StochasticCollocation(5, "Normal", QoI_dimensions=n_constraints)
-        collocation_con_grad = StochasticCollocation(5, "Normal", QoI_dimensions=(n_constraints, ndv))
+
+        # Create the stochastic collocation object
+        dominant_dir = UQObj.dominant_space.iso_eigenvecs[:, UQObj.dominant_space.dominant_indices]
+        # sc_obj = StochasticCollocation2(UQObj.jdist, 5, 'MvNormal', UQObj.QoI_dict)
+        sc_obj = StochasticCollocation2(UQObj.jdist, 5, 'MvNormal', UQObj.QoI_dict,
+                                        include_derivs=True , reduced_collocation=True,
+                                        dominant_dir=dominant_dir)
+        sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
 
         optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc_uq)
         n_twist_cp = UQObj.QoI.input_dict['n_twist_cp']
@@ -225,7 +223,7 @@ if __name__ == "__main__":
         # Objective
         optProb.addObj('obj')
         opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
-        # sol = opt(optProb, sens=sens_uq)
+        sol = opt(optProb, sens=sens_uq)
         sol = opt(optProb)
         print(sol)
 
