@@ -52,13 +52,13 @@ class UQScanEagleOpt(object):
         self.QoI = examples.OASScanEagleWrapper(uq_systemsize, dv_dict)
         self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                             exact_Hessian=False)
-        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=1)
+        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=2)
         dfuelburn_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ObjGradient_dv,
                                   'output_dimensions' : dv_dict['ndv'],
                                   }
                          }
         dcon_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ConGradient_dv,
-                             'output_dimensions' : (dv_dict['ndv'], dv_dict['ndv'])
+                             'output_dimensions' : dv_dict['ndv']
                             }
                     }
         dcon_failure_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ConFailureGradient_dv,
@@ -135,17 +135,18 @@ def sens_uq(xdict, funcs):
     funcsSens = {}
     dmu_j = dmu_js['fuelburn']['dv']
     dstd_dev_j = dstd_dev_js['fuelburn']['dv']
-    funcsSens['obj', 'twist_cp'] = dmu_j[0:n_twist_cp] + rdo_factor * dstd_dev_j[0:n_twist_cp]
-    funcsSens['obj', 'thickness_cp'] = dmu_j[n_twist_cp:n_cp] + rdo_factor * dstd_dev_j[n_twist_cp:n_cp]
-    funcsSens['obj', 'sweep'] = dmu_j[n_cp:n_cp+1] + rdo_factor * dstd_dev_j[n_cp:n_cp+1]
-    funcsSens['obj', 'alpha'] = dmu_j[n_cp+1:n_cp+2] + rdo_factor * dstd_dev_j[n_cp+1:n_cp+2]
+    funcsSens['obj', 'twist_cp'] = dmu_j[0,0:n_twist_cp] + rdo_factor * dstd_dev_j[0,0:n_twist_cp]
+    funcsSens['obj', 'thickness_cp'] = dmu_j[0,n_twist_cp:n_cp] + rdo_factor * dstd_dev_j[0,n_twist_cp:n_cp]
+    funcsSens['obj', 'sweep'] = dmu_j[0,n_cp:n_cp+1] + rdo_factor * dstd_dev_j[0,n_cp:n_cp+1]
+    funcsSens['obj', 'alpha'] = dmu_j[0,n_cp+1:n_cp+2] + rdo_factor * dstd_dev_j[0,n_cp+1:n_cp+2]
 
     dmu_con = dmu_js['constraints']['dv']
     dstd_dev_con = dstd_dev_js['con_failure']['dv']
-    funcsSens['con_failure', 'twist_cp'] = dmu_con[0,0:n_twist_cp] + rdo_factor * dstd_dev_con[0:n_twist_cp]
-    funcsSens['con_failure', 'thickness_cp'] = dmu_con[0,n_twist_cp:n_cp] + rdo_factor * dstd_dev_con[n_twist_cp:n_cp]
-    funcsSens['con_failure', 'sweep'] = dmu_con[0,n_cp] + rdo_factor * dstd_dev_con[n_cp]
-    funcsSens['con_failure', 'alpha'] = dmu_con[0,n_cp+1] + rdo_factor * dstd_dev_con[n_cp+1]
+    # print('dstd_dev_con = ', dstd_dev_con)
+    funcsSens['con_failure', 'twist_cp'] = dmu_con[0,0:n_twist_cp] + rdo_factor * dstd_dev_con[0,0:n_twist_cp]
+    funcsSens['con_failure', 'thickness_cp'] = dmu_con[0,n_twist_cp:n_cp] + rdo_factor * dstd_dev_con[0,n_twist_cp:n_cp]
+    funcsSens['con_failure', 'sweep'] = dmu_con[0,n_cp] + rdo_factor * dstd_dev_con[0,n_cp]
+    funcsSens['con_failure', 'alpha'] = dmu_con[0,n_cp+1] + rdo_factor * dstd_dev_con[0,n_cp+1]
 
     funcsSens['con_thickness_intersects', 'twist_cp'] = dmu_con[1:n_thickness_intersects+1,0:n_twist_cp]
     funcsSens['con_thickness_intersects', 'thickness_cp'] = dmu_con[1:n_thickness_intersects+1,n_twist_cp:n_cp]

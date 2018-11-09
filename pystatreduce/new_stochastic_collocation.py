@@ -89,6 +89,7 @@ class StochasticCollocation2(object):
             for i in self.QoI_dict:
                 for j in self.QoI_dict[i]['deriv_dict']:
                     self.QoI_dict[i]['deriv_dict'][j]['fvals'] =  np.zeros([self.n_points,
+                                                self.QoI_dict[i]['output_dimensions'],
                                                 self.QoI_dict[i]['deriv_dict'][j]['output_dimensions']],
                                                 dtype=self.data_type)
 
@@ -147,7 +148,8 @@ class StochasticCollocation2(object):
                 dmean_val[i] = {}
                 for j in wrt:
                     if j in self.QoI_dict[i]['deriv_dict']:
-                        dmean_val[i][j] = np.zeros(self.QoI_dict[i]['deriv_dict'][j]['output_dimensions'],
+                        dmean_val[i][j] = np.zeros([self.QoI_dict[i]['output_dimensions'],
+                                                    self.QoI_dict[i]['deriv_dict'][j]['output_dimensions']],
                                                    dtype=self.data_type)
                         for k in range(0, self.n_points):
                             dmean_val[i][j] += self.QoI_dict[i]['deriv_dict'][j]['fvals'][k,:] *\
@@ -171,7 +173,8 @@ class StochasticCollocation2(object):
                 for j in wrt:
                     if j in self.QoI_dict[i]['deriv_dict']:
                         intarr = mu[i]*dmu_j[i][j]
-                        val = np.zeros(self.QoI_dict[i]['deriv_dict'][j]['output_dimensions'],
+                        val = np.zeros([self.QoI_dict[i]['output_dimensions'],
+                                        self.QoI_dict[i]['deriv_dict'][j]['output_dimensions']],
                                        dtype=self.data_type)
                         for k in range(0, self.n_points):
                             fval = self.QoI_dict[i]['fvals'][k,:]
