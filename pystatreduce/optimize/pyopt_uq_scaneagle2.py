@@ -36,13 +36,32 @@ class UQScanEagleOpt(object):
         mean_Ma = 0.071
         mean_TSFC = 9.80665 * 8.6e-6
         mean_W0 = 10.0
-        dv_dict = {
-                   'n_twist_cp' : 3,
+
+        # Total number of nodes to use in the spanwise (num_y) and
+        # chordwise (num_x) directions. Vary these to change the level of fidelity.
+        num_y = 21
+        num_x = 3
+        mesh_dict = {'num_y' : num_y,
+                     'num_x' : num_x,
+                     'wing_type' : 'rect',
+                     'symmetry' : True,
+                     'span_cos_spacing' : 0.5,
+                     'span' : 3.11,
+                     'root_chord' : 0.3,
+                     }
+
+        surface_dict_rv = {'E' : 85.e9, # RV
+                           'G' : 25.e9, # RV
+                           'mrho' : 1.6e3, # RV
+                          }
+        dv_dict = {'n_twist_cp' : 3,
                    'n_thickness_cp' : 3,
                    'n_CM' : 3,
                    'n_thickness_intersects' : 10,
                    'n_constraints' : 1 + 10 + 1 + 3 + 3,
                    'ndv' : 3 + 3 + 2,
+                   'mesh_dict' : mesh_dict,
+                   'surface_dict_rv' : surface_dict_rv
                     }
 
         # Standard deviation
@@ -52,7 +71,7 @@ class UQScanEagleOpt(object):
         self.QoI = examples.OASScanEagleWrapper(uq_systemsize, dv_dict)
         self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                             exact_Hessian=False)
-        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=2)
+        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=1)
         dfuelburn_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ObjGradient_dv,
                                   'output_dimensions' : dv_dict['ndv'],
                                   }
@@ -185,19 +204,19 @@ if __name__ == "__main__":
     init_sweep = 20.0
     init_alpha = 5.
 
+    ndv = 3 + 3 + 1 + 1
+    n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
+    n_CM = 3
+    n_constraints = 1 + n_thickness_intersects  + 1 + n_CM + 3
+
     if sys.argv[1] == "stochastic":
         """
         This piece of code runs the RDO of the ScanEagle program.
         """
-        # Stochastic collocation Objects
-        ndv = 3 + 3 + 1 + 1
-        n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
-        n_CM = 3
-        n_constraints = 1 + n_thickness_intersects  + 1 + n_CM + 3
-
         # Create the stochastic collocation object
         dominant_dir = UQObj.dominant_space.iso_eigenvecs[:, UQObj.dominant_space.dominant_indices]
-        # sc_obj = StochasticCollocation2(UQObj.jdist, 5, 'MvNormal', UQObj.QoI_dict)
+        # sc_obj = StochasticCollocation2(UQObj.jdist, 5, 'MvNormal', UQObj.QoI_dict,
+        #                                 include_derivs=True)
         sc_obj = StochasticCollocation2(UQObj.jdist, 5, 'MvNormal', UQObj.QoI_dict,
                                         include_derivs=True , reduced_collocation=True,
                                         dominant_dir=dominant_dir)
@@ -227,6 +246,10 @@ if __name__ == "__main__":
         sol = opt(optProb, sens=sens_uq)
         sol = opt(optProb)
         print(sol)
+
+    elif sys.argv[1] == "all_rv":
+        sc_obj = StochasticCollocation2(UQObj.jdist, 5, 'MvNormal', UQObj.QoI_dict,
+                                         include_derivs=True)
 
     else:
         raise NotImplementedError

@@ -33,14 +33,24 @@ class OASScanEagleWrapper(QuantityOfInterest):
     Wrapper class for the ScanEagle problem in OpenAeroStruct, that is being called
     through the Group OASScanEagle below
     TODO: Add the dictionary externally to have better control
+
+    NOTE: The Random variables as of this commit are split between
+    `indep_var_comp` and the `surface` dictionary. Thus there exists a boolean
+    option within the `OASScanEagleWrapper` constructor called `include_dict_rv`
+    which, by default ( = False), only considers the random variables in
+    `indep_var_comp`. If True, it will also consider the random variables in the
+    `surface` dictionary.
     """
-    def __init__(self, systemsize, input_dict):
+    def __init__(self, systemsize, input_dict, include_dict_rv=False):
         QuantityOfInterest.__init__(self, systemsize)
         self.input_dict = input_dict
+        self.include_dict_rv = include_dict_rv
 
         self.p = Problem()
         self.rvs = self.p.model.add_subsystem('random_variables', IndepVarComp(), promotes_outputs=['*'])
-        self.p.model.add_subsystem('oas_scaneagle', OASScanEagle())
+        self.p.model.add_subsystem('oas_scaneagle',
+                                   OASScanEagle(mesh_dict=self.input_dict['mesh_dict'],
+                                                surface_dict_rv=self.input_dict['surface_dict_rv']))
 
         # Declare rvs units to ensure type stability
         self.rvs.add_output('Mach_number', val=0.071)
@@ -68,6 +78,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
+        if self.include_dict_rv == True:
+            self.OASScanEagle.surface['E'] = rv[3]
+            self.OASScanEagle.surface['G'] = rv[4]
+            self.OASScanEagle.surface['mrho'] = rv[5]
         self.p.run_model()
         return self.p['oas_scaneagle.AS_point_0.fuelburn']
 
@@ -241,22 +255,27 @@ class OASScanEagle(Group):
     This is the OpenMDAO Group that get wraps in the class above for doing RDO
     under uncertainty.
     """
+    def initialize(self):
+        self.options.declare('mesh_dict', types=dict)
+        self.options.declare('surface_dict_rv', types=dict)
+
     def setup(self):
         # Total number of nodes to use in the spanwise (num_y) and
         # chordwise (num_x) directions. Vary these to change the level of fidelity.
         num_y = 21
         num_x = 3
 
-        # Create a mesh dictionary to feed to generate_mesh to actually create
-        # the mesh array.
-        mesh_dict = {'num_y' : num_y,
-                     'num_x' : num_x,
-                     'wing_type' : 'rect',
-                     'symmetry' : True,
-                     'span_cos_spacing' : 0.5,
-                     'span' : 3.11,
-                     'root_chord' : 0.3,
-                     }
+        # # Create a mesh dictionary to feed to generate_mesh to actually create
+        # # the mesh array.
+        # mesh_dict = {'num_y' : num_y,
+        #              'num_x' : num_x,
+        #              'wing_type' : 'rect',
+        #              'symmetry' : True,
+        #              'span_cos_spacing' : 0.5,
+        #              'span' : 3.11,
+        #              'root_chord' : 0.3,
+        #              }
+        mesh_dict = self.options['mesh_dict']
 
         mesh = generate_mesh(mesh_dict)
 
@@ -280,7 +299,7 @@ class OASScanEagle(Group):
         chord_cp[-2] = 1.3
 
         radius_cp = 0.01  * np.ones(10)
-
+        
         # Define wing parameters
         surface = {
                     # Wing definition
@@ -322,10 +341,10 @@ class OASScanEagle(Group):
                     'with_wave' : False,     # if true, compute wave drag
 
                     # Material properties taken from http://www.performance-composites.com/carbonfibre/mechanicalproperties_2.asp
-                    'E' : 85.e9, # RV
-                    'G' : 25.e9, # RV
+                    'E' : self.options['surface_dict_rv']['E'], # 85.e9, # RV
+                    'G' : self.options['surface_dict_rv']['G'], # 25.e9, # RV
                     'yield' : 350.e6,
-                    'mrho' : 1.6e3, # RV
+                    'mrho' : self.options['surface_dict_rv']['mrho'], # 1.6e3, # RV
 
                     'fem_origin' : 0.35,    # normalized chordwise location of the spar
                     'wing_weight_ratio' : 1., # multiplicative factor on the computed structural weight
@@ -335,8 +354,7 @@ class OASScanEagle(Group):
                     'exact_failure_constraint' : False, # if false, use KS function
                     }
 
-        # # Create the problem and assign the model group
-        # prob = Problem()
+        surface = surface # self.options['surface_dict']
 
         # Add problem information as an independent variables component
         indep_var_comp = IndepVarComp()
