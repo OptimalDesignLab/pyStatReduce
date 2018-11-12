@@ -80,7 +80,7 @@ class ArnoldiSampling(object):
         # estimate for the Rayleigh-Ritz eigen pairs
         e_m = np.zeros(i+1)
         e_m[-1] = 1.0 # Last value of the basis = 1
-        error_estimate = np.zeros(i+1)
+        error_estimate = np.zeros(eigenvals.size)  # np.zeros(i+1)
         for k in range(0, i+1):
             eigenvecs[:,k] = Z[:,0:i+1].dot(eigenvecs_red[0:i+1, k])
             error_estimate[k] = H[i+1,i]*abs(np.dot(e_m,eigenvecs_red[:,k]))
