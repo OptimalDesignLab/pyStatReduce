@@ -45,6 +45,7 @@ class OASScanEagleWrapper(QuantityOfInterest):
         QuantityOfInterest.__init__(self, systemsize)
         self.input_dict = input_dict
         self.include_dict_rv = include_dict_rv
+        self.surface_dict_rv = self.input_dict['surface_dict_rv']
 
         self.p = Problem()
         self.rvs = self.p.model.add_subsystem('random_variables', IndepVarComp(), promotes_outputs=['*'])
@@ -79,9 +80,9 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
         if self.include_dict_rv == True:
-            self.OASScanEagle.surface['E'] = rv[3]
-            self.OASScanEagle.surface['G'] = rv[4]
-            self.OASScanEagle.surface['mrho'] = rv[5]
+            self.surface_dict_rv['E'] = rv[3]
+            self.surface_dict_rv['G'] = rv[4]
+            self.surface_dict_rv['mrho'] = rv[5]
         self.p.run_model()
         return self.p['oas_scaneagle.AS_point_0.fuelburn']
 
@@ -94,6 +95,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
+        if self.include_dict_rv == True:
+            self.surface_dict_rv['E'] = rv[3]
+            self.surface_dict_rv['G'] = rv[4]
+            self.surface_dict_rv['mrho'] = rv[5]
         self.p.run_model()
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.fuelburn'],
                             wrt=['Mach_number', 'CT', 'W0'])
@@ -114,6 +119,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
+        if self.include_dict_rv == True:
+            self.surface_dict_rv['E'] = rv[3]
+            self.surface_dict_rv['G'] = rv[4]
+            self.surface_dict_rv['mrho'] = rv[5]
         self.p.run_model()
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.fuelburn'],
                                       wrt=['oas_scaneagle.wing.twist_cp',
@@ -141,6 +150,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
+        if self.include_dict_rv == True:
+            self.surface_dict_rv['E'] = rv[3]
+            self.surface_dict_rv['G'] = rv[4]
+            self.surface_dict_rv['mrho'] = rv[5]
         self.p.run_model()
 
         # Since the current stochastic collocation method expects a single array
@@ -165,6 +178,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
+        if self.include_dict_rv == True:
+            self.surface_dict_rv['E'] = rv[3]
+            self.surface_dict_rv['G'] = rv[4]
+            self.surface_dict_rv['mrho'] = rv[5]
         self.p.run_model()
 
         return self.p['oas_scaneagle.AS_point_0.wing_perf.failure']
@@ -178,6 +195,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
+        if self.include_dict_rv == True:
+            self.surface_dict_rv['E'] = rv[3]
+            self.surface_dict_rv['G'] = rv[4]
+            self.surface_dict_rv['mrho'] = rv[5]
         self.p.run_model()
 
         # Compute all the derivatives
@@ -232,6 +253,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
+        if self.include_dict_rv == True:
+            self.surface_dict_rv['E'] = rv[3]
+            self.surface_dict_rv['G'] = rv[4]
+            self.surface_dict_rv['mrho'] = rv[5]
         self.p.run_model()
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.wing_perf.failure'],
                                       wrt=['oas_scaneagle.wing.twist_cp',
