@@ -9,7 +9,8 @@
 import os
 import sys
 import errno
-sys.path.insert(0, '../../src')
+import time, copy
+# sys.path.insert(0, '../../src')
 
 # pyStatReduce specific imports
 import numpy as np
@@ -45,13 +46,32 @@ class UQScanEagleOpt(object):
         mean_Ma = 0.071
         mean_TSFC = 9.80665 * 8.6e-6
         mean_W0 = 10.0
-        dv_dict = {
-                   'n_twist_cp' : 3,
+
+        # Total number of nodes to use in the spanwise (num_y) and
+        # chordwise (num_x) directions. Vary these to change the level of fidelity.
+        num_y = 21
+        num_x = 3
+        mesh_dict = {'num_y' : num_y,
+                     'num_x' : num_x,
+                     'wing_type' : 'rect',
+                     'symmetry' : True,
+                     'span_cos_spacing' : 0.5,
+                     'span' : 3.11,
+                     'root_chord' : 0.3,
+                     }
+
+        surface_dict_rv = {'E' : 85.e9, # RV
+                           'G' : 25.e9, # RV
+                           'mrho' : 1.6e3, # RV
+                          }
+        dv_dict = {'n_twist_cp' : 3,
                    'n_thickness_cp' : 3,
                    'n_CM' : 3,
                    'n_thickness_intersects' : 10,
                    'n_constraints' : 1 + 10 + 1 + 3 + 3,
                    'ndv' : 3 + 3 + 2,
+                   'mesh_dict' : mesh_dict,
+                   'surface_dict_rv' : surface_dict_rv
                     }
 
         # Standard deviation
@@ -122,7 +142,7 @@ def objfunc(xdict):
     funcs['con_twist_cp'] = UQObj.QoI.p['oas_scaneagle.wing.twist_cp']
 
     fail = False
-    print("fuel burn = ", funcs['obj'])
+    # print("fuel burn = ", funcs['obj'])
     return funcs, fail
 
 def sens_uq(xdict, funcs):
@@ -317,7 +337,7 @@ if __name__ == "__main__":
         This problem runs the deterministic problem which is equivalent to
         `run_scaneagle.py`
         """
-
+        start_time = time.time()
         # fval = UQObj.QoI.eval_QoI(mu, xi)
         # print "twist_cp = ", UQObj.QoI.p['oas_scaneagle.wing.twist_cp']
         # print "thickness_cp = ", UQObj.QoI.p['oas_scaneagle.wing.thickness_cp']
@@ -351,5 +371,7 @@ if __name__ == "__main__":
         opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9,
                                               'Verify level':[int,0],})
         sol = opt(optProb, sens=sens, storeHistory='deterministic.hst')
+        time_elapsed = time.time() - start_time
         print(sol)
         print(sol.fStar)
+        print("time_elapsed = ", time_elapsed)

@@ -51,7 +51,7 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.rvs = self.p.model.add_subsystem('random_variables', IndepVarComp(), promotes_outputs=['*'])
         self.p.model.add_subsystem('oas_scaneagle',
                                    OASScanEagle(mesh_dict=self.input_dict['mesh_dict'],
-                                                surface_dict_rv=self.input_dict['surface_dict_rv']))
+                                                surface_dict_rv=self.surface_dict_rv))
 
         # Declare rvs units to ensure type stability
         self.rvs.add_output('Mach_number', val=0.071)
@@ -324,7 +324,7 @@ class OASScanEagle(Group):
         chord_cp[-2] = 1.3
 
         radius_cp = 0.01  * np.ones(10)
-        
+
         # Define wing parameters
         surface = {
                     # Wing definition

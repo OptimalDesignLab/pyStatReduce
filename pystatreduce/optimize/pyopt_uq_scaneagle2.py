@@ -1,9 +1,11 @@
 # pyopt_uq_scaneagle2.py
 import sys
+import time
 
 # pyStatReduce specific imports
 import numpy as np
 import chaospy as cp
+import copy
 from pystatreduce.new_stochastic_collocation import StochasticCollocation2
 from pystatreduce.stochastic_collocation import StochasticCollocation
 from pystatreduce.quantity_of_interest import QuantityOfInterest
@@ -65,21 +67,21 @@ class UQScanEagleOpt(object):
                     }
 
         # Standard deviation
-        if all_rv == False: 
+        if all_rv == False:
             mu = np.array([mean_Ma, mean_TSFC, mean_W0])
             std_dev = np.diag([0.005, 0.00607/3600, 0.2])
         else:
-            mean_E = surface_dict_rv['E']
-            mean_G = surface_dict_rv['G']
-            mean_mrho = surface_dict_rv['mrho']
+            mean_E = copy.copy(surface_dict_rv['E'])
+            mean_G = copy.copy(surface_dict_rv['G'])
+            mean_mrho = copy.copy(surface_dict_rv['mrho'])
             mu = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho])
             std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50])
         self.jdist = cp.MvNormal(mu, std_dev)
-        self.QoI = examples.OASScanEagleWrapper(uq_systemsize, dv_dict, 
+        self.QoI = examples.OASScanEagleWrapper(uq_systemsize, dv_dict,
                                                 include_dict_rv=all_rv)
         self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                             exact_Hessian=False)
-        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=1)
+        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=3)
         dfuelburn_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ObjGradient_dv,
                                   'output_dimensions' : dv_dict['ndv'],
                                   }
@@ -215,6 +217,7 @@ if __name__ == "__main__":
         """
         This piece of code runs the RDO of the ScanEagle program.
         """
+        start_time = time.time()
         uq_systemsize = 3
         UQObj = UQScanEagleOpt(uq_systemsize)
         xi = np.zeros(uq_systemsize)
@@ -227,7 +230,7 @@ if __name__ == "__main__":
 
         # Create the stochastic collocation object based on the dominant directions
         dominant_dir = UQObj.dominant_space.iso_eigenvecs[:, UQObj.dominant_space.dominant_indices]
-        sc_obj = StochasticCollocation2(UQObj.jdist, 5, 'MvNormal', UQObj.QoI_dict,
+        sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
                                         include_derivs=True , reduced_collocation=True,
                                         dominant_dir=dominant_dir)
         sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
@@ -255,7 +258,10 @@ if __name__ == "__main__":
         opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
         sol = opt(optProb, sens=sens_uq)
         sol = opt(optProb)
+        time_elapsed = time.time() - start_time
         print(sol)
+        print()
+        print("time_elapsed = ", time_elapsed)
 
     elif sys.argv[1] == "all_rv":
         uq_systemsize = 6
@@ -270,7 +276,7 @@ if __name__ == "__main__":
 
         # Create the stochastic collocation object based on the dominant directions
         dominant_dir = UQObj.dominant_space.iso_eigenvecs[:, UQObj.dominant_space.dominant_indices]
-        sc_obj = StochasticCollocation2(UQObj.jdist, 5, 'MvNormal', UQObj.QoI_dict,
+        sc_obj = StochasticCollocation2(UQObj.jdist, 6, 'MvNormal', UQObj.QoI_dict,
                                         include_derivs=True , reduced_collocation=True,
                                         dominant_dir=dominant_dir)
         sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
@@ -300,5 +306,21 @@ if __name__ == "__main__":
         sol = opt(optProb)
         print(sol)
 
+    elif sys.argv[1] == "debug":
+        uq_systemsize = 6
+        UQObj = UQScanEagleOpt(uq_systemsize, all_rv=True)
+        print("eigenvals = ", UQObj.dominant_space.iso_eigenvals)
+        """
+        xi = np.zeros(uq_systemsize)
+        mu = np.array([0.071, 9.80665 * 8.6e-6, 10., 85.e9, 25.e9, 1.6e3])
+        fburn_orig = UQObj.QoI.eval_QoI(mu, xi)
+        print("fburn_orig = ", fburn_orig)
+
+        # Check if the values change
+        mu_pert = np.array([0.071, 9.80665 * 8.6e-6, 10., 88.e9, 28.e9, 1700])
+        fburn1 = UQObj.QoI.eval_QoI(mu_pert, xi)
+        print("fburn1 = ", fburn1)
+        print("new surface_dict_rv = ", UQObj.QoI.surface_dict_rv)
+        """
     else:
         raise NotImplementedError
