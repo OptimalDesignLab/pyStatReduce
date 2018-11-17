@@ -98,7 +98,7 @@ surface = {
             'with_wave' : False,     # if true, compute wave drag
 
             # Material properties taken from http://www.performance-composites.com/carbonfibre/mechanicalproperties_2.asp
-            'E' : 85.e9,
+            'E' : 85.e9 + 5.e9,
             'G' : 25.e9,
             'yield' : 350.e6,
             'mrho' : 1.6e3,
@@ -209,9 +209,23 @@ prob.model.add_objective('AS_point_0.fuelburn', scaler=.1)
 # Set up the problem
 prob.setup()
 
-# # Use this if you just want to run analysis and not optimization
-# prob.run_model()
+# Use this if you just want to run analysis and not optimization
+prob.run_model()
+print("fval0 = ", prob['AS_point_0.fuelburn'][0])
 
-# Actually run the optimization problem
-prob.run_driver()
-print("fval = ", prob['AS_point_0.fuelburn'])
+
+# # Actually run the optimization problem
+# prob.run_driver()
+
+prob.run_model()
+print("fval1 = ", prob['AS_point_0.fuelburn'][0])
+
+surface['E'] -= 5.e9
+prob.setup()
+prob.run_model()
+print("fval2 = ", prob['AS_point_0.fuelburn'][0])
+
+surface['E'] += 5.e9
+prob.setup()
+prob.run_model()
+print("fval3 = ", prob['AS_point_0.fuelburn'][0])

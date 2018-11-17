@@ -53,9 +53,9 @@ mesh_dict = {'num_y' : num_y,
              'span' : 3.11,
              'root_chord' : 0.3,
              }
-surface_dict_rv = {'E' : 85.e9, # RV
-                   'G' : 25.e9, # RV
-                   'mrho' : 1.6e3, # RV
+surface_dict_rv = {'E' : mean_E, # RV
+                   'G' : mean_G, # RV
+                   'mrho' : mean_mrho, # RV
                   }
 dv_dict = {'n_twist_cp' : 3,
            'n_thickness_cp' : 3,
@@ -67,33 +67,23 @@ dv_dict = {'n_twist_cp' : 3,
            'surface_dict_rv' : surface_dict_rv
             }
 
-QoI = examples.OASScanEagleWrapper(uq_systemsize, dv_dict, include_dict_rv=False)
+QoI = examples.OASScanEagleWrapper(uq_systemsize, dv_dict, include_dict_rv=True)
 
 # Dictionary for the collocation object
 QoI_dict = {'fuelburn' : {'QoI_func' : QoI.eval_QoI,
                           'output_dimensions' : 1
                           },
             }
-# QoI.p.run_model()
-# print("p['Mach_number'] = ", QoI.p['Mach_number'])
-# print("p['CT'] = ", QoI.p['CT'])
-# print("p['W0'] = ", QoI.p['W0'])
-# print("QoI.p['oas_scaneagle.AS_point_0.fuelburn'] = ", QoI.p['oas_scaneagle.AS_point_0.fuelburn'])
+
+QoI.p.run_model()
 
 pert = np.zeros(uq_systemsize)
 fburn1 = QoI.eval_QoI(mu_orig, pert)
-print("fburn1 = ", fburn1)
-print("p['oas_scaneagle.AS_point_0.L_equals_W'] = ", QoI.p['oas_scaneagle.AS_point_0.L_equals_W'])
-print("self.p['oas_scaneagle.AS_point_0.CM'] = ", QoI.p['oas_scaneagle.AS_point_0.CM'])
+print("fburn1 = ", fburn1[0])
 
-mu_new = mu_orig + np.diagonal(std_dev) # copy.copy(mu_orig)
-mu_new[0:3] = mu_orig[0:3]
-print()
-print("mu_orig = ", mu_orig)
-print("mu_new = ", mu_new)
-fburn2 = QoI.eval_QoI(mu_new, pert)
-constraints2 = QoI.eval_AllConstraintQoI(mu_new, pert)
-print()
-print("fburn2 = ", fburn2)
-print("p['oas_scaneagle.AS_point_0.L_equals_W'] = ", QoI.p['oas_scaneagle.AS_point_0.L_equals_W'])
-print("self.p['oas_scaneagle.AS_point_0.CM'] = ", QoI.p['oas_scaneagle.AS_point_0.CM'])
+# We are now going to preturb on of the values and compare it against run_scaneagle
+mu_new = copy.copy(mu_orig)
+i = 3
+mu_new[i] += std_dev[i,i]
+fburn_i = QoI.eval_QoI(mu_new, pert)
+print("fburn_i = ", fburn_i[0])

@@ -83,6 +83,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
             self.surface_dict_rv['E'] = rv[3]
             self.surface_dict_rv['G'] = rv[4]
             self.surface_dict_rv['mrho'] = rv[5]
+            # self.p.model.oas_scaneagle.surface['E'] = rv[3]
+            # self.p.model.oas_scaneagle.surface['G'] = rv[4]
+            # self.p.model.oas_scaneagle.surface['mrho'] = rv[5]
+        self.p.setup()
         self.p.run_model()
         return self.p['oas_scaneagle.AS_point_0.fuelburn']
 
@@ -99,6 +103,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
             self.surface_dict_rv['E'] = rv[3]
             self.surface_dict_rv['G'] = rv[4]
             self.surface_dict_rv['mrho'] = rv[5]
+            # self.p.model.oas_scaneagle.surface['E'] = rv[3]
+            # self.p.model.oas_scaneagle.surface['G'] = rv[4]
+            # self.p.model.oas_scaneagle.surface['mrho'] = rv[5]
+        self.p.setup()
         self.p.run_model()
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.fuelburn'],
                             wrt=['Mach_number', 'CT', 'W0'])
@@ -151,9 +159,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
         if self.include_dict_rv == True:
-            self.surface_dict_rv['E'] = rv[3]
-            self.surface_dict_rv['G'] = rv[4]
-            self.surface_dict_rv['mrho'] = rv[5]
+            self.p.model.oas_scaneagle.surface['E'] = rv[3]
+            self.p.model.oas_scaneagle.surface['G'] = rv[4]
+            self.p.model.oas_scaneagle.surface['mrho'] = rv[5]
+        self.p.setup()
         self.p.run_model()
 
         # Since the current stochastic collocation method expects a single array
@@ -179,9 +188,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
         if self.include_dict_rv == True:
-            self.surface_dict_rv['E'] = rv[3]
-            self.surface_dict_rv['G'] = rv[4]
-            self.surface_dict_rv['mrho'] = rv[5]
+            self.p.model.oas_scaneagle.surface['E'] = rv[3]
+            self.p.model.oas_scaneagle.surface['G'] = rv[4]
+            self.p.model.oas_scaneagle.surface['mrho'] = rv[5]
+        self.p.setup()
         self.p.run_model()
 
         return self.p['oas_scaneagle.AS_point_0.wing_perf.failure']
@@ -196,9 +206,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
         if self.include_dict_rv == True:
-            self.surface_dict_rv['E'] = rv[3]
-            self.surface_dict_rv['G'] = rv[4]
-            self.surface_dict_rv['mrho'] = rv[5]
+            self.p.model.oas_scaneagle.surface['E'] = rv[3]
+            self.p.model.oas_scaneagle.surface['G'] = rv[4]
+            self.p.model.oas_scaneagle.surface['mrho'] = rv[5]
+        self.p.setup()
         self.p.run_model()
 
         # Compute all the derivatives
@@ -254,9 +265,10 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
         if self.include_dict_rv == True:
-            self.surface_dict_rv['E'] = rv[3]
-            self.surface_dict_rv['G'] = rv[4]
-            self.surface_dict_rv['mrho'] = rv[5]
+            self.p.model.oas_scaneagle.surface['E'] = rv[3]
+            self.p.model.oas_scaneagle.surface['G'] = rv[4]
+            self.p.model.oas_scaneagle.surface['mrho'] = rv[5]
+        self.p.setup()
         self.p.run_model()
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.wing_perf.failure'],
                                       wrt=['oas_scaneagle.wing.twist_cp',
@@ -326,7 +338,7 @@ class OASScanEagle(Group):
         radius_cp = 0.01  * np.ones(10)
 
         # Define wing parameters
-        surface = {
+        self.surface = {
                     # Wing definition
                     'name' : 'wing',        # name of the surface
                     'symmetry' : True,     # if true, model one half of wing
@@ -379,7 +391,7 @@ class OASScanEagle(Group):
                     'exact_failure_constraint' : False, # if false, use KS function
                     }
 
-        surface = surface # self.options['surface_dict']
+        # surface = surface # self.options['surface_dict']
 
         # Add problem information as an independent variables component
         indep_var_comp = IndepVarComp()
@@ -400,7 +412,7 @@ class OASScanEagle(Group):
         # Add the AerostructGeometry group, which computes all the intermediary
         # parameters for the aero and structural analyses, like the structural
         # stiffness matrix and some aerodynamic geometry arrays
-        aerostruct_group = AerostructGeometry(surface=surface)
+        aerostruct_group = AerostructGeometry(surface=self.surface)
 
         name = 'wing'
 
@@ -412,7 +424,7 @@ class OASScanEagle(Group):
 
         # Create the aerostruct point group and add it to the model.
         # This contains all the actual aerostructural analyses.
-        AS_point = AerostructPoint(surfaces=[surface])
+        AS_point = AerostructPoint(surfaces=[self.surface])
 
         self.add_subsystem(point_name, AS_point,
             promotes_inputs=['v', 'alpha', 'Mach_number', 're', 'rho', 'CT', 'R',
