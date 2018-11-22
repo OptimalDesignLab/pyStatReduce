@@ -41,8 +41,8 @@ class OASScanEagleWrapper(QuantityOfInterest):
     `indep_var_comp`. If True, it will also consider the random variables in the
     `surface` dictionary.
     """
-    def __init__(self, systemsize, input_dict, include_dict_rv=False):
-        QuantityOfInterest.__init__(self, systemsize)
+    def __init__(self, systemsize, input_dict, include_dict_rv=False, data_type=np.float):
+        QuantityOfInterest.__init__(self, systemsize, data_type=data_type)
         self.input_dict = input_dict
         self.include_dict_rv = include_dict_rv
         self.surface_dict_rv = self.input_dict['surface_dict_rv']
@@ -66,9 +66,9 @@ class OASScanEagleWrapper(QuantityOfInterest):
         self.p.setup()
 
         # Set up reusable arrays
-        self.dJ_ddv = np.zeros(self.input_dict['ndv']) # Used in eval_ObjGradient_dv
-        self.con_arr = np.zeros(self.input_dict['n_constraints']) # Used in eval_ConstraintQoI
-        self.con_jac = np.zeros((self.input_dict['n_constraints'], self.input_dict['ndv']))
+        self.dJ_ddv = np.zeros(self.input_dict['ndv'], dtype=self.data_type) # Used in eval_ObjGradient_dv
+        self.con_arr = np.zeros(self.input_dict['n_constraints'], dtype=self.data_type) # Used in eval_ConstraintQoI
+        self.con_jac = np.zeros((self.input_dict['n_constraints'], self.input_dict['ndv']), dtype=self.data_type)
 
     def eval_QoI(self, mu, xi):
         """
@@ -83,9 +83,6 @@ class OASScanEagleWrapper(QuantityOfInterest):
             self.surface_dict_rv['E'] = rv[3]
             self.surface_dict_rv['G'] = rv[4]
             self.surface_dict_rv['mrho'] = rv[5]
-            # self.p.model.oas_scaneagle.surface['E'] = rv[3]
-            # self.p.model.oas_scaneagle.surface['G'] = rv[4]
-            # self.p.model.oas_scaneagle.surface['mrho'] = rv[5]
         self.p.setup()
         self.p.run_model()
         return self.p['oas_scaneagle.AS_point_0.fuelburn']
@@ -95,7 +92,7 @@ class OASScanEagleWrapper(QuantityOfInterest):
         Computes the gradient of the QoI w.r.t the random variables
         """
         rv = mu + xi
-        deriv_arr = np.zeros(self.systemsize)
+        deriv_arr = np.zeros(self.systemsize, dtype=self.data_type)
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
@@ -113,6 +110,23 @@ class OASScanEagleWrapper(QuantityOfInterest):
         deriv_arr[0] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'Mach_number']
         deriv_arr[1] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'CT']
         deriv_arr[2] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'W0']
+
+        if self.include_dict_rv == True:
+            # For the dictionary random variables, we unfortunately need to do
+            # a finite difference approximation
+            fval = self.p['oas_scaneagle.AS_point_0.fuelburn']
+            fd_pert = [1.e2, 1.e2, 1.e-7] # 1.e-7
+            ctr = 3
+            for i in ['E', 'G', 'mrho']:
+                self.surface_dict_rv[i] += fd_pert[ctr-3]
+                print('self.surface_dict_rv[$i] = ', self.surface_dict_rv[i])
+                self.p.setup()
+                self.p.run_model()
+                fval_pert = self.p['oas_scaneagle.AS_point_0.fuelburn']
+                # print("fval = ", fval, ", fval_pert = ", fval_pert)
+                deriv_arr[ctr] = (fval_pert - fval) / fd_pert[ctr-3]
+                self.surface_dict_rv[i] -= fd_pert[ctr-3]
+                ctr += 1
 
         return deriv_arr
 

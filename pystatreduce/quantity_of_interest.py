@@ -1,4 +1,5 @@
 # QuantityOfInterest.py
+import numpy as np
 
 class QuantityOfInterest(object):
     """
@@ -16,9 +17,10 @@ class QuantityOfInterest(object):
 
     """
 
-    def __init__(self, nvariables):
+    def __init__(self, nvariables, data_type=np.float):
         assert nvariables > 0, "Quantity of Interest cannot have zero inputs"
         self.systemsize = nvariables
+        self.data_type = data_type
 
     def eval_QoI(self, mu, xi):
         """
