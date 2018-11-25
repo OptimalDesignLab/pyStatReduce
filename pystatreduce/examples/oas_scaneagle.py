@@ -1,9 +1,6 @@
 # Use the OpenMDAO framework for OUU for optimizing a Rosenbrock function
 from __future__ import division, print_function
-import os
-import sys
-import errno
-sys.path.insert(0, '../../src')
+import os, sys, errno, copy
 
 # pyStatReduce specific imports
 import numpy as np
@@ -114,18 +111,18 @@ class OASScanEagleWrapper(QuantityOfInterest):
         if self.include_dict_rv == True:
             # For the dictionary random variables, we unfortunately need to do
             # a finite difference approximation
-            fval = self.p['oas_scaneagle.AS_point_0.fuelburn']
-            fd_pert = [1.e2, 1.e2, 1.e-7] # 1.e-7
+            fval = copy.copy(self.p['oas_scaneagle.AS_point_0.fuelburn'])
+            fd_pert = 1.e-8
             ctr = 3
             for i in ['E', 'G', 'mrho']:
-                self.surface_dict_rv[i] += fd_pert[ctr-3]
-                print('self.surface_dict_rv[$i] = ', self.surface_dict_rv[i])
+                self.surface_dict_rv[i] += fd_pert
+                # print('self.surface_dict_rv[$i] = ', self.surface_dict_rv[i])
                 self.p.setup()
                 self.p.run_model()
                 fval_pert = self.p['oas_scaneagle.AS_point_0.fuelburn']
-                # print("fval = ", fval, ", fval_pert = ", fval_pert)
-                deriv_arr[ctr] = (fval_pert - fval) / fd_pert[ctr-3]
-                self.surface_dict_rv[i] -= fd_pert[ctr-3]
+                # print("fval = ", fval[0], ", fval_pert = ", fval_pert[0])
+                deriv_arr[ctr] = (fval_pert - fval) / fd_pert
+                self.surface_dict_rv[i] -= fd_pert
                 ctr += 1
 
         return deriv_arr

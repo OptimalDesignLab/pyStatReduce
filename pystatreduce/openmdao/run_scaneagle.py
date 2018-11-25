@@ -209,9 +209,24 @@ prob.model.add_objective('AS_point_0.fuelburn', scaler=.1)
 # Set up the problem
 prob.setup()
 
-# # Use this if you just want to run analysis and not optimization
-# prob.run_model()
+# Use this if you just want to run analysis and not optimization
+prob.run_model()
+prob.run_model()
+# deriv = prob.compute_totals(of=['AS_point_0.fuelburn'],
+#                     wrt=['Mach_number', 'CT', 'W0'])
+# print(deriv['AS_point_0.fuelburn', 'Mach_number'][0,0])
+# print(deriv['AS_point_0.fuelburn', 'CT'][0,0])
+# print(deriv['AS_point_0.fuelburn', 'W0'][0,0])
+print("fval = ", prob['AS_point_0.fuelburn'])
+fval1 = prob['AS_point_0.fuelburn'][0]
+# Check against finite difference
+pert = 1.e-6
+surface['mrho'] += pert
+prob.run_model()
+fval2 = prob['AS_point_0.fuelburn'][0]
+dfval = (fval2 - fval1) / pert
+print("dfval = ", dfval)
+
 
 # Actually run the optimization problem
-prob.run_driver()
-print("fval = ", prob['AS_point_0.fuelburn'])
+# prob.run_driver()
