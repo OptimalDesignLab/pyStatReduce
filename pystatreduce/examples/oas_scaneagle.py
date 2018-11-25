@@ -73,13 +73,7 @@ class OASScanEagleWrapper(QuantityOfInterest):
         for a given random variable realization.
         """
         rv = mu + xi
-        self.p['Mach_number'] = rv[0]
-        self.p['CT'] = rv[1]
-        self.p['W0'] = rv[2]
-        if self.include_dict_rv == True:
-            self.surface_dict_rv['E'] = rv[3]
-            self.surface_dict_rv['G'] = rv[4]
-            self.surface_dict_rv['mrho'] = rv[5]
+        self.update_rv(rv)
         self.p.setup()
         self.p.run_model()
         return self.p['oas_scaneagle.AS_point_0.fuelburn']
@@ -90,16 +84,7 @@ class OASScanEagleWrapper(QuantityOfInterest):
         """
         rv = mu + xi
         deriv_arr = np.zeros(self.systemsize, dtype=self.data_type)
-        self.p['Mach_number'] = rv[0]
-        self.p['CT'] = rv[1]
-        self.p['W0'] = rv[2]
-        if self.include_dict_rv == True:
-            self.surface_dict_rv['E'] = rv[3]
-            self.surface_dict_rv['G'] = rv[4]
-            self.surface_dict_rv['mrho'] = rv[5]
-            # self.p.model.oas_scaneagle.surface['E'] = rv[3]
-            # self.p.model.oas_scaneagle.surface['G'] = rv[4]
-            # self.p.model.oas_scaneagle.surface['mrho'] = rv[5]
+        self.update_rv(rv)
         self.p.setup()
         self.p.run_model()
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.fuelburn'],
@@ -116,11 +101,9 @@ class OASScanEagleWrapper(QuantityOfInterest):
             ctr = 3
             for i in ['E', 'G', 'mrho']:
                 self.surface_dict_rv[i] += fd_pert
-                # print('self.surface_dict_rv[$i] = ', self.surface_dict_rv[i])
                 self.p.setup()
                 self.p.run_model()
                 fval_pert = self.p['oas_scaneagle.AS_point_0.fuelburn']
-                # print("fval = ", fval[0], ", fval_pert = ", fval_pert[0])
                 deriv_arr[ctr] = (fval_pert - fval) / fd_pert
                 self.surface_dict_rv[i] -= fd_pert
                 ctr += 1
@@ -295,6 +278,15 @@ class OASScanEagleWrapper(QuantityOfInterest):
         dcon_failure[n_cp+1] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.alpha']
 
         return dcon_failure
+
+    def update_rv(self, rv):
+        self.p['Mach_number'] = rv[0]
+        self.p['CT'] = rv[1]
+        self.p['W0'] = rv[2]
+        if self.include_dict_rv == True:
+            self.surface_dict_rv['E'] = rv[3]
+            self.surface_dict_rv['G'] = rv[4]
+            self.surface_dict_rv['mrho'] = rv[5]
 
 #-------------------------------------------------------------------------------
 

@@ -50,8 +50,10 @@ mesh_dict = {'num_y' : num_y,
 
 
 class OASScanEagleTest(unittest.TestCase):
-
+    """
     def test_deterministic_model3rv(self):
+        # Check if the Quantity of Interest is being computed correctly with 3
+        # random variables
         uq_systemsize = 3
         mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0])
         std_dev = np.diag([0.005, 0.00607/3600, 0.2])
@@ -81,6 +83,8 @@ class OASScanEagleTest(unittest.TestCase):
         self.assertTrue(err < 1.e-7)
 
     def test_deterministic_model6rv(self):
+        # Check if the Quantity of interest of interest is being computed
+        # correctly with 6 random variables
         uq_systemsize = 6
         mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho])
         std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50])
@@ -140,6 +144,8 @@ class OASScanEagleTest(unittest.TestCase):
         self.assertTrue(err < 1.e-6)
 
     def test_dfuelburn_drv(self):
+        # Check the gradient of the quantity of interest  with respect to the 6
+        # random variables.
         uq_systemsize = 6
         mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho])
         std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50])
@@ -162,7 +168,7 @@ class OASScanEagleTest(unittest.TestCase):
 
         QoI = examples.OASScanEagleWrapper(uq_systemsize, input_dict, include_dict_rv=True)
         dJdrv = QoI.eval_QoIGradient(mu_orig, np.zeros(uq_systemsize))
-        print("dJdrv = ", dJdrv)
+        # print("dJdrv = ", dJdrv)
         true_val = np.array([-83.76493088812506,
                              74045.3103526054,
                              0.44175879007053753,
@@ -171,11 +177,38 @@ class OASScanEagleTest(unittest.TestCase):
                              0.0005076685738458764])
         err = (dJdrv - true_val)#  / true_val
         for i in range(0, uq_systemsize):
-            # print("i = ", i, ", err[i] = ", err[i])
             self.assertTrue(err[i] < 1.e-2)
-        # self.assertTrue((err < 1.e-6).all())
-        # for i in range(0,uq_systemsize):
+    """
+    def test_dominant_dir_3rv(self):
+        # Check the dominant directions w.r.t the 3 randomv variables, which are
+        # independent parameters
+        uq_systemsize = 3
+        mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0])
+        std_dev = np.diag([0.005, 0.00607/3600, 0.2])
+        jdist = cp.MvNormal(mu_orig, std_dev)
 
+        surface_dict_rv = {'E' : mean_E, # RV
+                           'G' : mean_G, # RV
+                           'mrho' : mean_mrho, # RV
+                          }
+
+        input_dict = {'n_twist_cp' : 3,
+                   'n_thickness_cp' : 3,
+                   'n_CM' : 3,
+                   'n_thickness_intersects' : 10,
+                   'n_constraints' : 1 + 10 + 1 + 3 + 3,
+                   'ndv' : 3 + 3 + 2,
+                   'mesh_dict' : mesh_dict,
+                   'surface_dict_rv' : surface_dict_rv
+                    }
+
+        QoI = examples.OASScanEagleWrapper(uq_systemsize, input_dict, include_dict_rv=False)
+        dJdrv = QoI.eval_QoIGradient(mu_orig, np.zeros(uq_systemsize))
+        # print("dJdrv = ", dJdrv)
+        dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
+                                            exact_Hessian=False)
+        dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=3)
+        print("eigenvalues = ", dominant_space.iso_eigenvals)
 
 """
 # Default mean values of the random variables
