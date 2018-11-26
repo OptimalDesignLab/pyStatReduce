@@ -50,7 +50,7 @@ mesh_dict = {'num_y' : num_y,
 
 
 class OASScanEagleTest(unittest.TestCase):
-    """
+
     def test_deterministic_model3rv(self):
         # Check if the Quantity of Interest is being computed correctly with 3
         # random variables
@@ -59,10 +59,13 @@ class OASScanEagleTest(unittest.TestCase):
         std_dev = np.diag([0.005, 0.00607/3600, 0.2])
         jdist = cp.MvNormal(mu_orig, std_dev)
 
-        surface_dict_rv = {'E' : mean_E, # RV
-                           'G' : mean_G, # RV
-                           'mrho' : mean_mrho, # RV
-                          }
+        rv_dict = {'Mach_number' : mean_Ma,
+                   'CT' : mean_TSFC,
+                   'W0' : mean_W0,
+                   'E' : mean_E, # surface RV
+                   'G' : mean_G, # surface RV
+                   'mrho' : mean_mrho, # surface RV
+                    }
 
         input_dict = {'n_twist_cp' : 3,
                    'n_thickness_cp' : 3,
@@ -71,17 +74,46 @@ class OASScanEagleTest(unittest.TestCase):
                    'n_constraints' : 1 + 10 + 1 + 3 + 3,
                    'ndv' : 3 + 3 + 2,
                    'mesh_dict' : mesh_dict,
-                   'surface_dict_rv' : surface_dict_rv
+                   'rv_dict' : rv_dict
                     }
 
         QoI = examples.OASScanEagleWrapper(uq_systemsize, input_dict, include_dict_rv=False)
 
         # Check the value at the nominal point
         fval = QoI.eval_QoI(mu_orig, np.zeros(uq_systemsize))
-        true_val = 5.229858093218218
-        err = abs(fval - true_val)
+        true_fval = 5.229858093218218
+        err = abs(fval - true_fval)
         self.assertTrue(err < 1.e-7)
 
+        # Check for updates to the random variables that constitute IndepVarComp()
+        # random_variables
+        mu_pert = copy.copy(mu_orig)
+        # 1. Check Mach number
+        mu_pert[0] += std_dev[0,0]
+        fval = QoI.eval_QoI(mu_pert, np.zeros(uq_systemsize))
+        self.assertEqual(mu_pert[0], QoI.p['Mach_number'][0])
+        true_fval = 4.842501525375332
+        err = abs(fval[0] - true_fval)
+        self.assertTrue(err < 1.e-6)
+        mu_pert[0] -= std_dev[0,0]
+        # 2. Check TSFC
+        mu_pert[1] += std_dev[1,1]
+        fval = QoI.eval_QoI(mu_pert, np.zeros(uq_systemsize))
+        self.assertEqual(mu_pert[1], QoI.p['CT'][0])
+        true_fval = 5.355164436939221
+        err = abs(fval[0] - true_fval)
+        self.assertTrue(err < 1.e-6)
+        mu_pert[1] -= std_dev[1,1]
+        # Check W0
+        mu_pert[2] += std_dev[2,2]
+        fval = QoI.eval_QoI(mu_pert, np.zeros(uq_systemsize))
+        self.assertEqual(mu_pert[2], QoI.p['W0'][0])
+        true_fval = 5.318209853308696
+        err = abs(fval[0] - true_fval)
+        self.assertTrue(err < 1.e-6)
+        mu_pert[2] -= std_dev[2,2]
+
+    """
     def test_deterministic_model6rv(self):
         # Check if the Quantity of interest of interest is being computed
         # correctly with 6 random variables
@@ -90,10 +122,13 @@ class OASScanEagleTest(unittest.TestCase):
         std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50])
         jdist = cp.MvNormal(mu_orig, std_dev)
 
-        surface_dict_rv = {'E' : mean_E, # RV
-                           'G' : mean_G, # RV
-                           'mrho' : mean_mrho, # RV
-                          }
+        rv_dict = {'Mach_number' : mean_Ma,
+                   'CT' : mean_TSFC,
+                   'W0' : mean_W0,
+                   'E' : mean_E, # RV
+                   'G' : mean_G, # RV
+                   'mrho' : mean_mrho, # RV
+                    }
 
         input_dict = {'n_twist_cp' : 3,
                    'n_thickness_cp' : 3,
@@ -102,7 +137,7 @@ class OASScanEagleTest(unittest.TestCase):
                    'n_constraints' : 1 + 10 + 1 + 3 + 3,
                    'ndv' : 3 + 3 + 2,
                    'mesh_dict' : mesh_dict,
-                   'surface_dict_rv' : surface_dict_rv
+                   'rv_dict' : rv_dict
                     }
 
         QoI = examples.OASScanEagleWrapper(uq_systemsize, input_dict, include_dict_rv=True)
@@ -179,30 +214,9 @@ class OASScanEagleTest(unittest.TestCase):
         for i in range(0, uq_systemsize):
             self.assertTrue(err[i] < 1.e-2)
     """
-    def test_rv_update_3rv(self):
-        uq_systemsize = 3
-        mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0])
-        std_dev = np.diag([0.005, 0.00607/3600, 0.2])
-        jdist = cp.MvNormal(mu_orig, std_dev)
 
-        surface_dict_rv = {'E' : mean_E, # RV
-                           'G' : mean_G, # RV
-                           'mrho' : mean_mrho, # RV
-                          }
 
-        input_dict = {'n_twist_cp' : 3,
-                   'n_thickness_cp' : 3,
-                   'n_CM' : 3,
-                   'n_thickness_intersects' : 10,
-                   'n_constraints' : 1 + 10 + 1 + 3 + 3,
-                   'ndv' : 3 + 3 + 2,
-                   'mesh_dict' : mesh_dict,
-                   'surface_dict_rv' : surface_dict_rv
-                    }
-
-        # QoI = examples.OASScanEagleWrapper(uq_systemsize, input_dict, include_dict_rv=False)
-        # dJdrv_orig = QoI.eval_QoIGradient(mu_orig, np.zeros(uq_systemsize))
-
+    """
     def test_dominant_dir_3rv(self):
         # Check the dominant directions w.r.t the 3 randomv variables, which are
         # independent parameters
@@ -211,10 +225,17 @@ class OASScanEagleTest(unittest.TestCase):
         std_dev = np.diag([0.005, 0.00607/3600, 0.2])
         jdist = cp.MvNormal(mu_orig, std_dev)
 
-        surface_dict_rv = {'E' : mean_E, # RV
-                           'G' : mean_G, # RV
-                           'mrho' : mean_mrho, # RV
-                          }
+        # surface_dict_rv = {'E' : mean_E, # RV
+        #                    'G' : mean_G, # RV
+        #                    'mrho' : mean_mrho, # RV
+        #                   }
+        rv_dict = {'Mach_number' : mean_Ma,
+                   'CT' : mean_TSFC,
+                   'W0' : mean_W0,
+                   'E' : mean_E, # RV
+                   'G' : mean_G, # RV
+                   'mrho' : mean_mrho, # RV
+                    }
 
         input_dict = {'n_twist_cp' : 3,
                    'n_thickness_cp' : 3,
@@ -233,7 +254,7 @@ class OASScanEagleTest(unittest.TestCase):
                                             exact_Hessian=False)
         dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=3)
         print("eigenvalues = ", dominant_space.iso_eigenvals)
-    """
+
     def test_dominant_dir_6rv(self):
         # Check the dominant directions w.r.t all 6 random variables
         uq_systemsize = 6
