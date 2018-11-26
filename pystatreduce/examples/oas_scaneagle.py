@@ -41,23 +41,26 @@ class OASScanEagleWrapper(QuantityOfInterest):
     def __init__(self, systemsize, input_dict, include_dict_rv=False, data_type=np.float):
         QuantityOfInterest.__init__(self, systemsize, data_type=data_type)
         self.input_dict = input_dict
-        self.include_dict_rv = include_dict_rv
-        self.surface_dict_rv = self.input_dict['surface_dict_rv']
+        self.include_dict_rv = include_dict_rv # Bool for including random variables in the durface dictionary
+        self.rv_dict = self.input_dict['rv_dict']
 
         self.p = Problem()
         self.rvs = self.p.model.add_subsystem('random_variables', IndepVarComp(), promotes_outputs=['*'])
         self.p.model.add_subsystem('oas_scaneagle',
                                    OASScanEagle(mesh_dict=self.input_dict['mesh_dict'],
-                                                surface_dict_rv=self.surface_dict_rv))
+                                                surface_dict_rv=self.rv_dict))
 
         # Declare rvs units to ensure type stability
-        self.rvs.add_output('Mach_number', val=0.071)
+        # self.rvs.add_output('Mach_number', val=0.071)
+        self.rvs.add_output('Mach_number', val=self.rv_dict['Mach_number'])
         self.p.model.connect('Mach_number', 'oas_scaneagle.Mach_number')
 
-        self.rvs.add_output('CT', val=9.80665 * 8.6e-6, units='1/s') # TSFC
+        # self.rvs.add_output('CT', val=9.80665 * 8.6e-6, units='1/s') # TSFC
+        self.rvs.add_output('CT', val=self.rv_dict['CT'], units='1/s') # TSFC
         self.p.model.connect('CT', 'oas_scaneagle.CT')
 
-        self.rvs.add_output('W0', val=10.,  units='kg')
+        # self.rvs.add_output('W0', val=10.,  units='kg')
+        self.rvs.add_output('W0', val=self.rv_dict['W0'],  units='kg')
         self.p.model.connect('W0', 'oas_scaneagle.W0')
 
         self.p.setup()
@@ -74,7 +77,9 @@ class OASScanEagleWrapper(QuantityOfInterest):
         """
         rv = mu + xi
         self.update_rv(rv)
-        self.p.setup()
+        # print("pre, self.p['Mach_number'] = ")# , self.p['Mach_number'])
+        # self.p.setup()
+        # self.p.final_setup()
         self.p.run_model()
         return self.p['oas_scaneagle.AS_point_0.fuelburn']
 
@@ -280,13 +285,23 @@ class OASScanEagleWrapper(QuantityOfInterest):
         return dcon_failure
 
     def update_rv(self, rv):
+        # We need to update the surface dictionary values before we can update
+        # the IndepVarComp() random variables
+        if self.include_dict_rv == True:
+            self.rv_dict['E'] = rv[3]
+            self.rv_dict['G'] = rv[4]
+            self.rv_dict['mrho'] = rv[5]
+            self.p.setup()
+        # self.rv_dict['Mach_number'] = rv[0]
+        # self.rv_dict['CT'] = rv[1]
+        # self.rv_dict['W0'] = rv[2]
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]
-        if self.include_dict_rv == True:
-            self.surface_dict_rv['E'] = rv[3]
-            self.surface_dict_rv['G'] = rv[4]
-            self.surface_dict_rv['mrho'] = rv[5]
+        # print()
+        # print("in update_rv, self.rv_dict['Mach_number'] = ", self.rv_dict['Mach_number'], ", rv[0] = ", rv[0])
+        # print("self.p['Mach_number'] = ", self.p['Mach_number'])
+
 
 #-------------------------------------------------------------------------------
 

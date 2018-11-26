@@ -113,7 +113,6 @@ class OASScanEagleTest(unittest.TestCase):
         self.assertTrue(err < 1.e-6)
         mu_pert[2] -= std_dev[2,2]
 
-    """
     def test_deterministic_model6rv(self):
         # Check if the Quantity of interest of interest is being computed
         # correctly with 6 random variables
@@ -161,7 +160,7 @@ class OASScanEagleTest(unittest.TestCase):
         mu_pert[3] += std_dev[3,3]
         fval = QoI.eval_QoI(mu_pert, np.zeros(uq_systemsize))
         true_val = 5.225346542013745
-        err = abs(fval - true_val)
+        err = abs(fval[0] - true_val)
         self.assertTrue(err < 1.e-6)
         # 2. Check change in shear modulus
         mu_pert[:] = mu_orig[:]
@@ -177,7 +176,7 @@ class OASScanEagleTest(unittest.TestCase):
         true_val = 5.255241409985575
         err = abs(fval - true_val)
         self.assertTrue(err < 1.e-6)
-
+    """
     def test_dfuelburn_drv(self):
         # Check the gradient of the quantity of interest  with respect to the 6
         # random variables.
