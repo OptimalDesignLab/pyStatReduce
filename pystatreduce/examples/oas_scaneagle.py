@@ -98,7 +98,6 @@ class OASScanEagleWrapper(QuantityOfInterest):
         rv = mu + xi
         deriv_arr = np.zeros(self.systemsize, dtype=self.data_type)
         self.update_rv(rv)
-        self.p.setup()
         self.p.run_model()
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.fuelburn'],
                             wrt=['Mach_number', 'CT', 'W0', 'E', 'G', 'mrho'])
@@ -119,13 +118,7 @@ class OASScanEagleWrapper(QuantityOfInterest):
         random variables.
         """
         rv = mu + xi
-        self.p['Mach_number'] = rv[0]
-        self.p['CT'] = rv[1]
-        self.p['W0'] = rv[2]
-        if self.include_dict_rv == True:
-            self.surface_dict_rv['E'] = rv[3]
-            self.surface_dict_rv['G'] = rv[4]
-            self.surface_dict_rv['mrho'] = rv[5]
+        self.update_rv(rv)
         self.p.run_model()
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.fuelburn'],
                                       wrt=['oas_scaneagle.wing.twist_cp',
@@ -150,14 +143,7 @@ class OASScanEagleWrapper(QuantityOfInterest):
         Evaluates ALL the constraint function for a given realization of random variables.
         """
         rv = mu + xi
-        self.p['Mach_number'] = rv[0]
-        self.p['CT'] = rv[1]
-        self.p['W0'] = rv[2]
-        if self.include_dict_rv == True:
-            self.p.model.oas_scaneagle.surface['E'] = rv[3]
-            self.p.model.oas_scaneagle.surface['G'] = rv[4]
-            self.p.model.oas_scaneagle.surface['mrho'] = rv[5]
-        self.p.setup()
+        self.update_rv(rv)
         self.p.run_model()
 
         # Since the current stochastic collocation method expects a single array
@@ -179,14 +165,7 @@ class OASScanEagleWrapper(QuantityOfInterest):
         Evaluates only the failure constraint for a given realization of random variabels.
         """
         rv = mu + xi
-        self.p['Mach_number'] = rv[0]
-        self.p['CT'] = rv[1]
-        self.p['W0'] = rv[2]
-        if self.include_dict_rv == True:
-            self.p.model.oas_scaneagle.surface['E'] = rv[3]
-            self.p.model.oas_scaneagle.surface['G'] = rv[4]
-            self.p.model.oas_scaneagle.surface['mrho'] = rv[5]
-        self.p.setup()
+        self.update_rv(rv)
         self.p.run_model()
 
         return self.p['oas_scaneagle.AS_point_0.wing_perf.failure']
@@ -197,14 +176,7 @@ class OASScanEagleWrapper(QuantityOfInterest):
         design variables for a given realization of random variabels
         """
         rv = mu + xi
-        self.p['Mach_number'] = rv[0]
-        self.p['CT'] = rv[1]
-        self.p['W0'] = rv[2]
-        if self.include_dict_rv == True:
-            self.p.model.oas_scaneagle.surface['E'] = rv[3]
-            self.p.model.oas_scaneagle.surface['G'] = rv[4]
-            self.p.model.oas_scaneagle.surface['mrho'] = rv[5]
-        self.p.setup()
+        self.update_rv(rv)
         self.p.run_model()
 
         # Compute all the derivatives
@@ -256,14 +228,7 @@ class OASScanEagleWrapper(QuantityOfInterest):
 
     def eval_ConFailureGradient_dv(self, mu, xi):
         rv = mu + xi
-        self.p['Mach_number'] = rv[0]
-        self.p['CT'] = rv[1]
-        self.p['W0'] = rv[2]
-        if self.include_dict_rv == True:
-            self.p.model.oas_scaneagle.surface['E'] = rv[3]
-            self.p.model.oas_scaneagle.surface['G'] = rv[4]
-            self.p.model.oas_scaneagle.surface['mrho'] = rv[5]
-        self.p.setup()
+        self.update_rv(rv)
         self.p.run_model()
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.wing_perf.failure'],
                                       wrt=['oas_scaneagle.wing.twist_cp',
@@ -281,7 +246,6 @@ class OASScanEagleWrapper(QuantityOfInterest):
         return dcon_failure
 
     def update_rv(self, rv):
-
         self.p['Mach_number'] = rv[0]
         self.p['CT'] = rv[1]
         self.p['W0'] = rv[2]

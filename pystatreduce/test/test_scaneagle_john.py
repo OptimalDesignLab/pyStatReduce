@@ -86,6 +86,16 @@ class OASScanEagleTest(unittest.TestCase):
         err = abs(fval - true_val)
         self.assertTrue(err < 1.e-6)
 
+        # Check if plugging back value also yields the expected results
+        QoI.p['oas_scaneagle.wing.twist_cp'] = np.array([2.60830137, 10., 5.])
+        QoI.p['oas_scaneagle.wing.thickness_cp'] = np.array([0.001, 0.001, 0.001])
+        QoI.p['oas_scaneagle.wing.sweep'] = [18.89098985]
+        QoI.p['oas_scaneagle.alpha'] = [2.19244059]
+        fval = QoI.eval_QoI(mu_orig, np.zeros(uq_systemsize))
+        true_val = 4.735819672292367
+        err = abs(fval - true_val)
+        self.assertTrue(err < 1.e-6)
+
     def test_dfuelburn_drv(self):
         uq_systemsize = 6
         mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho])
@@ -112,7 +122,6 @@ class OASScanEagleTest(unittest.TestCase):
 
         QoI = examples.OASScanEagleWrapper(uq_systemsize, input_dict, include_dict_rv=True)
         dJdrv = QoI.eval_QoIGradient(mu_orig, np.zeros(uq_systemsize))
-        # print("dJdrv = ", dJdrv)
         true_val = np.array([-83.76493292024509,
                              74045.31234313066,
                              0.44175879007053753,
@@ -120,7 +129,47 @@ class OASScanEagleTest(unittest.TestCase):
                              -2.527193348815028e-13,
                              0.8838194148741767])
         err = abs(dJdrv - true_val)
-        print("err = ", err)
+        self.assertTrue((err < 1.e-6).all())
+
+    def test_dominant_dir(self):
+        uq_systemsize = 6
+        mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho])
+        std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50])
+        jdist = cp.MvNormal(mu_orig, std_dev)
+
+        rv_dict = {'Mach_number' : mean_Ma,
+                   'CT' : mean_TSFC,
+                   'W0' : mean_W0,
+                   'E' : mean_E, # surface RV
+                   'G' : mean_G, # surface RV
+                   'mrho' : mean_mrho, # surface RV
+                    }
+
+        input_dict = {'n_twist_cp' : 3,
+                   'n_thickness_cp' : 3,
+                   'n_CM' : 3,
+                   'n_thickness_intersects' : 10,
+                   'n_constraints' : 1 + 10 + 1 + 3 + 3,
+                   'ndv' : 3 + 3 + 2,
+                   'mesh_dict' : mesh_dict,
+                   'rv_dict' : rv_dict
+                    }
+
+        QoI = examples.OASScanEagleWrapper(uq_systemsize, input_dict, include_dict_rv=True)
+        dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
+                                            exact_Hessian=False,
+                                            sample_radius=1.e-3)
+        dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=6)
+        true_iso_eigenvals = np.array([-3.25515732,
+                                        2.06776944,
+                                       -1.51798479,
+                                        0.85699314,
+                                        0.00013419,
+                                       -0.00010984])
+        # We will only check for the eigenvalues because we are using a native
+        # library for the eigenvalue factorization. Which means that the Hessenberg
+        # matrix which was factorized is in effect being tested with this.
+        err = abs(dominant_space.iso_eigenvals - true_iso_eigenvals)
         self.assertTrue((err < 1.e-6).all())
 
 if __name__ == "__main__":

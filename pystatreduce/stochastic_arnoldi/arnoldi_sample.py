@@ -52,7 +52,6 @@ class ArnoldiSampling(object):
             Z[:,i+1] = (gdata0[:,i+1] - gdata0[:,0])/self.alpha
             linear_dependence = self.modified_GramSchmidt(i, H, Z)
             if linear_dependence == True:
-                print("i = ", i)
                 # new basis vector is linealy dependent, so terminate early
                 break
 

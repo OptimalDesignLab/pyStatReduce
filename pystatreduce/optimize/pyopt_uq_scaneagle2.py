@@ -38,6 +38,9 @@ class UQScanEagleOpt(object):
         mean_Ma = 0.071
         mean_TSFC = 9.80665 * 8.6e-6
         mean_W0 = 10.0
+        mean_E = 85.e9
+        mean_G = 25.e9
+        mean_mrho = 1600
 
         # Total number of nodes to use in the spanwise (num_y) and
         # chordwise (num_x) directions. Vary these to change the level of fidelity.
@@ -52,10 +55,14 @@ class UQScanEagleOpt(object):
                      'root_chord' : 0.3,
                      }
 
-        surface_dict_rv = {'E' : 85.e9, # RV
-                           'G' : 25.e9, # RV
-                           'mrho' : 1.6e3, # RV
-                          }
+        rv_dict = {'Mach_number' : mean_Ma,
+                   'CT' : mean_TSFC,
+                   'W0' : mean_W0,
+                   'E' : mean_E, # surface RV
+                   'G' : mean_G, # surface RV
+                   'mrho' : mean_mrho, # surface RV
+                    }
+
         dv_dict = {'n_twist_cp' : 3,
                    'n_thickness_cp' : 3,
                    'n_CM' : 3,
@@ -63,25 +70,18 @@ class UQScanEagleOpt(object):
                    'n_constraints' : 1 + 10 + 1 + 3 + 3,
                    'ndv' : 3 + 3 + 2,
                    'mesh_dict' : mesh_dict,
-                   'surface_dict_rv' : surface_dict_rv
+                   'rv_dict' : rv_dict
                     }
 
-        # Standard deviation
-        if all_rv == False:
-            mu = np.array([mean_Ma, mean_TSFC, mean_W0])
-            std_dev = np.diag([0.005, 0.00607/3600, 0.2])
-        else:
-            mean_E = copy.copy(surface_dict_rv['E'])
-            mean_G = copy.copy(surface_dict_rv['G'])
-            mean_mrho = copy.copy(surface_dict_rv['mrho'])
-            mu = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho])
-            std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50])
+
+        mu = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho])
+        std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50])
         self.jdist = cp.MvNormal(mu, std_dev)
         self.QoI = examples.OASScanEagleWrapper(uq_systemsize, dv_dict,
                                                 include_dict_rv=all_rv)
-        self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
-                                            exact_Hessian=False)
-        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=3)
+        # self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
+        #                                     exact_Hessian=False)
+        # self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=3)
         dfuelburn_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ObjGradient_dv,
                                   'output_dimensions' : dv_dict['ndv'],
                                   }
@@ -212,7 +212,7 @@ if __name__ == "__main__":
 
     ndv = 3 + 3 + 1 + 1 # number of design variabels
 
-
+    start_time = time.time()
     if sys.argv[1] == "stochastic":
         """
         This piece of code runs the RDO of the ScanEagle program.
@@ -322,5 +322,47 @@ if __name__ == "__main__":
         print("fburn1 = ", fburn1)
         print("new surface_dict_rv = ", UQObj.QoI.surface_dict_rv)
         """
+    elif sys.argv[1] == "full_collocation":
+        uq_systemsize = 6
+        UQObj = UQScanEagleOpt(uq_systemsize, all_rv=True)
+        xi = np.zeros(uq_systemsize)
+        mu = np.array([0.071, 9.80665 * 8.6e-6, 10., 85.e9, 25.e9, 1.6e3])
+
+        # Get some information on the total number of constraints
+        n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
+        n_CM = 3
+        n_constraints = 1 + n_thickness_intersects  + 1 + n_CM + 3
+
+        # Full collocation
+        sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict, include_derivs=True)
+        sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
+        
+        optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc_uq)
+        n_twist_cp = UQObj.QoI.input_dict['n_twist_cp']
+        n_thickness_cp = UQObj.QoI.input_dict['n_thickness_cp']
+        optProb.addVarGroup('twist_cp', n_twist_cp, 'c', lower=-5., upper=10, value=init_twist_cp)
+        optProb.addVarGroup('thickness_cp', n_thickness_cp, 'c', lower=0.001, upper=0.01, scale=1.e3, value=init_thickness_cp)
+        optProb.addVar('sweep', lower=10., upper=30., value=init_sweep)
+        # optProb.addVar('alpha', lower=-10., upper=10.)
+        optProb.addVar('alpha', lower=0., upper=10., value=init_alpha)
+
+        # Constraints
+        optProb.addConGroup('con_failure', 1, upper=0.)
+        optProb.addConGroup('con_thickness_intersects', n_thickness_intersects,
+                            upper=0., wrt=['thickness_cp'])
+        optProb.addConGroup('con_L_equals_W', 1, lower=0., upper=0.)
+        optProb.addConGroup('con_CM', n_CM, lower=-0.001, upper=0.001)
+        optProb.addConGroup('con_twist_cp', 3, lower=np.array([-1e20, -1e20, 5.]),
+                            upper=np.array([1e20, 1e20, 5.]), wrt=['twist_cp'])
+
+        # Objective
+        optProb.addObj('obj')
+        opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
+        sol = opt(optProb, sens=sens_uq)
+        sol = opt(optProb)
+        print(sol)
+
+        time_elapsed = time.time() - start_time
+        print("time taken = ", time_elapsed)
     else:
         raise NotImplementedError
