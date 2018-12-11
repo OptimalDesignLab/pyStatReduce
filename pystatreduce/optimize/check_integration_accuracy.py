@@ -82,52 +82,73 @@ QoI.p['oas_scaneagle.wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5]) # T
 QoI.p['oas_scaneagle.wing.twist_cp'] = 2.5*np.ones(3)
 QoI.p.final_setup()
 
+print("twist = ", QoI.p['oas_scaneagle.wing.geometry.twist'])
+print("thickness =", QoI.p['oas_scaneagle.wing.thickness'])
+print("sweep = ", QoI.p['oas_scaneagle.wing.sweep'])
+print("aoa = ", QoI.p['oas_scaneagle.alpha'])
+print()
+
+"""
 # Dictionary for the collocation object
 QoI_dict = {'fuelburn' : {'QoI_func' : QoI.eval_QoI,
                           'output_dimensions' : 1
                           },
             }
 
-true_mu_fuelburn = [5.29519889]     # These two values were computed using full
-true_var_fuelburn = [[0.21258938]] # stochastic collocation, with 3 quadrature
+true_mu_fuelburn = 5.29519889     # These two values were computed using full
+true_var_fuelburn = 0.21258938 # stochastic collocation, with 3 quadrature
                                    # points in every direction.
 
 sample_radius_arr = [1.e-2, 1.e-3, 1.e-4, 1.e-5, 1.e-6]
 mu_j_arr = np.zeros(5)
 var_j_arr = np.zeros(5)
+start_time_arr = np.zeros(5)
+end_time_arr = np.zeros(5)
+time_taken_arr = np.zeros(5)
 
 dominant_space_dict = {}
 sc_obj_dict = {}
 ctr = 0
+quadrature_degree = 4
 for i in sample_radius_arr:
     str_val1 = 'dominant_space_' + str(i)
     str_val2 = 'sc_obj_' + str(i)
+    # print("str_val1 = ", str_val1)
+    start_time_arr[ctr] = time.time()
     dominant_space_dict[str_val1] = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                                       exact_Hessian=False,
                                                       sample_radius=i)
     dominant_space_dict[str_val1].getDominantDirections(QoI, jdist, max_eigenmodes=2)
     dominant_dir = dominant_space_dict[str_val1].iso_eigenvecs[:, dominant_space_dict[str_val1].dominant_indices]
 
-    sc_obj_dict[str_val2] = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict,
+    sc_obj_dict[str_val2] = StochasticCollocation2(jdist, quadrature_degree, 'MvNormal', QoI_dict,
                                                    include_derivs=False,
                                                    reduced_collocation=True,
                                                    dominant_dir=dominant_dir)
     sc_obj_dict[str_val2].evaluateQoIs(jdist, include_derivs=False)
     mu_j = sc_obj_dict[str_val2].mean(of=['fuelburn'])
-    var_j = sc_obj_dict[str_val2].mean(of=['fuelburn'])
-    mu_j_arr[ctr] = mu_j['fuelburn']
-    var_j_arr[ctr] = var_j['fuelburn']
+    var_j = sc_obj_dict[str_val2].variance(of=['fuelburn'])
+    end_time_arr[ctr] = time.time()
+    time_taken_arr[ctr] = end_time_arr[ctr] - start_time_arr[ctr]
+    mu_j_arr[ctr] = mu_j['fuelburn'][0]
+    var_j_arr[ctr] = var_j['fuelburn'][0]
     ctr += 1
+    break
 
-err_mu_j = abs(mu_j_arr - true_mu_fuelburn[0])
-err_var_j = abs(var_j_arr - true_var_fuelburn[0,0])
+# err_mu_j = abs(mu_j_arr - true_mu_fuelburn)
+# err_var_j = abs(var_j_arr - true_var_fuelburn)
 
-print("mu_j_arr = ", mu_j_arr)
-print("err_mu_j = ", err_mu_j)
 print()
-print("var_j_arr = ", var_j_arr)
-print("err_var_j = ", err_var_j)
-
+print("quadrature degree = ", quadrature_degree)
+print('eigenvals = ', dominant_space_dict['dominant_space_0.01'].iso_eigenvals)
+print('eigenvacs = ')
+print(dominant_space_dict['dominant_space_0.01'].iso_eigenvecs)
+# print("mu_j_arr = ", mu_j_arr)
+# print("err_mu_j = ", err_mu_j)
+# print()
+# print("var_j_arr = ", var_j_arr)
+# print("err_var_j = ", err_var_j)
+# print("time_taken_arr = ", time_taken_arr)
 # # Comments include hindsight 2020
 # # 1.e-6: In this case there are only 2 dominant eigenvalues
 # dominant_space5 = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
@@ -142,3 +163,4 @@ print("err_var_j = ", err_var_j)
 # mu_j5 = sc_obj5.mean(of=['fuelburn'])
 # var_j5 = sc_obj5.variance(of=['fuelburn'])
 # print("mean fuelburn = ", mu_j5[''])
+"""

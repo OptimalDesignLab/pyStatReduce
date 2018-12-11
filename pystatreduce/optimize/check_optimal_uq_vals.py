@@ -142,17 +142,30 @@ if __name__ == "__main__":
     UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = 2.5*np.ones(3)
     UQObj.QoI.p.final_setup()
 
-    # Full collocation
-    sc_obj = StochasticCollocation2(UQObj.jdist, 4, 'MvNormal', UQObj.QoI_dict, include_derivs=False)
+    # Dominant dominant
+    dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
+                                             exact_Hessian=False,
+                                             sample_radius=1.e-2)
+    dominant_space.getDominantDirections(UQObj.QoI, UQObj.jdist, max_eigenmodes=4)
+    # # Full collocation
+    # sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
+    #                                 include_derivs=False)
+    # sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=False)
+
+    # REduced collocation
+    dominant_dir = dominant_space.iso_eigenvecs[:, dominant_space.dominant_indices]
+    sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
+                                    include_derivs=False, reduced_collocation=True,
+                                    dominant_dir=dominant_dir)
     sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=False)
     # print('fvals = ')
     # print(sc_obj.QoI_dict['fuelburn']['fvals'])
     # Print initial value
     init_mu_j = sc_obj.mean(of=['fuelburn'])
     init_var_j = sc_obj.variance(of=['fuelburn'])
-    print("Mean fuelburn = ", init_mu_j['fuelburn'][0])
-    print("Variance fuelburn = ", init_var_j['fuelburn'][0])
-    print()
+    # print("Mean fuelburn = ", init_mu_j['fuelburn'][0])
+    # print("Variance fuelburn = ", init_var_j['fuelburn'][0])
+    # print()
 
     mfmc_sol = {'twist_cp' : np.array([-1.59, 0.34, 4.50]),
                 'thickness_cp' : 1.e-3 * np.array([1.0, 1.04, 3.41]),
@@ -160,16 +173,70 @@ if __name__ == "__main__":
                 'alpha' : 5.54,
                 }
 
-    full_SC_sol = {'twist_cp' : np.array([2.587058, 10, 5.0]),
-                   'thickness_cp' : 1.e-3 * np.array([1.0, 1.0, 1.034043]),
-                   'sweep' : 18.89135,
-                   'alpha' : 2.176409,
+    full_SC_sol = {'twist_cp' : np.array([2.586845, 10, 5.0]),
+                   'thickness_cp' : 1.e-3 * np.array([1.0, 1.0, 1.034094]),
+                   'sweep' : 18.89138,
+                   'alpha' : 2.176393,
                   }
-    mu_j1, var_j1 = eval_uq_fuelburn(mfmc_sol)
-    print("Mean fuelburn = ", mu_j1['fuelburn'][0])
-    print("Variance fuelburn = ", var_j1['fuelburn'][0])
-    print()
 
-    mu_j2, var_j2 = eval_uq_fuelburn(full_SC_sol)
-    print("Mean fuelburn = ", mu_j2['fuelburn'][0])
-    print("Variance fuelburn = ", var_j2['fuelburn'][0])
+    SC_sol1D = {'twist_cp' : np.array([2.592991, 10, 5.0]),
+                'thickness_cp' : 1.e-3 * np.array([1.0, 1.0, 1.0]),
+                'sweep' : 18.89514,
+                'alpha' : 2.203623,
+                }
+
+    SC_sol2D = {'twist_cp' : np.array([2.587855, 10, 5.0]),
+                'thickness_cp' : 1.e-3 * np.array([1.0, 1.0, 1.042386]),
+                'sweep' : 18.88911,
+                'alpha' : 2.166430,
+                }
+
+    SC_sol3D = {'twist_cp' : np.array([2.588266, 10, 5.0]),
+                'thickness_cp' : 1.e-3 * np.array([1.0, 1.0, 1.029025]),
+                'sweep' : 18.89295,
+                'alpha' : 2.184638,
+                }
+
+    SC_sol4D = {'twist_cp' : np.array([2.588816, 10, 5.0]),
+                'thickness_cp' : 1.e-3 * np.array([1.0, 1.0, 1.028649]),
+                'sweep' : 18.89294,
+                'alpha' : 2.185064,
+                }
+
+
+    mu_j_mfmc, var_j_mfmc = eval_uq_fuelburn(mfmc_sol)
+    # print("# MFMC solution")
+    # print("Mean fuelburn = ", mu_j_mfmc['fuelburn'][0])
+    # print("Variance fuelburn = ", var_j_mfmc['fuelburn'][0])
+    # print("robust objective = ", mu_j_mfmc['fuelburn'][0] + 2*np.sqrt(var_j_mfmc['fuelburn'][0]))
+    # print()
+
+    # mu_j_full, var_j_full = eval_uq_fuelburn(full_SC_sol)
+    # print("# Full collocation")
+    # print("Mean fuelburn = ", mu_j_full['fuelburn'][0])
+    # print("Variance fuelburn = ", var_j_full['fuelburn'][0])
+    # print("robust objective = ", mu_j_full['fuelburn'][0] + 2*np.sqrt(var_j_full['fuelburn'][0]))
+
+    # mu_j_1D, var_j_1D = eval_uq_fuelburn(SC_sol1D)
+    # print("# 1D")
+    # print("Mean fuelburn = ", mu_j_1D['fuelburn'][0])
+    # print("Variance fuelburn = ", var_j_1D['fuelburn'][0])
+    # print("robust objective = ", mu_j_1D['fuelburn'][0] + 2*np.sqrt(var_j_1D['fuelburn'][0]))
+
+    # mu_j_2D, var_j_2D = eval_uq_fuelburn(SC_sol2D)
+    # print("# 2D")
+    # print("Mean fuelburn = ", mu_j_2D['fuelburn'][0])
+    # print("Variance fuelburn = ", var_j_2D['fuelburn'][0])
+    # print("robust objective = ", mu_j_2D['fuelburn'][0] + 2*np.sqrt(var_j_2D['fuelburn'][0]))
+
+    # mu_j_3D, var_j_3D = eval_uq_fuelburn(SC_sol3D)
+    # print("# 3D")
+    # print("Mean fuelburn = ", mu_j_3D['fuelburn'][0])
+    # print("Variance fuelburn = ", var_j_3D['fuelburn'][0])
+    # print("robust objective = ", mu_j_3D['fuelburn'][0] + 2*np.sqrt(var_j_3D['fuelburn'][0]))
+
+    mu_j_4D, var_j_4D = eval_uq_fuelburn(SC_sol4D)
+    print("# 4D")
+    print("Mean fuelburn = ", mu_j_4D['fuelburn'][0])
+    print("Variance fuelburn = ", var_j_4D['fuelburn'][0])
+    print("robust objective = ", mu_j_4D['fuelburn'][0] + 2*np.sqrt(var_j_4D['fuelburn'][0]))

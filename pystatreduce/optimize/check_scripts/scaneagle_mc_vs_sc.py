@@ -109,9 +109,9 @@ print("alpha = ", QoI.p['oas_scaneagle.alpha'])
 
 # Create the Monte Carlo object
 start_time1 = time.time()
-nsample = 1# 75
-mc_obj = MonteCarlo(nsample, tjdist, QoI_dict) # tjdist: truncated normal distribution
-mc_obj.getSamples(tjdist)                      #
+nsample = 1# 00000
+mc_obj = MonteCarlo(nsample, jdist, QoI_dict) # tjdist: truncated normal distribution
+mc_obj.getSamples(jdist)                      #
 t1 = time.time()
 # Compute the statistical moments using Monte Carlo
 mu_j_mc = mc_obj.mean(jdist, of=['fuelburn'])
@@ -126,7 +126,7 @@ print()
 
 start_time2 = time.time()
 # Create the Stochastic Collocation object (Full collocation)
-sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict)
+sc_obj = StochasticCollocation2(jdist, 5, 'MvNormal', QoI_dict)
 sc_obj.evaluateQoIs(jdist, include_derivs=False)
 # Compute statistical moments using stochastic collocation
 t4 = time.time()
