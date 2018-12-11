@@ -13,7 +13,7 @@ install:
 branches:
   except:
     - codebreaking
-    - omdao_workshop
+    # - omdao_workshop
 
 # command to run tests
 script:
