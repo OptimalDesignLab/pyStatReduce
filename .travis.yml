@@ -4,7 +4,7 @@ os:
 language: generic
 
 env:
-  - PY=3
+  - PY=3.6
 
 addons:
   apt:
@@ -18,7 +18,7 @@ addons:
       - openmpi-bin
 
 before_install:
-  - if [ "$PY" = "3"]; then
+  - if [ "$PY" = "3.6"]; then
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     fi
   - bash miniconda.sh -b -p $HOME/miniconda
