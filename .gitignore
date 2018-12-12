@@ -4,3 +4,4 @@
 .nfs*
 .*DS_Store
 ._*
+pyStatReduce.egg-info/*
