@@ -1,13 +1,57 @@
-language: python
-python:
-  - "3.7"
+os:
+  - linux
 
-# command to install dependencies
+language: generic
+
+env:
+  - PY=3
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gfortran
+      - libblas-dev
+      - liblapack-dev
+      - libopenmpi-dev
+      - openmpi-bin
+
+before_install:
+  - if [ "$PY" = "3"]; then wget "https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O miniconda.sh; fi
+  - chmod +x miniconda.sh;
+  - ./miniconda.sh -b  -p /home/travis/miniconda;
+  - export PATH=/home/travis/miniconda/bin:$PATH;
+
 install:
-  - pip install numpy
-  - pip install scipy
+  - conda install --yes numpy scipy nose sphinx swig pip;
+  - pip install --upgrade pip;
+  - pip install mpi4py
   - pip install numdifftools
   - pip install chaospy
+
+  # Install pyoptsparse
+  - git clone https://github.com/OpenMDAO/pyoptsparse.git;
+  - cd pyoptsparse;
+  - python setup.py install;
+  - cd ..;
+
+  # Install openmdao
+  - git clone https://github.com/OpenMDAO/openmdao.git;
+  - cd openmdao;
+  - pip install -e .;
+  - cd ..;
+
+  # Install OpenAeroStruct (We will use John's fork for now)
+  - git clone https://github.com/johnjasa/OpenAeroStruct.git;
+  - cd OpenAeroStruct;
+  - git fetch;
+  - git checkout move_surface_vars;
+  - pip install -e .;
+  - cd ..;
+
+  # Install pyStatreduce
+  - pip install -e .;
 
 # Branches to avoid building
 branches:
@@ -15,12 +59,11 @@ branches:
     - codebreaking
     # - omdao_workshop
 
-# command to run tests
 script:
-  - python ./test/test_stochastic_collocation.py
-  - python ./test/test_hadamard_quadratic.py
-  - python ./test/test_dimension_reduction.py
-  - python ./test/test_arnoldi_sampling.py
+  - python ./pystatreduce/test/test_stochastic_collocation.py
+  - python ./pystatreduce/test/test_hadamard_quadratic.py
+  - python ./pystatreduce/test/test_dimension_reduction.py
+  - python ./pystatreduce/test/test_arnoldi_sampling.py
 
 notifications:
   email:
