@@ -53,6 +53,7 @@ mesh_dict = {'num_y' : num_y,
              }
 
 class OASScanEagleTest(unittest.TestCase):
+
     def test_deterministic_model(self):
         # Check if the quantity of interest is being computed as expected
         uq_systemsize = 6
@@ -128,7 +129,7 @@ class OASScanEagleTest(unittest.TestCase):
                              -7.34403789212763e-13,
                              -2.527193348815028e-13,
                              0.8838194148741767])
-        err = abs(dJdrv - true_val)
+        err = abs(dJdrv - true_val) / true_val
         self.assertTrue((err < 1.e-6).all())
 
     def test_dominant_dir(self):
@@ -156,19 +157,19 @@ class OASScanEagleTest(unittest.TestCase):
                     }
 
         QoI = examples.OASScanEagleWrapper(uq_systemsize, input_dict, include_dict_rv=True)
+        QoI.p['oas_scaneagle.wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5]) # This setup is according to the one in the scaneagle paper
+        QoI.p['oas_scaneagle.wing.twist_cp'] = 2.5*np.ones(3)
+        QoI.p.final_setup()
+
         dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                             exact_Hessian=False,
-                                            sample_radius=1.e-3)
+                                            sample_radius=1.e-2)
         dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=6)
-        true_iso_eigenvals = np.array([-3.25515732,
-                                        2.06776944,
-                                       -1.51798479,
-                                        0.85699314,
-                                        0.00013419,
-                                       -0.00010984])
+        true_iso_eigenvals = np.array([1.95266202, -1.94415145, 0.57699699, -0.17056458, 0., 0.])
         # We will only check for the eigenvalues because we are using a native
         # library for the eigenvalue factorization. Which means that the Hessenberg
         # matrix which was factorized is in effect being tested with this.
+        print('dominant_space.iso_eigenvals = ', dominant_space.iso_eigenvals)
         err = abs(dominant_space.iso_eigenvals - true_iso_eigenvals)
         print('err = ', err)
         self.assertTrue((err < 1.e-6).all())
