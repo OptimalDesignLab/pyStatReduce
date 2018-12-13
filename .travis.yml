@@ -70,6 +70,9 @@ script:
   - python ./pystatreduce/test/test_dimension_reduction.py
   - python ./pystatreduce/test/test_arnoldi_sampling.py
 
+  # Tests with MDOLab examples
+  - python ./pystatreduce/test/test_openaerostruct_examples.py
+
 notifications:
   email:
     - pandak@rpi.edu

@@ -1,24 +1,12 @@
-# test_oas_example.py
-import sys
-import os
-
-# Get the directory of this file
-TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-SRC_DIR = TEST_DIR + '/../src'
-sys.path.insert(0, SRC_DIR)
-
 import unittest
 import numpy as np
+import cmath
 import chaospy as cp
 
-# pyStatReduce specific imports
-import numpy as np
-import chaospy as cp
-from stochastic_collocation import StochasticCollocation
-from quantity_of_interest import QuantityOfInterest
-from dimension_reduction import DimensionReduction
-from stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
-import examples
+from pystatreduce.stochastic_collocation import StochasticCollocation
+from pystatreduce.quantity_of_interest import QuantityOfInterest
+from pystatreduce.dimension_reduction import DimensionReduction
+import pystatreduce.examples as examples
 
 #pyoptsparse sepecific imports
 from scipy import sparse
@@ -98,9 +86,19 @@ class OASExample1Test(unittest.TestCase):
         dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                             exact_Hessian=False)
         dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=3)
-        print('iso_eigenvals = ', dominant_space.iso_eigenvals)
-        print('iso_eigenvecs = ', dominant_space.iso_eigenvecs)
-        print('dominant_indices = ', dominant_space.dominant_indices)
+
+        expected_eigenvals = np.array([ 0.00001345, -0.00000043, 0., 0., -0.])
+        expected_eigenvecs = np.array([[-0.00000003, 0.00000002],
+                                       [-1., 0.00000001],
+                                       [-0.00000001, -0.99999992],
+                                       [ 0., -0.00039715],
+                                       [ 0.00000004, 0.]])
+
+        # We will only test the first 2 eigenvectors since the remaining 4 eigenvalues
+        # are 0.
+        np.testing.assert_array_almost_equal(dominant_space.iso_eigenvals, expected_eigenvals, decimal=6)
+        np.testing.assert_array_almost_equal(dominant_space.iso_eigenvecs[:,0:2], expected_eigenvecs, decimal=6)
+
 
 
 if __name__ == "__main__":

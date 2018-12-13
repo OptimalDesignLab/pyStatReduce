@@ -4,7 +4,7 @@ from pystatreduce.examples.paraboloid import Paraboloid2D, Paraboloid3D, Parabol
 from pystatreduce.examples.random_quadratic import RandomQuadratic
 from pystatreduce.examples.simple_classes import ConstantFunction, LinearFunction
 from pystatreduce.examples.high_order_polynomials import Poly2DOrder4, PolyRVDV
-# from pystatreduce.examples.oas_example1 import OASAerodynamicWrapper
+from pystatreduce.examples.oas_example1 import OASAerodynamicWrapper
 from pystatreduce.examples.oas_scaneagle import OASScanEagleWrapper
 
 
