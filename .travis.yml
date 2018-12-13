@@ -64,6 +64,8 @@ branches:
 
 script:
   - python ./pystatreduce/test/test_stochastic_collocation.py
+  - python ./pystatreduce/test/test_new_stochastic_collocation.py
+  - python ./pystatreduce/test/test_monte_carlo.py
   - python ./pystatreduce/test/test_hadamard_quadratic.py
   - python ./pystatreduce/test/test_dimension_reduction.py
   - python ./pystatreduce/test/test_arnoldi_sampling.py
