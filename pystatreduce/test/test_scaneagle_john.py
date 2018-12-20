@@ -18,6 +18,9 @@ from pystatreduce.dimension_reduction import DimensionReduction
 from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 import pystatreduce.examples as examples
 
+np.set_printoptions(precision=8)
+np.set_printoptions(linewidth=150, suppress=True)
+
 #pyoptsparse sepecific imports
 from scipy import sparse
 import argparse
@@ -170,6 +173,8 @@ class OASScanEagleTest(unittest.TestCase):
         # library for the eigenvalue factorization. Which means that the Hessenberg
         # matrix which was factorized is in effect being tested with this.
         print('dominant_space.iso_eigenvals = ', dominant_space.iso_eigenvals)
+        print('dominant_space.iso_eigenvecs = ')
+        print(dominant_space.iso_eigenvecs)
         err = abs(dominant_space.iso_eigenvals - true_iso_eigenvals)
         print('err = ', err)
         self.assertTrue((err < 1.e-6).all())

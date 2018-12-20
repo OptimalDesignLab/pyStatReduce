@@ -21,6 +21,8 @@ from openaerostruct.integration.aerostruct_groups import AerostructGeometry, Aer
 from openmdao.api import IndepVarComp, Problem, SqliteRecorder, pyOptSparseDriver
 
 import time
+np.set_printoptions(precision=8)
+np.set_printoptions(linewidth=150, suppress=True)
 
 # Initial default values
 mean_val_dict = {'mean_Ma' : 0.071,
@@ -240,13 +242,30 @@ prob.setup()
 # # print("nodes = ", np.round(prob['AS_point_0.coupled.wing.struct_states.struct_weight_loads.nodes'][:,1], 5))
 
 #-----------------------VALUE PLUGIN TEST---------------------------------------
-# prob['wing.twist_cp'] = np.array([-1.59, 0.34, 4.50]) # np.array([2.60830137, 10., 5.])
-# prob['wing.thickness_cp'] = np.array([1.0, 1.04, 3.41]) # np.array([0.001, 0.001, 0.001])
+prob['wing.twist_cp'] = 2.5*np.ones(3) # np.array([2.60830137, 10., 5.])
+prob['wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5]) # np.array([0.001, 0.001, 0.001])
 # prob['wing.sweep'] = 18.73 # [18.89098985]
 # prob['alpha'] = 5.54 # [2.19244059]
 
-# prob.run_model()
-# print("fval = ", prob['AS_point_0.fuelburn'][0])
+prob['Mach_number'] = 7.10002694e-02
+prob['CT'] = 8.43371667e-05
+prob['W0'] = 1.00000000e+01
+prob['E'] = 8.50499992e+10
+prob['G'] = 2.50000005e+10
+prob['mrho'] = 1.60000012e+03
+
+prob.run_model()
+prob.run_model()
+deriv_arr = np.zeros(6)
+deriv = prob.compute_totals(of=['AS_point_0.fuelburn'],
+                    wrt=['Mach_number', 'CT', 'W0', 'E', 'G', 'mrho'])
+deriv_arr[0] = deriv['AS_point_0.fuelburn', 'Mach_number']
+deriv_arr[1] = deriv['AS_point_0.fuelburn', 'CT']
+deriv_arr[2] = deriv['AS_point_0.fuelburn', 'W0']
+deriv_arr[3] = deriv['AS_point_0.fuelburn', 'E']
+deriv_arr[4] = deriv['AS_point_0.fuelburn', 'G']
+deriv_arr[5] = deriv['AS_point_0.fuelburn', 'mrho']
+print('deriv_arr = ', deriv_arr)
 
 #------------------------SETUP BUG REPRODUCTION---------------------------------
 # new_Ma = 0.071 + 0.005
@@ -273,14 +292,14 @@ prob.setup()
 
 #----------------------------OPTIMIZATION--------------------------------------
 # Actually run the optimization problem
-start_time = time.time()
-prob.run_driver()
-elapsed_time = time.time() - start_time
-print("fval = ", prob['AS_point_0.fuelburn'][0])
-print("twist_cp = ", prob['wing.twist_cp'])
-print("thickness_cp = ", prob['wing.thickness_cp'])
-print("twist = ", prob['wing.geometry.twist'])
-print("thickness =", prob['wing.thickness'])
-print("sweep = ", prob['wing.sweep'])
-print('alpha = ', prob['alpha'])
-print('elapsed_time = ', elapsed_time)
+# start_time = time.time()
+# prob.run_driver()
+# elapsed_time = time.time() - start_time
+# print("fval = ", prob['AS_point_0.fuelburn'][0])
+# print("twist_cp = ", prob['wing.twist_cp'])
+# print("thickness_cp = ", prob['wing.thickness_cp'])
+# print("twist = ", prob['wing.geometry.twist'])
+# print("thickness =", prob['wing.thickness'])
+# print("sweep = ", prob['wing.sweep'])
+# print('alpha = ', prob['alpha'])
+# print('elapsed_time = ', elapsed_time)
