@@ -135,6 +135,43 @@ class OASScanEagleTest(unittest.TestCase):
         err = abs(dJdrv - true_val) / true_val
         self.assertTrue((err < 1.e-6).all())
 
+    def test_variable_update(self):
+        uq_systemsize = 6
+        mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho])
+        std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50])
+        jdist = cp.MvNormal(mu_orig, std_dev)
+
+        rv_dict = {'Mach_number' : mean_Ma,
+                   'CT' : mean_TSFC,
+                   'W0' : mean_W0,
+                   'E' : mean_E, # surface RV
+                   'G' : mean_G, # surface RV
+                   'mrho' : mean_mrho, # surface RV
+                    }
+
+        input_dict = {'n_twist_cp' : 3,
+                   'n_thickness_cp' : 3,
+                   'n_CM' : 3,
+                   'n_thickness_intersects' : 10,
+                   'n_constraints' : 1 + 10 + 1 + 3 + 3,
+                   'ndv' : 3 + 3 + 2,
+                   'mesh_dict' : mesh_dict,
+                   'rv_dict' : rv_dict
+                    }
+
+        QoI = examples.OASScanEagleWrapper(uq_systemsize, input_dict, include_dict_rv=True)
+
+        mu_pert = mu_orig + np.diagonal(std_dev)
+        QoI.update_rv(mu_pert)
+        QoI.p.final_setup()
+        self.assertEqual(mu_pert[0], QoI.p['Mach_number'])
+        self.assertEqual(mu_pert[1], QoI.p['CT'])
+        self.assertEqual(mu_pert[2], QoI.p['W0'])
+        self.assertEqual(mu_pert[3], QoI.p['E'])
+        self.assertEqual(mu_pert[4], QoI.p['G'])
+        self.assertEqual(mu_pert[5], QoI.p['mrho'])
+
+    """
     def test_dominant_dir(self):
         uq_systemsize = 6
         mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho])
@@ -178,6 +215,7 @@ class OASScanEagleTest(unittest.TestCase):
         err = abs(dominant_space.iso_eigenvals - true_iso_eigenvals)
         print('err = ', err)
         self.assertTrue((err < 1.e-6).all())
+    """
 
 if __name__ == "__main__":
     unittest.main()
