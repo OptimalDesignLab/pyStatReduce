@@ -52,8 +52,8 @@ class OASExample1Test(unittest.TestCase):
         expected_CD = 0.03721668965447261
         expected_CL = 0.5123231521985626
         expected_CM = np.array([0., -0.1793346481832254, 0.])
-        self.assertAlmostEqual(QoI.p['oas_example1.aero_point_0.CD'], expected_CD, places=13)
-        self.assertAlmostEqual(QoI.p['oas_example1.aero_point_0.CL'], expected_CL, places=13)
+        self.assertAlmostEqual(QoI.p['oas_example1.aero_point_0.CD'][0], expected_CD, places=13)
+        self.assertAlmostEqual(QoI.p['oas_example1.aero_point_0.CL'][0], expected_CL, places=13)
         # np.testing.assert_array_almost_equal(QoI.p['oas_example1.aero_point_0.CM'][1], expected_CM, decimal=12)
 
         # Check the gradients
