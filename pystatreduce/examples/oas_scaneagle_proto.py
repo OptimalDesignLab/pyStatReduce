@@ -137,14 +137,6 @@ class Fuelburn(QuantityOfInterest):
 
         return self.dJ_ddv
 
-    def update_rv(self, rv):
-        self.p['Mach_number'] = rv[0]
-        self.p['CT'] = rv[1]
-        self.p['W0'] = rv[2]
-        self.p['E'] = rv[3]
-        self.p['G'] = rv[4]
-        self.p['mrho'] = rv[5]
-
 #-------------------------------------------------------------------------------
 
 class StressConstraint(QuantityOfInterest):
@@ -174,6 +166,7 @@ class StressConstraint(QuantityOfInterest):
         deriv_arr[3] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'E']
         deriv_arr[4] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'G']
         deriv_arr[5] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'mrho']
+        return deriv_arr
 
     def eval_QoIGradient_dv(self, mu, xi):
         rv = mu + xi
@@ -249,12 +242,15 @@ class MomentConstraint(QuantityOfInterest):
         self.p.run_model()
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.CM'],
                             wrt=['Mach_number', 'CT', 'W0', 'E', 'G', 'mrho'])
-        deriv_arr[0] = deriv['oas_scaneagle.AS_point_0.CM', 'Mach_number']
-        deriv_arr[1] = deriv['oas_scaneagle.AS_point_0.CM', 'CT']
-        deriv_arr[2] = deriv['oas_scaneagle.AS_point_0.CM', 'W0']
-        deriv_arr[3] = deriv['oas_scaneagle.AS_point_0.CM', 'E']
-        deriv_arr[4] = deriv['oas_scaneagle.AS_point_0.CM', 'G']
-        deriv_arr[5] = deriv['oas_scaneagle.AS_point_0.CM', 'mrho']
+        # We will only consider the longitudnal moment for this derivative
+        deriv_arr[0] = deriv['oas_scaneagle.AS_point_0.CM', 'Mach_number'][1]
+        deriv_arr[1] = deriv['oas_scaneagle.AS_point_0.CM', 'CT'][1]
+        deriv_arr[2] = deriv['oas_scaneagle.AS_point_0.CM', 'W0'][1]
+        deriv_arr[3] = deriv['oas_scaneagle.AS_point_0.CM', 'E'][1]
+        deriv_arr[4] = deriv['oas_scaneagle.AS_point_0.CM', 'G'][1]
+        deriv_arr[5] = deriv['oas_scaneagle.AS_point_0.CM', 'mrho'][1]
+
+        return deriv_arr
 
 #-------------------------------------------------------------------------------
 

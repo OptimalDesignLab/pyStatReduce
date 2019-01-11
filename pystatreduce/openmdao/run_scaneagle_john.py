@@ -219,12 +219,13 @@ prob.model.add_design_var('alpha', lower=-10., upper=10.)
 # is trimmed through CM=0.
 prob.model.add_constraint('AS_point_0.wing_perf.failure', upper=0.)
 prob.model.add_constraint('AS_point_0.wing_perf.thickness_intersects', upper=0.)
-prob.model.add_constraint('AS_point_0.L_equals_W', equals=0.)
+prob.model.add_constraint('AS_point_0.L_equals_W', upper=0.)
 
 # Instead of using an equality constraint here, we have to give it a little
 # wiggle room to make SLSQP work correctly.
-prob.model.add_constraint('AS_point_0.CM', lower=-0.001, upper=0.001)
-prob.model.add_constraint('wing.twist_cp', lower=np.array([-1e20, -1e20, 5.]), upper=np.array([1e20, 1e20, 5.]))
+# prob.model.add_constraint('AS_point_0.CM', lower=-0.001, upper=0.001)
+prob.model.add_constraint('AS_point_0.CM', equals=0.)
+# prob.model.add_constraint('wing.twist_cp', lower=np.array([-1e20, -1e20, 5.]), upper=np.array([1e20, 1e20, 5.]))
 
 # We're trying to minimize fuel burn
 prob.model.add_objective('AS_point_0.fuelburn', scaler=.1)
@@ -257,15 +258,23 @@ prob['mrho'] = 1.60000012e+03
 prob.run_model()
 prob.run_model()
 deriv_arr = np.zeros(6)
-deriv = prob.compute_totals(of=['AS_point_0.fuelburn'],
+deriv = prob.compute_totals(of=['AS_point_0.CM'],
                     wrt=['Mach_number', 'CT', 'W0', 'E', 'G', 'mrho'])
-deriv_arr[0] = deriv['AS_point_0.fuelburn', 'Mach_number']
-deriv_arr[1] = deriv['AS_point_0.fuelburn', 'CT']
-deriv_arr[2] = deriv['AS_point_0.fuelburn', 'W0']
-deriv_arr[3] = deriv['AS_point_0.fuelburn', 'E']
-deriv_arr[4] = deriv['AS_point_0.fuelburn', 'G']
-deriv_arr[5] = deriv['AS_point_0.fuelburn', 'mrho']
-print('deriv_arr = ', deriv_arr)
+print('CM = ', prob['AS_point_0.CM'])
+print()
+print(deriv['AS_point_0.CM', 'Mach_number'])
+print(deriv['AS_point_0.CM', 'CT'])
+print(deriv['AS_point_0.CM', 'W0'])
+print(deriv['AS_point_0.CM', 'E'])
+print(deriv['AS_point_0.CM', 'G'])
+print(deriv['AS_point_0.CM', 'mrho'])
+# deriv_arr[0] = deriv['AS_point_0.L_equals_W', 'Mach_number']
+# deriv_arr[1] = deriv['AS_point_0.L_equals_W', 'CT']
+# deriv_arr[2] = deriv['AS_point_0.L_equals_W', 'W0']
+# deriv_arr[3] = deriv['AS_point_0.L_equals_W', 'E']
+# deriv_arr[4] = deriv['AS_point_0.L_equals_W', 'G']
+# deriv_arr[5] = deriv['AS_point_0.L_equals_W', 'mrho']
+# print('deriv_arr = ', deriv_arr)
 
 #------------------------SETUP BUG REPRODUCTION---------------------------------
 # new_Ma = 0.071 + 0.005
@@ -291,7 +300,7 @@ print('deriv_arr = ', deriv_arr)
 # print("dfval = ", dfval)
 
 #----------------------------OPTIMIZATION--------------------------------------
-# Actually run the optimization problem
+# # Actually run the optimization problem
 # start_time = time.time()
 # prob.run_driver()
 # elapsed_time = time.time() - start_time
@@ -303,3 +312,4 @@ print('deriv_arr = ', deriv_arr)
 # print("sweep = ", prob['wing.sweep'])
 # print('alpha = ', prob['alpha'])
 # print('elapsed_time = ', elapsed_time)
+# print('CM = ', prob['AS_point_0.CM'][1])
