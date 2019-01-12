@@ -171,6 +171,35 @@ class OASScanEagleTest(unittest.TestCase):
         self.assertEqual(mu_pert[4], QoI.p['G'])
         self.assertEqual(mu_pert[5], QoI.p['mrho'])
 
+    def test_values_compare(self):
+        uq_systemsize = 6
+        mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho])
+
+        rv_dict = {'Mach_number' : mean_Ma,
+                   'CT' : mean_TSFC,
+                   'W0' : mean_W0,
+                   'E' : mean_E, # surface RV
+                   'G' : mean_G, # surface RV
+                   'mrho' : mean_mrho, # surface RV
+                    }
+
+        input_dict = {'n_twist_cp' : 3,
+                   'n_thickness_cp' : 3,
+                   'n_CM' : 3,
+                   'n_thickness_intersects' : 10,
+                   'n_constraints' : 1 + 10 + 1 + 3 + 3,
+                   'ndv' : 3 + 3 + 2,
+                   'mesh_dict' : mesh_dict,
+                   'rv_dict' : rv_dict
+                    }
+
+        QoI = examples.OASScanEagleWrapper(uq_systemsize, input_dict, include_dict_rv=True)
+        fuel_burn_val = QoI.eval_QoI(mu_orig, np.zeros(uq_systemsize))
+        ks_val = QoI.p['oas_scaneagle.AS_point_0.wing_perf.failure']
+        print()
+        print('fuel burn val = ', fuel_burn_val[0])
+        print('ks_val = ', ks_val[0])
+
     """
     def test_dominant_dir(self):
         uq_systemsize = 6

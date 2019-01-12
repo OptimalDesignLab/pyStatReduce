@@ -151,6 +151,7 @@ class StressConstraint(QuantityOfInterest):
         rv = mu + xi
         self.update_rv(rv)
         self.p.run_model()
+        print('fuelburn = ',self.p['oas_scaneagle.AS_point_0.fuelburn'])
         return self.p['oas_scaneagle.AS_point_0.wing_perf.failure']
 
     def eval_QoIGradient(self, mu, xi):
@@ -186,6 +187,14 @@ class StressConstraint(QuantityOfInterest):
         dcon_failure[n_cp+1] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.alpha']
 
         return dcon_failure
+
+    # def update_rv(self, rv):
+    #     self.p['Mach_number'] = rv[0]
+    #     self.p['CT'] = rv[1]
+    #     self.p['W0'] = rv[2]
+    #     self.p['E'] = rv[3]
+    #     self.p['G'] = rv[4]
+    #     self.p['mrho'] = rv[5]
 
 #-------------------------------------------------------------------------------
 
@@ -243,12 +252,12 @@ class MomentConstraint(QuantityOfInterest):
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.CM'],
                             wrt=['Mach_number', 'CT', 'W0', 'E', 'G', 'mrho'])
         # We will only consider the longitudnal moment for this derivative
-        deriv_arr[0] = deriv['oas_scaneagle.AS_point_0.CM', 'Mach_number'][1]
-        deriv_arr[1] = deriv['oas_scaneagle.AS_point_0.CM', 'CT'][1]
-        deriv_arr[2] = deriv['oas_scaneagle.AS_point_0.CM', 'W0'][1]
-        deriv_arr[3] = deriv['oas_scaneagle.AS_point_0.CM', 'E'][1]
-        deriv_arr[4] = deriv['oas_scaneagle.AS_point_0.CM', 'G'][1]
-        deriv_arr[5] = deriv['oas_scaneagle.AS_point_0.CM', 'mrho'][1]
+        deriv_arr[0] = deriv['oas_scaneagle.AS_point_0.CM', 'Mach_number'][1,0]
+        deriv_arr[1] = deriv['oas_scaneagle.AS_point_0.CM', 'CT'][1,0]
+        deriv_arr[2] = deriv['oas_scaneagle.AS_point_0.CM', 'W0'][1,0]
+        deriv_arr[3] = deriv['oas_scaneagle.AS_point_0.CM', 'E'][1,0]
+        deriv_arr[4] = deriv['oas_scaneagle.AS_point_0.CM', 'G'][1,0]
+        deriv_arr[5] = deriv['oas_scaneagle.AS_point_0.CM', 'mrho'][1,0]
 
         return deriv_arr
 

@@ -112,6 +112,17 @@ class OASScanEagleProtoTest(unittest.TestCase):
         err = abs(fval - true_val)
         self.assertTrue(err < 1.e-6)
 
+        # Check the gradients w.r.t the random variables
+        dJdrv = obj_QoI.eval_QoIGradient(mu_orig, np.zeros(uq_systemsize))
+        true_val = np.array([-83.76493292024509,
+                             74045.31234313066,
+                             0.44175879007053753,
+                             -7.34403789212763e-13,
+                             -2.527193348815028e-13,
+                             0.8838194148741767])
+        err = abs(dJdrv - true_val) / true_val
+        self.assertTrue((err < 1.e-6).all())
+
     def test_StressConstraint_class(self):
         # Check variables are being updated correctly
         mu_new = mu_orig + np.diagonal(std_dev)
@@ -126,8 +137,14 @@ class OASScanEagleProtoTest(unittest.TestCase):
         # Check QoI value
         fval = failure_QoI.eval_QoI(mu_orig, np.zeros(uq_systemsize))
         true_val = -0.80021068203315
-        err = abs(fval - true_val)
+        err = abs((fval - true_val)/true_val)
         self.assertTrue(err < 1.e-6)
+
+        # The aggregated constraints have no dependence on the random variables,
+        # We will correspondingly test for that
+        dJdrv = failure_QoI.eval_QoIGradient(mu_orig, np.zeros(uq_systemsize))
+        err = abs(dJdrv - np.zeros(uq_systemsize))
+        self.assertTrue((err < 1.e-6).all())
 
     def test_LiftConstraint_class(self):
         # Check variables are being updated correctly
@@ -146,6 +163,17 @@ class OASScanEagleProtoTest(unittest.TestCase):
         err = abs(fval - true_val)
         self.assertTrue(err < 1.e-6)
 
+        # Check the gradient w.r.t the random variables
+        dJdrv = lift_con_QoI.eval_QoIGradient(mu_orig, np.zeros(uq_systemsize))
+        true_val = np.array([-4.92302290000,
+                              4351.782478862572,
+                              0.08473488199664163,
+                              -5.251750173053172e-13,
+                              -2.5013226544653105e-13,
+                              0.1695276557003777])
+        err = abs((dJdrv - true_val)/true_val)
+        self.assertTrue((err < 1.e-6).all())
+
     def test_MomentConstraint_class(self):
         # Check variables are being updated correctly
         mu_new = mu_orig + np.diagonal(std_dev)
@@ -159,9 +187,21 @@ class OASScanEagleProtoTest(unittest.TestCase):
 
         # Check QoI value
         fval = moment_con_QoI.eval_QoI(mu_orig, np.zeros(uq_systemsize))
-        true_val = 0.01036558702945927
+        print('fval = ', fval)
+        true_val = 0.010365587029442834
         err = abs(fval[1] - true_val)
         self.assertTrue(err < 1.e-6)
+
+        # We find that only the CM w.r.t the length depends on the random variables
+        dJdrv = moment_con_QoI.eval_QoIGradient(mu_orig, np.zeros(uq_systemsize))
+        true_val = np.array([-0.0,
+                              6.505435446016937e-13,
+                             -0.0032734146314239952,
+                             -1.3118795786772291e-14,
+                              4.459635639691387e-15,
+                              1.2615747701539985])
+        err = abs(dJdrv - true_val)
+        self.assertTrue((err < 1.e-6).all())
 
 """
 # Check original values
