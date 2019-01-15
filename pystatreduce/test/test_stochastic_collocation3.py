@@ -1,4 +1,4 @@
-# Test new_stochastic_collocation.py
+# test_stochastic_collocation3.py
 # Test stochastic collocation module
 import unittest
 import numpy as np
@@ -6,7 +6,7 @@ import cmath
 import chaospy as cp
 
 from pystatreduce.new_stochastic_collocation import StochasticCollocation2
-from pystatreduce.stochastic_collocation import StochasticCollocation
+from pystatreduce.stochastic_collocation3 import StochasticCollocation3
 from pystatreduce.quantity_of_interest import QuantityOfInterest
 from pystatreduce.dimension_reduction import DimensionReduction
 import pystatreduce.examples as examples
@@ -21,8 +21,7 @@ mean_3dim = np.random.randn(3)
 std_dev_2dim = abs(np.diag(np.random.randn(2)))
 std_dev_3dim = abs(np.diag(np.random.randn(3)))
 
-class NewStochasticCollocationTest(unittest.TestCase):
-
+class StochasticCollocation3Test(unittest.TestCase):
     def test_normalStochasticCollocation3D(self):
         systemsize = 3
         mu = mean_3dim # np.random.randn(systemsize)
@@ -35,12 +34,15 @@ class NewStochasticCollocationTest(unittest.TestCase):
         deriv_dict = {'xi' : {'dQoI_func' : QoI.eval_QoIGradient,
                               'output_dimensions' : systemsize}
                      }
-        QoI_dict = {'paraboloid' : {'QoI_func' : QoI.eval_QoI,
+        QoI_dict = {'paraboloid' : {'quadrature_degree' : 3,
+                                    'reduced_collocation' : False,
+                                    'QoI_func' : QoI.eval_QoI,
                                     'output_dimensions' : 1,
+                                    'include_derivs' : False,
                                     'deriv_dict' : deriv_dict
                                     }
                     }
-        sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict)
+        sc_obj = StochasticCollocation3(jdist, 'MvNormal', QoI_dict)
         sc_obj.evaluateQoIs(jdist)
         mu_js = sc_obj.mean(of=['paraboloid'])
         var_js = sc_obj.variance(of=['paraboloid'])
@@ -67,14 +69,20 @@ class NewStochasticCollocationTest(unittest.TestCase):
         jdist = cp.MvNormal(mu, std_dev)
         QoI1 = examples.Paraboloid2D(systemsize, (theta,))
         QoI2 = examples.PolyRVDV()
-        QoI_dict = {'paraboloid2' : {'QoI_func' : QoI1.eval_QoI,
+        QoI_dict = {'paraboloid2' : {'quadrature_degree' : 3,
+                                     'reduced_collocation' : False,
+                                     'QoI_func' : QoI1.eval_QoI,
                                      'output_dimensions' : 1,
+                                     'include_derivs' : False,
                                     },
-                    'PolyRVDV' : {'QoI_func' : QoI2.eval_QoI,
+                    'PolyRVDV' : {'quadrature_degree' : 3,
+                                  'reduced_collocation' : False,
+                                  'QoI_func' : QoI2.eval_QoI,
                                   'output_dimensions' : 1,
+                                  'include_derivs' : False,
                                   }
                     }
-        sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict)
+        sc_obj = StochasticCollocation3(jdist, 'MvNormal', QoI_dict)
         sc_obj.evaluateQoIs(jdist)
         mu_js = sc_obj.mean(of=['paraboloid2', 'PolyRVDV'])
 
@@ -102,14 +110,15 @@ class NewStochasticCollocationTest(unittest.TestCase):
         deriv_dict = {'xi' : {'dQoI_func' : QoI.eval_QoIGradient,
                               'output_dimensions' : systemsize}
                      }
-        QoI_dict = {'paraboloid' : {'QoI_func' : QoI.eval_QoI,
+        QoI_dict = {'paraboloid' : {'quadrature_degree' : 3,
+                                    'reduced_collocation' : False,
+                                    'QoI_func' : QoI.eval_QoI,
                                     'output_dimensions' : 1,
+                                    'include_derivs' : False,
                                     'deriv_dict' : deriv_dict
                                     }
                     }
-        sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict,
-                                        reduced_collocation=True,
-                                        dominant_dir=dominant_dir)
+        sc_obj = StochasticCollocation3(jdist, 'MvNormal', QoI_dict)
         sc_obj.evaluateQoIs(jdist)
         mu_js = sc_obj.mean(of=['paraboloid'])
         var_js = sc_obj.variance(of=['paraboloid'])
@@ -134,13 +143,16 @@ class NewStochasticCollocationTest(unittest.TestCase):
         deriv_dict = {'xi' : {'dQoI_func' : QoI.eval_QoIGradient,
                               'output_dimensions' : systemsize}
                      }
-        QoI_dict = {'paraboloid' : {'QoI_func' : QoI.eval_QoI,
+        QoI_dict = {'paraboloid' : {'quadrature_degree' : 3,
+                                    'reduced_collocation' : False,
+                                    'QoI_func' : QoI.eval_QoI,
                                     'output_dimensions' : 1,
+                                    'include_derivs' : True,
                                     'deriv_dict' : deriv_dict
                                     }
                     }
-        sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict, include_derivs=True)
-        sc_obj.evaluateQoIs(jdist, include_derivs=True)
+        sc_obj = StochasticCollocation3(jdist, 'MvNormal', QoI_dict)
+        sc_obj.evaluateQoIs(jdist)
         dmu_j = sc_obj.dmean(of=['paraboloid'], wrt=['xi'])
         # dvar_j = sc_obj.dvariance(of=['paraboloid'], wrt=['xi'])
 
@@ -148,10 +160,6 @@ class NewStochasticCollocationTest(unittest.TestCase):
         dmu_j_analytical = np.array([100*mu[0], 50*mu[1], 2*mu[2]])
         err = abs((dmu_j['paraboloid']['xi'] - dmu_j_analytical) / dmu_j_analytical)
         self.assertTrue((err < 1.e-12).all())
-        # # Analytical dvar_j
-        # rv_dev = cp.Std(jdist)
-        # dvar_j_analytical = np.array([(100*rv_dev[0])**2, (50*rv_dev[1])**2, (2*rv_dev[2])**2])
-        # err = abs((dvar_j['paraboloid']['xi'] - dvar_j_analytical) / dvar_j_analytical)
 
     def test_nonrv_derivatives(self):
         # This test checks the analytical derivative w.r.t complex step
@@ -165,16 +173,18 @@ class NewStochasticCollocationTest(unittest.TestCase):
         deriv_dict = {'dv' : {'dQoI_func' : QoI.eval_QoIGradient_dv,
                               'output_dimensions' : n_parameters}
                      }
-        QoI_dict = {'PolyRVDV' : {'QoI_func' : QoI.eval_QoI,
+        QoI_dict = {'PolyRVDV' : {'quadrature_degree' : 3,
+                                  'reduced_collocation' : False,
+                                  'QoI_func' : QoI.eval_QoI,
                                   'output_dimensions' : 1,
+                                  'include_derivs' : True,
                                   'deriv_dict' : deriv_dict
                                   }
                     }
         dv = np.random.randn(systemsize) + 0j
         QoI.set_dv(dv)
-        sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict,
-                                        include_derivs=True, data_type=complex)
-        sc_obj.evaluateQoIs(jdist, include_derivs=True)
+        sc_obj = StochasticCollocation3(jdist, 'MvNormal', QoI_dict, data_type=complex)
+        sc_obj.evaluateQoIs(jdist)
         dmu_j = sc_obj.dmean(of=['PolyRVDV'], wrt=['dv'])
         dvar_j = sc_obj.dvariance(of=['PolyRVDV'], wrt=['dv'])
         dstd_dev = sc_obj.dStdDev(of=['PolyRVDV'], wrt=['dv'])
@@ -187,7 +197,7 @@ class NewStochasticCollocationTest(unittest.TestCase):
         for i in range(0, n_parameters):
             dv[i] += pert
             QoI.set_dv(dv)
-            sc_obj.evaluateQoIs(jdist, include_derivs=False)
+            sc_obj.evaluateQoIs(jdist)
             mu_j = sc_obj.mean(of=['PolyRVDV'])
             var_j = sc_obj.variance(of=['PolyRVDV'])
             std_dev_j = np.sqrt(var_j['PolyRVDV'][0,0])
@@ -213,15 +223,7 @@ class NewStochasticCollocationTest(unittest.TestCase):
         std_dev = std_dev_2dim # abs(np.diag(np.random.randn(systemsize)))
         jdist = cp.MvNormal(mu, std_dev)
         QoI = examples.PolyRVDV(data_type=complex)
-        # Create the Stochastic Collocation object
-        deriv_dict = {'dv' : {'dQoI_func' : QoI.eval_QoIGradient_dv,
-                              'output_dimensions' : n_parameters}
-                     }
-        QoI_dict = {'PolyRVDV' : {'QoI_func' : QoI.eval_QoI,
-                                  'output_dimensions' : 1,
-                                  'deriv_dict' : deriv_dict
-                                  }
-                    }
+
         dv = np.random.randn(systemsize) + 0j
         QoI.set_dv(dv)
         # Create dimension reduction object
@@ -231,10 +233,21 @@ class NewStochasticCollocationTest(unittest.TestCase):
         # Get the eigenmodes of the Hessian product and the dominant indices
         dominant_space.getDominantDirections(QoI, jdist)
         dominant_dir = dominant_space.iso_eigenvecs[:, dominant_space.dominant_indices]
-        sc_obj = StochasticCollocation2(jdist, 4, 'MvNormal', QoI_dict,
-                                        include_derivs=True, reduced_collocation=True,
-                                        dominant_dir=dominant_dir, data_type=complex)
-        sc_obj.evaluateQoIs(jdist, include_derivs=True)
+        # Create the Stochastic Collocation object
+        deriv_dict = {'dv' : {'dQoI_func' : QoI.eval_QoIGradient_dv,
+                              'output_dimensions' : n_parameters}
+                     }
+        QoI_dict = {'PolyRVDV' : {'quadrature_degree' : 3,
+                                  'reduced_collocation' : False,
+                                  'QoI_func' : QoI.eval_QoI,
+                                  'output_dimensions' : 1,
+                                  'dominant_dir' : dominant_dir,
+                                  'include_derivs' : True,
+                                  'deriv_dict' : deriv_dict
+                                  }
+                    }
+        sc_obj = StochasticCollocation3(jdist, 'MvNormal', QoI_dict, data_type=complex)
+        sc_obj.evaluateQoIs(jdist)
         dmu_j = sc_obj.dmean(of=['PolyRVDV'], wrt=['dv'])
         dvar_j = sc_obj.dvariance(of=['PolyRVDV'], wrt=['dv'])
         dstd_dev = sc_obj.dStdDev(of=['PolyRVDV'], wrt=['dv'])
@@ -247,7 +260,7 @@ class NewStochasticCollocationTest(unittest.TestCase):
         for i in range(0, n_parameters):
             dv[i] += pert
             QoI.set_dv(dv)
-            sc_obj.evaluateQoIs(jdist, include_derivs=False)
+            sc_obj.evaluateQoIs(jdist)
             mu_j = sc_obj.mean(of=['PolyRVDV'])
             var_j = sc_obj.variance(of=['PolyRVDV'])
             std_dev_j = np.sqrt(var_j['PolyRVDV'][0,0])
@@ -263,8 +276,7 @@ class NewStochasticCollocationTest(unittest.TestCase):
         self.assertTrue((err2 < 1.e-10).all())
 
         err3 = dstd_dev['PolyRVDV']['dv'] - dstd_dev_complex
-        print('err3 = ', err3)
-        self.assertTrue((err2 < 1.e-13).all())
+        self.assertTrue((err2 < 1.e-12).all())
 
 if __name__ == "__main__":
     unittest.main()
