@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/OptimalDesignLab/pyStatReduce.svg?branch=omdao_workshop)](https://travis-ci.com/OptimalDesignLab/pyStatReduce)
+[![Build Status](https://travis-ci.com/OptimalDesignLab/pyStatReduce.svg?branch=multiple_qoi)](https://travis-ci.com/OptimalDesignLab/pyStatReduce)
 
 # pyStatReduce
 

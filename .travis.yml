@@ -70,6 +70,8 @@ script:
   - python ./pystatreduce/test/test_dimension_reduction.py
   - python ./pystatreduce/test/test_arnoldi_sampling.py
   - python ./pystatreduce/test/test_scaneagle_john.py
+  - python ./pystatreduce/test/test_stochastic_collocation3.py
+  - python ./pystatreduce/test/test_angles.py`
 
   # Tests with MDOLab examples
   - python ./pystatreduce/test/test_openaerostruct_examples.py
