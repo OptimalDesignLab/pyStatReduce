@@ -50,15 +50,9 @@ class TestDominantSubspaceDistance(unittest.TestCase):
         QoI2_dominant_space = DimensionReduction(threshold_factor=threshold_factor, exact_Hessian=True)
         QoI1_dominant_space.getDominantDirections(QoI1, jdist)
         QoI2_dominant_space.getDominantDirections(QoI2, jdist)
-
-        # Print the dominant dominant_indices
-        # print("QoI1 dominant_indices = ", QoI1_dominant_space.iso_eigenvals)
-        # print("QoI1 eigenvecs = \n", QoI1_dominant_space.iso_eigenvecs, '\n')
-        # print("QoI2 eigenvecs = \n", QoI2_dominant_space.iso_eigenvecs)
         S1 = QoI1_dominant_space.iso_eigenvecs[:, QoI1_dominant_space.dominant_indices]
         S2 = QoI2_dominant_space.iso_eigenvecs[:, QoI2_dominant_space.dominant_indices]
-        # print('S1 = \n', S1)
-        # print('S2 = \n', S2)
+        # Finally, compute the angles
         angles = utils.compute_subspace_angles(S1, S2)
         self.assertTrue(abs(angles[0] - theta) < 1.e-14)
 
