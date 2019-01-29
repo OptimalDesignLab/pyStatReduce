@@ -172,8 +172,9 @@ class DimensionReduction(object):
             else:
                 self.dominant_indices = usable_pairs[0]
 
-        # Compute the marginal distribution
-        # self.calcMarginals(jdist) # This must be commented when using the original scheme
+        # For either of the two cases of Exact hessian or inexact Hessian, we
+        # specify the dominant indices
+        self.dominant_dir = self.iso_eigenvecs[:, self.dominant_indices]
 
     #--------------------------------------------------------------------------#
     # Experimental Section
