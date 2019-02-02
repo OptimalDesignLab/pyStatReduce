@@ -238,7 +238,7 @@ class StochasticCollocation3Test(unittest.TestCase):
                               'output_dimensions' : n_parameters}
                      }
         QoI_dict = {'PolyRVDV' : {'quadrature_degree' : 3,
-                                  'reduced_collocation' : False,
+                                  'reduced_collocation' : True,
                                   'QoI_func' : QoI.eval_QoI,
                                   'output_dimensions' : 1,
                                   'dominant_dir' : dominant_dir,

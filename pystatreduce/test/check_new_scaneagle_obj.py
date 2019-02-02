@@ -75,8 +75,10 @@ input_dict = {'n_twist_cp' : 3,
            'rv_dict' : rv_dict
             }
 
-# Create all the objects that will be tested in this file
+# Create the base openaerostruct problem wrapper that will be used by the
+# different quantity of interests
 oas_obj = OASScanEagleWrapper(uq_systemsize, input_dict, include_dict_rv=True)
+# Create the QoI objects
 obj_QoI = Fuelburn(uq_systemsize, oas_obj)
 failure_QoI = StressConstraint(uq_systemsize, oas_obj)
 lift_con_QoI = LiftConstraint(uq_systemsize, oas_obj)

@@ -86,6 +86,8 @@ class Fuelburn(QuantityOfInterest):
         self.p = oas_object.p
         self.rvs = oas_object.rvs
         self.update_rv = oas_object.update_rv
+        self.input_dict = oas_object.input_dict
+        self.dJ_ddv =  np.zeros(oas_object.input_dict['ndv'], dtype=self.data_type)
 
     def eval_QoI(self, mu, xi):
         rv = mu + xi
@@ -135,7 +137,7 @@ class Fuelburn(QuantityOfInterest):
         self.dJ_ddv[n_cp:n_cp+1] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'oas_scaneagle.wing.sweep']
         self.dJ_ddv[n_cp+1:n_cp+2] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'oas_scaneagle.alpha']
 
-        return self.dJ_ddv
+        return dJ_ddv
 
 #-------------------------------------------------------------------------------
 
@@ -188,14 +190,6 @@ class StressConstraint(QuantityOfInterest):
 
         return dcon_failure
 
-    # def update_rv(self, rv):
-    #     self.p['Mach_number'] = rv[0]
-    #     self.p['CT'] = rv[1]
-    #     self.p['W0'] = rv[2]
-    #     self.p['E'] = rv[3]
-    #     self.p['G'] = rv[4]
-    #     self.p['mrho'] = rv[5]
-
 #-------------------------------------------------------------------------------
 
 class LiftConstraint(QuantityOfInterest):
@@ -228,6 +222,22 @@ class LiftConstraint(QuantityOfInterest):
 
         return deriv_arr
 
+    def eval_QoIGradient_dv(self, mu, xi):
+        rv = mu + xi
+        self.update_rv(rv)
+        self.p.run_model()
+        deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.L_equals_W'],
+                                      wrt=['oas_scaneagle.wing.twist_cp',
+                                           'oas_scaneagle.wing.thickness_cp',
+                                           'oas_scaneagle.wing.sweep',
+                                           'oas_scaneagle.alpha'])
+        dcon_lift = np.zeros(self.input_dict['ndv'])
+        dcon_lift[0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.twist_cp'][0]
+        dcon_lift[n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.thickness_cp'][0]
+        dcon_lift[n_cp] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.wing.sweep'][0,0]
+        dcon_lift[n_cp+1] = deriv['oas_scaneagle.AS_point_0.wing_perf.failure', 'oas_scaneagle.alpha'][0,0]
+
+        return dcon_lift
 #-------------------------------------------------------------------------------
 
 class MomentConstraint(QuantityOfInterest):
@@ -260,6 +270,45 @@ class MomentConstraint(QuantityOfInterest):
         deriv_arr[5] = deriv['oas_scaneagle.AS_point_0.CM', 'mrho'][1,0]
 
         return deriv_arr
+
+    def eval_QoIGradient_dv(self, mu, xi):
+        rv = mu + xi
+        self.update_rv(rv)
+        self.p.run_model()
+        deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.CM'],
+                                      wrt=['oas_scaneagle.wing.twist_cp',
+                                           'oas_scaneagle.wing.thickness_cp',
+                                           'oas_scaneagle.wing.sweep',
+                                           'oas_scaneagle.alpha'])
+        dcon_CM = np.zeros(self.input_dict['ndv'])
+        dcon_CM[0:n_twist_cp] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.wing.twist_cp'][0]
+        dcon_CM[n_twist_cp:n_cp] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.wing.thickness_cp'][0]
+        dcon_CM[n_cp] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.wing.sweep'][0,0]
+        dcon_CM[n_cp+1] = deriv['oas_scaneagle.AS_point_0.CM', 'oas_scaneagle.alpha'][0,0]
+
+        return dcon_CM
+
+class ThicknessIntersectsConstraint(QuantityOfInterest):
+    def __init__(self, systemsize, oas_object, data_type=np.float):
+        QuantityOfInterest.__init__(self, systemsize, data_type=data_type)
+        self.data_type = data_type
+        self.p = oas_object.p
+        self.rvs = oas_object.rvs
+        self.update_rv = oas_object.update_rv
+
+    def eval_QoI(self, mu, xi):
+        rv = mu + xi
+        self.update_rv(rv)
+        self.p.run_model()
+        return self.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects']
+
+    def eval_QoIGradient_dv(self, mu, xi):
+        rv = mu + xi
+        self.update_rv(rv)
+        self.p.run_model()
+        deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'],
+                            wrt=['oas_scaneagle.wing.thickness_cp'])
+        return deriv['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects', 'oas_scaneagle.wing.thickness_cp']
 
 #-------------------------------------------------------------------------------
 

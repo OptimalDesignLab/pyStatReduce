@@ -26,6 +26,8 @@ class StochasticCollocation3(object):
                     points, weights = self.getQuadratureInfo(jdist,
                                                         quadrature_degree, q, w)
                 else:
+                    print('i = ', i)
+                    print('dominant_dir = ', self.collocation_dict[i]['dominant_dir'])
                     dominant_dir = self.collocation_dict[i]['dominant_dir']
                     points, weights = self.getReducedQuadratureInfo(jdist,
                                           dominant_dir, quadrature_degree, q, w)
@@ -103,17 +105,6 @@ class StochasticCollocation3(object):
 
     def evaluateQoIs(self, jdist):
         pert = np.zeros(self.n_rv, dtype=self.data_type)
-
-        # for i in range(0, self.n_points):
-        #     for j in self.QoI_dict:
-        #         QoI_func = self.QoI_dict[j]['QoI_func']
-        #         self.QoI_dict[j]['fvals'][i,:] = QoI_func(self.points[i,:], pert)
-        #         if include_derivs == True:
-        #             for k in self.QoI_dict[j]['deriv_dict']:
-        #                 dQoI_func = self.QoI_dict[j]['deriv_dict'][k]['dQoI_func']
-        #                 self.QoI_dict[j]['deriv_dict'][k]['fvals'][i,:] =\
-        #                 					dQoI_func(self.points[i,:], pert)
-
 
         for i in self.collocation_dict:
             QoI_func = self.collocation_dict[i]['QoI_func']

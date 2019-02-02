@@ -11,12 +11,20 @@ import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
-from openmdao.api import IndepVarComp, Problem, SqliteRecorder, pyOptSparseDriver
+from openmdao.api import IndepVarComp, Problem, SqliteRecorder, pyOptSparseDriver, ExecComp
+
+mean_val_dict = {'mean_Ma' : 0.071,
+                 'mean_TSFC' : 9.80665 * 8.6e-6,
+                 'mean_W0' : 10.0,
+                 'mean_E' : 85.e9,
+                 'mean_G' : 25.e9,
+                 'mean_mrho' : 1600,
+                }
 
 # Total number of nodes to use in the spanwise (num_y) and
 # chordwise (num_x) directions. Vary these to change the level of fidelity.
-num_y = 21 # 61 # 21
-num_x = 3 # 7 # 3
+num_y = 61 # 21
+num_x = 7 # 3
 
 # Create a mesh dictionary to feed to generate_mesh to actually create
 # the mesh array.
@@ -108,14 +116,15 @@ prob = Problem()
 
 # Add problem information as an independent variables component
 indep_var_comp = IndepVarComp()
-indep_var_comp.add_output('Mach_number', val=mean_val_dict['mean_Ma'])
-indep_var_comp.add_output('v', val=22.876, units='m/s')
-indep_var_comp.add_output('re', val=1.e6, units='1/m')
-indep_var_comp.add_output('rho', val=0.770816, units='kg/m**3')
-indep_var_comp.add_output('speed_of_sound', val=322.2, units='m/s')
-indep_var_comp.add_output('load_factor', val=1.)
+indep_var_comp.add_output('Mach_number', val=0.071*np.ones(2))
+indep_var_comp.add_output('v', val=22.876*np.ones(2), units='m/s')
+indep_var_comp.add_output('re', val=1.e6*np.ones(2), units='1/m')
+indep_var_comp.add_output('rho', val=0.770816*np.ones(2), units='kg/m**3')
+indep_var_comp.add_output('speed_of_sound', val=322.2*np.ones(2), units='m/s')
+indep_var_comp.add_output('load_factor', val=[1., 2.5])
 
 indep_var_comp.add_output('alpha', val=5., units='deg')
+indep_var_comp.add_output('alpha_maneuver', val=5., units='deg')
 indep_var_comp.add_output('R', val=1800e3, units='m')
 indep_var_comp.add_output('CT', val=mean_val_dict['mean_TSFC'], units='1/s')
 indep_var_comp.add_output('empty_cg', val=np.array([0.2, 0., 0.]), units='m')
@@ -124,11 +133,9 @@ indep_var_comp.add_output('E', val=mean_val_dict['mean_E'], units='N/m**2')
 indep_var_comp.add_output('G', val=mean_val_dict['mean_G'], units='N/m**2')
 indep_var_comp.add_output('mrho', val=mean_val_dict['mean_mrho'], units='kg/m**3')
 
-indep_var_comp.add_output('fuel_mass', val=10000., units='kg')
+indep_var_comp.add_output('fuel_mass', val=10, units='kg')
 
-prob.model.add_subsystem('prob_vars',
-     indep_var_comp,
-     promotes=['*'])
+prob.model.add_subsystem('prob_vars', indep_var_comp, promotes=['*'])
 
 # Add the AerostructGeometry group, which computes all the intermediary
 # parameters for the aero and structural analyses, like the structural
@@ -161,7 +168,7 @@ for i in range(2):
     if surface['distributed_fuel_weight']:
         prob.model.connect('load_factor', point_name + '.coupled.load_factor', src_indices=[i])
 
-    com_name = point_name + '.' + name + '_perf.'
+    com_name = point_name + '.' + name + '_perf'
     prob.model.connect(name + '.local_stiff_transformed', point_name + '.coupled.' + name + '.local_stiff_transformed')
     prob.model.connect(name + '.nodes', point_name + '.coupled.' + name + '.nodes')
 
@@ -176,12 +183,12 @@ for i in range(2):
     prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
     prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
-    prob.model.connect('mrho', name + '.struct_setup.structural_weight.mrho')
-    prob.model.connect('E', name + '.struct_setup.assembly.E')
-    prob.model.connect('G', name + '.struct_setup.assembly.G')
     prob.model.connect('E', com_name + '.struct_funcs.vonmises.E')
     prob.model.connect('G', com_name + '.struct_funcs.vonmises.G')
 
+prob.model.connect('mrho', name + '.struct_setup.structural_weight.mrho')
+prob.model.connect('E', name + '.struct_setup.assembly.E')
+prob.model.connect('G', name + '.struct_setup.assembly.G')
 prob.model.connect('alpha', 'AS_point_0' + '.alpha')
 prob.model.connect('alpha_maneuver', 'AS_point_1' + '.alpha')
 
@@ -216,7 +223,8 @@ prob.driver.recording_options['includes'] = ['*']
 prob.model.add_design_var('wing.twist_cp', lower=-5., upper=10.)
 prob.model.add_design_var('wing.thickness_cp', lower=0.001, upper=0.01, scaler=1e3)
 prob.model.add_design_var('wing.sweep', lower=10., upper=30.)
-prob.model.add_design_var('alpha', lower=-10., upper=10.)
+prob.model.add_design_var('alpha_maneuver', lower=-10., upper=10.)
+prob.model.add_design_var('fuel_mass', lower=0., upper=10)
 
 # Make sure the spar doesn't fail, we meet the lift needs, and the aircraft
 # is trimmed through CM=0.
@@ -234,4 +242,10 @@ prob.model.add_objective('AS_point_0.fuelburn', scaler=.1)
 
 # Set up the problem
 prob.setup()
+# prob.run_model()
 prob.run_driver()
+print("fval = ", prob['AS_point_0.fuelburn'][0])
+print("twist = ", prob['wing.geometry.twist'])
+print("thickness = ", prob['wing.thickness'])
+print("sweep = ", prob['wing.sweep'])
+print("aoa = ", prob['alpha'])
