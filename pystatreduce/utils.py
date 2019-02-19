@@ -77,6 +77,13 @@ def compute_subspace_angles(S1, S2):
     Q2, R2 = np.linalg.qr(S2)
     intmat = np.matmul(Q1.T, Q2)
     Y, s, Z = np.linalg.svd(intmat)
+
+    # NaN prevention check
+    indices = np.where(s > 1) # Get the indices where the violation exisits
+    for i in indices: # Loop over these indices to fix the violation
+        if s[i] - 1 < 1.e-13: # This violation limit is pulled out of thin air!
+            s[i] = 1.0
+
     s_radians = np.arccos(s)
 
     return s_radians

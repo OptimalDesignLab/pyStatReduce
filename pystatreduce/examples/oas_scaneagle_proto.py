@@ -153,7 +153,6 @@ class StressConstraint(QuantityOfInterest):
         rv = mu + xi
         self.update_rv(rv)
         self.p.run_model()
-        print('fuelburn = ',self.p['oas_scaneagle.AS_point_0.fuelburn'])
         return self.p['oas_scaneagle.AS_point_0.wing_perf.failure']
 
     def eval_QoIGradient(self, mu, xi):

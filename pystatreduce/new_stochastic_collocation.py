@@ -15,7 +15,7 @@ class StochasticCollocation2(object):
         assert quadrature_degree > 0, "Need at least 1 collocation point for \
                                         uncertainty propagation"
         self.n_rv = cp.E(jdist).size
-        self.QoI_dict = copy.copy(QoI_dict)
+        self.QoI_dict = copy.copy(QoI_dict) # We don't
         self.distribution_type = distribution_type
         self.data_type = data_type
 

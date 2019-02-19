@@ -75,34 +75,45 @@ moment_con_QoI = MomentConstraint(uq_systemsize, oas_obj)
 # Get the dominant directions of the different QoIs here
 dominant_space_obj = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                         exact_Hessian=False, sample_radius=1.e-2)
-dominant_space_obj.getDominantDirections(obj_QoI, jdist, max_eigenmodes=3)
+dominant_space_obj.getDominantDirections(obj_QoI, jdist, max_eigenmodes=4)
 dominant_space_failure = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                             exact_Hessian=False,
                                             sample_radius=1.e-2)
-dominant_space_failure.getDominantDirections(failure_QoI, jdist, max_eigenmodes=3)
+dominant_space_failure.getDominantDirections(failure_QoI, jdist, max_eigenmodes=4)
 dominant_space_liftcon = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                             exact_Hessian=False,
                                             sample_radius=1.e-2)
-dominant_space_liftcon.getDominantDirections(lift_con_QoI, jdist, max_eigenmodes=3)
+dominant_space_liftcon.getDominantDirections(lift_con_QoI, jdist, max_eigenmodes=4)
 dominant_space_CM = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                        exact_Hessian=False, sample_radius=1.e-2)
-dominant_space_CM.getDominantDirections(moment_con_QoI, jdist, max_eigenmodes=3)
+dominant_space_CM.getDominantDirections(moment_con_QoI, jdist, max_eigenmodes=4)
+
+# Print all the eigenvalues
+print('Wf iso_eigenvals = ', dominant_space_obj.iso_eigenvals)
+print('KS iso_eigenvals = ', dominant_space_failure.iso_eigenvals)
+print('Lift_Con iso_eigenvals = ', dominant_space_liftcon.iso_eigenvals)
+print('dominant_space_CM iso_eigenvals = ', dominant_space_CM.iso_eigenvals)
 
 # Collect all the directions
 dominant_dir_obj = dominant_space_obj.dominant_dir
 dominant_dir_KS_fail = dominant_space_failure.dominant_dir
 dominant_dir_L_equal_w = dominant_space_liftcon.dominant_dir
 dominant_dir_CM = dominant_space_CM.dominant_dir
-print('dominant_dir_obj =\n', dominant_dir_obj)
-print('dominant_dir_KS_fail =\n', dominant_dir_KS_fail)
-print('dominant_dir_L_equal_w =\n', dominant_dir_L_equal_w)
-print('dominant_dir_CM =\n', dominant_dir_CM)
+# print('dominant_dir_obj =\n', dominant_dir_obj)
+# print('dominant_dir_KS_fail =\n', dominant_dir_KS_fail)
+# print('dominant_dir_L_equal_w =\n', dominant_dir_L_equal_w)
+# print('dominant_dir_CM =\n', dominant_dir_CM)
+
+print(dominant_dir_obj - dominant_dir_L_equal_w)
+print(dominant_dir_obj - dominant_dir_CM)
+
 # We now compare the angles w.r.t the objective functions
 # angles_KSfail = utils.compute_subspace_angles(dominant_dir_obj, dominant_dir_KS_fail)
 angles_liftcon = utils.compute_subspace_angles(dominant_dir_obj, dominant_dir_L_equal_w)
 angles_CM = utils.compute_subspace_angles(dominant_dir_obj, dominant_dir_CM)
 
 # Print thes angles
+print()
 # print('angles_KSfail = ', angles_KSfail)
 print('angles_liftcon = ', angles_liftcon)
 print('angles_CM = ', angles_CM)
