@@ -85,3 +85,15 @@ class MonteCarlo(object):
                         dvariance_val[i][j] = (dval_j - self.num_samples*mu_j*dmu_j) * 2 / (self.num_samples-1)
 
         return dvariance_val
+
+    def dStdDev(self, jdist, of=None, wrt=None):
+        dstd_dev_val = {}
+        var = self.variance(jdist, of=of)
+        dvar = self.dvariance(jdist, of=of, wrt=wrt)
+        for i in of:
+            if i in self.QoI_dict:
+                dstd_dev_val[i] = {}
+                for j in wrt:
+                    if j in self.QoI_dict[i]['deriv_dict']:
+                        dstd_dev_val[i][j] = 0.5 * dvar[i][j] / np.sqrt(var[i])
+        return dstd_dev_val
