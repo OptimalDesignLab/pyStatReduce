@@ -267,10 +267,10 @@ class OASScanEagle(Group):
     def setup(self):
         # Total number of nodes to use in the spanwise (num_y) and
         # chordwise (num_x) directions. Vary these to change the level of fidelity.
-        num_y = 21
-        num_x = 3
 
         mesh_dict = self.options['mesh_dict']
+        num_y = mesh_dict['num_y']
+        num_x = mesh_dict['num_x']
 
         mesh = generate_mesh(mesh_dict)
 
