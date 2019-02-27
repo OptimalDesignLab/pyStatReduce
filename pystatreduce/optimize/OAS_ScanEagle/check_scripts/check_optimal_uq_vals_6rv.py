@@ -5,6 +5,8 @@
 # 1. MFMC solution
 # 2. Full collocation
 # 3. Reduced collocation
+# This is for the 6 random variable case
+#
 import sys
 import time
 import pprint as pp

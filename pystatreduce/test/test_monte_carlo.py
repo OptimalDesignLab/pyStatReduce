@@ -46,8 +46,9 @@ class MonteCarloTest(unittest.TestCase):
         # Analytical variance
         var_j_analytical = QoI.eval_QoI_analyticalvariance(mu, cp.Cov(jdist))
         err = abs((var_js['paraboloid'] - var_j_analytical) / var_j_analytical)
+        print('var_js paraboloid = ', var_js['paraboloid'], '\n')
         self.assertTrue(err < 1e-2)
-    
+
     def test_derivatives_scalarQoI(self):
 
         systemsize = 3
@@ -85,7 +86,7 @@ class MonteCarloTest(unittest.TestCase):
         print("dvar_j = ", dvar_j['paraboloid']['xi'])
         print("dvar_j_analytical = ", dvar_j_analytical)
         print("err = ", err)
-    
+
 
 if __name__ == "__main__":
     unittest.main()

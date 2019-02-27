@@ -5,3 +5,6 @@
 .*DS_Store
 ._*
 pyStatReduce.egg-info/*
+fout*
+errout*
+*.db

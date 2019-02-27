@@ -1,6 +1,9 @@
 # This file containst tests for john's fork and branch
 # https://github.com/johnjasa/OpenAeroStruct/tree/move_surface_vars
 # commit hash ee10ee86e0aec273d8e4db9cfe2871426d2e57a8
+#
+# This tests the case where there are 6 random variables. There exists a
+# separate file for the 8 random variable class
 
 import sys
 import time

@@ -1,3 +1,10 @@
+################################################################################
+# This is a deprecated test and should probably be deleted soon. This test is
+# for a version that tried to use random variables in the surface dictionary,
+# namely, E, G and mrho directly instead of treating them as members of
+# indep_var_comp
+################################################################################
+
 import sys
 import time
 

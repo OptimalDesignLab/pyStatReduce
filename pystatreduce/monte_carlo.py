@@ -22,10 +22,11 @@ class MonteCarlo(object):
             for i in self.QoI_dict:
                 for j in self.QoI_dict[i]['deriv_dict']:
                     self.QoI_dict[i]['deriv_dict'][j]['fvals'] =  np.zeros([self.num_samples,
+                                                self.QoI_dict[i]['output_dimensions'],
                                                 self.QoI_dict[i]['deriv_dict'][j]['output_dimensions']],
                                                 dtype=self.data_type)
 
-    def getSamples(self, jdist, include_deriv_funcs=False):
+    def getSamples(self, jdist, include_derivs=False):
         n_rv = cp.E(jdist).shape
         pert = np.zeros(n_rv, dtype=self.data_type)
         # Get the all the function values for the given set of samples
@@ -34,9 +35,12 @@ class MonteCarlo(object):
             for j in self.QoI_dict:
                 QoI_func = self.QoI_dict[j]['QoI_func']
                 self.QoI_dict[j]['fvals'][i,:] = QoI_func(self.samples[:,i], pert)
-                if include_deriv_funcs == True:
+                if include_derivs == True:
                     for k in self.QoI_dict[j]['deriv_dict']:
                         dQoI_func = self.QoI_dict[j]['deriv_dict'][k]['dQoI_func']
+                        # print('\n j = ', j)
+                        # print('self.num_samples = ', self.num_samples)
+                        # print('dQoI = ', dQoI_func(self.samples[:,i], pert))
                         self.QoI_dict[j]['deriv_dict'][k]['fvals'][i,:] = dQoI_func(self.samples[:,i], pert)
         # for i in self.QoI_dict:
         #     QoI_func = self.QoI_dict[i]['QoI_func']
@@ -78,7 +82,9 @@ class MonteCarlo(object):
                     if j in self.QoI_dict[i]['deriv_dict']:
                         dmu_j = np.mean(self.QoI_dict[i]['deriv_dict'][j]['fvals'], 0)
                         # Finally, do the loop for the product
-                        dval_j = np.zeros(self.QoI_dict[i]['deriv_dict'][j]['output_dimensions'], dtype=self.data_type)
+                        dval_j = np.zeros([self.QoI_dict[i]['output_dimensions'],
+                                           self.QoI_dict[i]['deriv_dict'][j]['output_dimensions']],
+                                           dtype=self.data_type)
                         for k in range(0, self.num_samples):
                             dval_j[:] += self.QoI_dict[i]['fvals'][k,:] *\
                                          self.QoI_dict[i]['deriv_dict'][j]['fvals'][k,:]
