@@ -263,7 +263,6 @@ class NewStochasticCollocationTest(unittest.TestCase):
         self.assertTrue((err2 < 1.e-10).all())
 
         err3 = dstd_dev['PolyRVDV']['dv'] - dstd_dev_complex
-        print('err3 = ', err3)
         self.assertTrue((err2 < 1.e-13).all())
 
 if __name__ == "__main__":
