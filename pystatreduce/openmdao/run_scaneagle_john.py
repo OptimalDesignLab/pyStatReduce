@@ -242,10 +242,10 @@ prob.setup()
 # # print("nodes = ", np.round(prob['AS_point_0.coupled.wing.struct_states.struct_weight_loads.nodes'][:,1], 5))
 
 #-----------------------VALUE PLUGIN TEST---------------------------------------
-# prob['wing.twist_cp'] = 2.5*np.ones(3) # np.array([2.60830137, 10., 5.])
-# prob['wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5]) # np.array([0.001, 0.001, 0.001])
-# prob['wing.sweep'] = 18.73 # [18.89098985]
-# prob['alpha'] = 5.54 # [2.19244059]
+prob['wing.twist_cp'] = 2.5*np.ones(3) # np.array([2.60830137, 10., 5.])
+prob['wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5]) # np.array([0.001, 0.001, 0.001])
+prob['wing.sweep'] = 20. # [18.89098985]
+prob['alpha'] = 5. # [2.19244059]
 
 # prob['Mach_number'] = 0.071
 # prob['CT'] = 9.80665 * 8.6e-6
@@ -261,15 +261,17 @@ print('KS = ', prob['AS_point_0.wing_perf.failure'][0])
 print('lift_con = ', prob['AS_point_0.L_equals_W'][0])
 print('CM constraint = ', prob['AS_point_0.CM'][1])
 deriv_arr = np.zeros(6)
-deriv = prob.compute_totals(of=['AS_point_0.CM'],
-                    wrt=['Mach_number', 'CT', 'W0', 'E', 'G', 'mrho'])
+deriv = prob.compute_totals(of=['AS_point_0.fuelburn'],
+                    wrt=['Mach_number', 'CT', 'W0', 'E', 'G', 'mrho', 'R', 'load_factor'])
 print()
-print(deriv['AS_point_0.CM', 'Mach_number'][1,0])
-print(deriv['AS_point_0.CM', 'CT'][1,0])
-print(deriv['AS_point_0.CM', 'W0'][1,0])
-print(deriv['AS_point_0.CM', 'E'][1,0])
-print(deriv['AS_point_0.CM', 'G'][1,0])
-print(deriv['AS_point_0.CM', 'mrho'][1,0])
+print(deriv['AS_point_0.fuelburn', 'Mach_number'][0])
+print(deriv['AS_point_0.fuelburn', 'CT'][0])
+print(deriv['AS_point_0.fuelburn', 'W0'][0])
+print(deriv['AS_point_0.fuelburn', 'E'][0])
+print(deriv['AS_point_0.fuelburn', 'G'][0])
+print(deriv['AS_point_0.fuelburn', 'mrho'][0])
+print(deriv['AS_point_0.fuelburn', 'R'][0])
+print(deriv['AS_point_0.fuelburn', 'load_factor'][0])
 # deriv_arr[0] = deriv['AS_point_0.fuelburn', 'Mach_number']
 # deriv_arr[1] = deriv['AS_point_0.fuelburn', 'CT']
 # deriv_arr[2] = deriv['AS_point_0.fuelburn', 'W0']

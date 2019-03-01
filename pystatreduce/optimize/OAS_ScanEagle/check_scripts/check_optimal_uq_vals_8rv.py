@@ -124,10 +124,6 @@ def eval_uq_fuelburn(dv_dict, collocation_obj):
     UQObj.QoI.p['oas_scaneagle.wing.sweep'] = dv_dict['sweep']
     UQObj.QoI.p['oas_scaneagle.alpha'] = dv_dict['alpha']
 
-    # print("wing.twist_cp = ", UQObj.QoI.p['oas_scaneagle.wing.twist_cp'])
-    # print("wing.thickness_cp = ", UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'])
-    # print("wing.sweep = ", UQObj.QoI.p['oas_scaneagle.wing.sweep'])
-    # print("alpha = ", UQObj.QoI.p['oas_scaneagle.alpha'])
 
     # Compute statistical metrics
     collocation_obj.evaluateQoIs(UQObj.jdist)
@@ -141,31 +137,35 @@ def eval_uq_fuelburn(dv_dict, collocation_obj):
 
     return mu_j, var_j
 
-if __name__ == "__main__":
-    # Step 1: Instantiate all objects needed for test
-    uq_systemsize = len(mu)
-    UQObj = UQScanEagleOpt(uq_systemsize, all_rv=True)
-    UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5])
-    UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = 2.5*np.ones(3)
-    UQObj.QoI.p['oas_scaneagle.wing.sweep'] = 20.0
-    UQObj.QoI.p['oas_scaneagle.alpha'] = 5.0
-    UQObj.QoI.p.final_setup()
-
-    # Dominant dominant
-    dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
-                                             exact_Hessian=False,
-                                             sample_radius=1.e-4)
-    dominant_space.getDominantDirections(UQObj.QoI, UQObj.jdist, max_eigenmodes=8)
-    print(dominant_space.iso_eigenvals)
+def get_iso_gradients(dv_dict):
     """
-    # Full collocation
-    sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
-                                    include_derivs=False)
-    # sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=False)
+    Computes the gradient of the scaneagle problem in the isoprobabilistic space
+    w.r.t the random variables.
+    """
+    UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = dv_dict['twist_cp']
+    UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = dv_dict['thickness_cp']
+    UQObj.QoI.p['oas_scaneagle.wing.sweep'] = dv_dict['sweep']
+    UQObj.QoI.p['oas_scaneagle.alpha'] = dv_dict['alpha']
 
+    mu_val = cp.E(UQObj.jdist)
+    covariance = cp.Cov(UQObj.jdist)
+    # print('covariance = \n', covariance)
+    sqrt_Sigma = np.sqrt(covariance) # !!!! ONLY FOR INDEPENDENT RVs !!!!
+    # print('sqrt_Sigma = \n', sqrt_Sigma)
+    grad = UQObj.QoI.eval_QoIGradient(mu_val, np.zeros(len(mu_val)))
+    iso_grad = np.dot(grad, sqrt_Sigma)
 
-    # # RDO factor 2
-    sc_sol_dict = {'sc_sol_1D' : {'twist_cp' : np.array([2.522784, 10, 5.0]),
+    return iso_grad, grad
+
+if __name__ == "__main__":
+    # RDO factor 2 Results
+    sc_sol_dict = { 'sc_init' : {'twist_cp' : 2.5*np.ones(3),
+                                 'thickness_cp' : 1.e-3 * np.array([5.5, 5.5, 5.5]),
+                                 'sweep' : 20.,
+                                 'alpha' : 5.,
+                                },
+
+                    'sc_sol_1D' : {'twist_cp' : np.array([2.522784, 10, 5.0]),
                                 'thickness_cp' : 1.e-3 * np.array([1.0, 1.0, 1.0]),
                                 'sweep' : 18.91067,
                                 'alpha' : 2.216330,
@@ -196,33 +196,63 @@ if __name__ == "__main__":
                                 },
                 }
 
+    # Step 1: Instantiate all objects needed for test
+    uq_systemsize = len(mu)
+    UQObj = UQScanEagleOpt(uq_systemsize, all_rv=True)
+    UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5])
+    UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = 2.5*np.ones(3)
+    UQObj.QoI.p['oas_scaneagle.wing.sweep'] = 20.0
+    UQObj.QoI.p['oas_scaneagle.alpha'] = 5.0
+    UQObj.QoI.p.final_setup()
 
-    # mu_j_full, var_j_full = eval_uq_fuelburn(sc_sol_dictsc_sol_3D, sc_obj)
-    # print('mu_j_full = ', mu_j_full)
-    # print('var_j_full = ', var_j_full)
+    # Dominant dominant
+    sample_radius = 1.e-2
+    dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
+                                        exact_Hessian=False,
+                                        sample_radius=sample_radius)
+    dominant_space.getDominantDirections(UQObj.QoI, UQObj.jdist, max_eigenmodes=8)
+    print('\n#-----------------------------------------------------------#')
+    print('sample radius = ', sample_radius)
+    print('iso_eigenvals = ', dominant_space.iso_eigenvals)
+    # Full collocation
+    sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
+                                    include_derivs=False)
 
-    # Reduced collocation
-    # i = 0
+    iso_grad, reg_grad = get_iso_gradients(sc_sol_dict['sc_init'])
+    # print('reg_grad = \n', reg_grad)
+    # print('iso_grad = \n', iso_grad)
+
+    # mu_j_full, var_j_full = eval_uq_fuelburn(sc_sol_dict['sc_init'], sc_obj)
+    print('\n#-----------------------------------------------------------#')
+    mu_j_full = 5.39597929
+    var_j_full = 3.86455449
+    print('mu_j_full = ', mu_j_full)
+    print('var_j_full = ', var_j_full)
+
+    # # Reduced collocation
+    # i = 1
     # for sc_sol in sc_sol_dict:
-    #     # i = 3
-    #     dominant_dir = dominant_space.iso_eigenvecs[:,0:i]
-    #     print('dominant_dir = \n', dominant_dir)
-    #     red_sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
-    #                                     include_derivs=False, reduced_collocation=True,
-    #                                     dominant_dir=dominant_dir)
-    #     mu_j_red, var_j_red = eval_uq_fuelburn(sc_sol_dict[sc_sol], red_sc_obj)
-    #     print('\n', i)
-    #     print('mu_j_red = ', mu_j_red)
-    #     print('var_j_red = ', var_j_red)
-    #     i += 1
-    #     break
+    #     if sc_sol != 'sc_init':
+    #         dominant_dir = dominant_space.iso_eigenvecs[:,0:i]
+    #         red_sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
+    #                                         include_derivs=False, reduced_collocation=True,
+    #                                         dominant_dir=dominant_dir)
+    #         mu_j_red, var_j_red = eval_uq_fuelburn(sc_sol_dict[sc_sol], red_sc_obj)
+    #         print('\n', i)
+    #         print('mu_j_red = ', mu_j_red)
+    #         print('var_j_red = ', var_j_red)
+    #         i += 1
 
-    dominant_dir = dominant_space.iso_eigenvecs[:,0:3]
-    print('dominant_dir = \n', dominant_dir)
+    dominant_dir = dominant_space.iso_eigenvecs[:,0:2]
+    # print('dominant_dir = \n', dominant_dir)
     red_sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
                                         include_derivs=False, reduced_collocation=True,
                                         dominant_dir=dominant_dir)
-    mu_j_red, var_j_red = eval_uq_fuelburn(sc_sol_dict['sc_sol_3D'], red_sc_obj)
-    print('mu_j_red = ', mu_j_red)
-    print('var_j_red = ', var_j_red)
-    """
+    mu_j_red, var_j_red = eval_uq_fuelburn(sc_sol_dict['sc_init'], red_sc_obj)
+    print('mu_j_red = ', mu_j_red['fuelburn'][0])
+    print('var_j_red = ', var_j_red['fuelburn'][0,0])
+
+    err_mu = abs((mu_j_red['fuelburn'][0] - mu_j_full) / mu_j_full)
+    err_var = abs((var_j_red['fuelburn'][0,0] - var_j_full) / var_j_full)
+    print('err_mu = ', err_mu)
+    print('err_var = ', err_var)
