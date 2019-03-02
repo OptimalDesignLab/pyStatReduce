@@ -53,6 +53,7 @@ class OASScanEagleWrapper2(QuantityOfInterest):
 
         self.rvs.add_output('load_factor', val=self.rv_dict['load_factor'])
         self.p.model.connect('load_factor', 'oas_scaneagle.load_factor')
+        self.p.model.connect('load_factor', 'oas_scaneagle.AS_point_0.coupled.wing.load_factor')
 
         self.rvs.add_output('E', val=self.rv_dict['E'], units='N/m**2')
         self.p.model.connect('E', 'oas_scaneagle.wing.struct_setup.assembly.E')

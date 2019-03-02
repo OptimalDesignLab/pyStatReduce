@@ -11,7 +11,7 @@ Besides `Numpy` and `SciPy`, this package depends on another python package
 called `chaospy`, which can be installed using
 
 ```
-pip install chaospy
+pip install chaospy==2.3.5
 ```
 
 The documentation of `chaospy` can be found at the following link

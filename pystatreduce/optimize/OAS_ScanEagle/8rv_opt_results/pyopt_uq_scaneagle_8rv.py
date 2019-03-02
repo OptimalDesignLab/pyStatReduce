@@ -1,6 +1,12 @@
+################################################################################
 # pyopt_uq_scaneagle_8rv.py
-# The following is an optimization script for the scaneagle with 8 random
-# variables.
+# This file performs a robust design optimizarion on a Boeing ScanEagle aircraft
+# with 6 random variables. The random variables are Ma, TSFC, W0, E, G, mrho,
+# load_factor, range.
+# This file can be run as
+#               `python pyopt_uq_scaneagle_8rv.py`
+################################################################################
+
 import sys
 import time
 
@@ -94,8 +100,8 @@ class UQScanEagleOpt(object):
 
         self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
                                                  exact_Hessian=False,
-                                                 sample_radius=1.e-4)
-        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=8)
+                                                 sample_radius=1.e-2)
+        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=2)
         dfuelburn_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ObjGradient_dv,
                                   'output_dimensions' : dv_dict['ndv'],
                                   }
@@ -229,8 +235,6 @@ if __name__ == "__main__":
     UQObj = UQScanEagleOpt(uq_systemsize)
 
     # Evaluate derivatives
-    print(UQObj.dominant_space.iso_eigenvals)
-    """
     deriv = UQObj.QoI.eval_QoIGradient(cp.E(UQObj.jdist), np.zeros(uq_systemsize))
     # print('\nderiv = ', deriv)
 
@@ -287,4 +291,3 @@ if __name__ == "__main__":
     var_j = sc_obj.variance(of=['fuelburn'])
     print('mu fuelburn = ', mu_j['fuelburn'])
     print('var fuelburn = ', var_j['fuelburn'])
-    """

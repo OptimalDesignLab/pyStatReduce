@@ -174,6 +174,9 @@ prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + nam
 prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
 prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
+# Connect the load factor
+prob.model.connect('load_factor', point_name + '.coupled.' + name + '.load_factor')
+
 # Added these connections
 prob.model.connect('E', com_name + '.struct_funcs.vonmises.E')
 prob.model.connect('G', com_name + '.struct_funcs.vonmises.G')

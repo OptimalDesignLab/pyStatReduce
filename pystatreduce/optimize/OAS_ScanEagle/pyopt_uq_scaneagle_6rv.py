@@ -1,4 +1,28 @@
+################################################################################
 # pyopt_uq_scaneagle2.py
+# This file performs a robust design optimizarion on a Boeing ScanEagle aircraft
+# with 6 random variables. The random variables are Ma, TSFC, W0, E, G, mrho.
+# This file can be run in 3 ways
+#
+# 1. Reduced optimization:
+#              run as `python pyopt_uq_scaneagle_6rv.py reduced`
+#    This runs the optimization using reduced collocation. Currently the number
+#    of dominant directions are set to 2. This can be changed to anywhere between
+#    1 & 6 by setting the keyword argument in the function call
+#    `getDominantDirections(..., max_eigenmodes=5)`. This assumes that the user
+#    wants to set the number of dominant directions to 5
+#
+# 2. debug:
+#              run as `python pyopt_uq_scaneagle_6rv.py debug`
+#    This only creates a UQScanEagleOpt object. Its useful for printing out values
+#
+# 3. Full collocation
+#              run as `python pyopt_uq_scaneagle_6rv.py full_collocation`
+#    This performs RDO using a full 6 dimensional tensor product grid. It takes
+#    a long time to run this optimization (Last time I ran on an i7-3820, it took
+#    13 hours)
+################################################################################
+
 import sys
 import time
 
@@ -7,7 +31,6 @@ import numpy as np
 import chaospy as cp
 import copy
 from pystatreduce.new_stochastic_collocation import StochasticCollocation2
-from pystatreduce.stochastic_collocation import StochasticCollocation
 from pystatreduce.quantity_of_interest import QuantityOfInterest
 from pystatreduce.dimension_reduction import DimensionReduction
 from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
@@ -27,20 +50,21 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
+# Default values
+mean_Ma = 0.071
+mean_TSFC = 9.80665 * 8.6e-6
+mean_W0 = 10.0
+mean_E = 85.e9
+mean_G = 25.e9
+mean_mrho = 1600
+
 class UQScanEagleOpt(object):
     """
     This class is the conduit for linking pyStatReduce and OpenAeroStruct with
     pyOptSparse.
     """
     def __init__(self, uq_systemsize, all_rv=False):
-
-        # Default values
-        mean_Ma = 0.071
-        mean_TSFC = 9.80665 * 8.6e-6
-        mean_W0 = 10.0
-        mean_E = 85.e9
-        mean_G = 25.e9
-        mean_mrho = 1600
+        self.rdo_factor = 2.0
 
         # Total number of nodes to use in the spanwise (num_y) and
         # chordwise (num_x) directions. Vary these to change the level of fidelity.
@@ -77,11 +101,20 @@ class UQScanEagleOpt(object):
         mu = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho])
         std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50])
         self.jdist = cp.MvNormal(mu, std_dev)
-        self.QoI = examples.OASScanEagleWrapper(uq_systemsize, dv_dict,
-                                                include_dict_rv=all_rv)
-        # self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
-        #                                     exact_Hessian=False)
-        # self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=3)
+        self.QoI = examples.OASScanEagleWrapper(uq_systemsize, dv_dict)
+
+        # This setup is according to the one in the scaneagle paper
+        self.QoI.p['oas_scaneagle.wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5])
+        self.QoI.p['oas_scaneagle.wing.twist_cp'] = 2.5*np.ones(3)
+        self.QoI.p.final_setup()
+
+        # Compute the dominant directions
+        self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
+                                                 exact_Hessian=False,
+                                                 sample_radius=1.e-2)
+        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=2)
+
+
         dfuelburn_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ObjGradient_dv,
                                   'output_dimensions' : dv_dict['ndv'],
                                   }
@@ -112,7 +145,7 @@ def objfunc_uq(xdict):
     """
     Objective funtion supplied to pyOptSparse for RDO.
     """
-    rdo_factor = 2.0
+    rdo_factor = UQObj.rdo_factor
     UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = xdict['twist_cp']
     UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
     UQObj.QoI.p['oas_scaneagle.wing.sweep'] = xdict['sweep']
@@ -143,7 +176,7 @@ def sens_uq(xdict, funcs):
     """
     Sensitivity function provided to pyOptSparse for RDO.
     """
-    rdo_factor = 2.0
+    rdo_factor = UQObj.rdo_factor
     UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = xdict['twist_cp']
     UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
     UQObj.QoI.p['oas_scaneagle.wing.sweep'] = xdict['sweep']
@@ -171,7 +204,6 @@ def sens_uq(xdict, funcs):
 
     dmu_con = dmu_js['constraints']['dv']
     dstd_dev_con = dstd_dev_js['con_failure']['dv']
-    # print('dstd_dev_con = ', dstd_dev_con)
     funcsSens['con_failure', 'twist_cp'] = dmu_con[0,0:n_twist_cp] + rdo_factor * dstd_dev_con[0,0:n_twist_cp]
     funcsSens['con_failure', 'thickness_cp'] = dmu_con[0,n_twist_cp:n_cp] + rdo_factor * dstd_dev_con[0,n_twist_cp:n_cp]
     funcsSens['con_failure', 'sweep'] = dmu_con[0,n_cp] + rdo_factor * dstd_dev_con[0,n_cp]
@@ -195,9 +227,6 @@ def sens_uq(xdict, funcs):
 
     idx = n_thickness_intersects + 2 + n_CM
     funcsSens['con_twist_cp', 'twist_cp'] = dmu_con[idx:,0:n_twist_cp]
-    # funcsSens['con_twist_cp', 'thickness_cp'] = mu_con[idx:,n_twist_cp:n_cp]
-    # funcsSens['con_twist_cp', 'sweep'] = mu_con[idx:,n_cp:n_cp+1]
-    # funcsSens['con_twist_cp', 'alpha'] = mu_con[idx:,n_cp+1:]
 
     fail = False
     return funcsSens, fail
@@ -205,23 +234,20 @@ def sens_uq(xdict, funcs):
 if __name__ == "__main__":
 
     # Set some of the initial values of the design variables
-    init_twist_cp = np.array([2.5, 2.5, 5.0])
-    init_thickness_cp = np.array([0.008, 0.008, 0.008])
+    init_twist_cp = np.array([2.5, 2.5, 2.5])
+    init_thickness_cp = 1.e-3 * np.array([5.5, 5.5, 5.5]) # np.array([0.008, 0.008, 0.008])
     init_sweep = 20.0
     init_alpha = 5.
 
     ndv = 3 + 3 + 1 + 1 # number of design variabels
 
     start_time = time.time()
-    if sys.argv[1] == "stochastic":
-        """
-        This piece of code runs the RDO of the ScanEagle program.
-        """
+
+    if sys.argv[1] == "reduced":
         start_time = time.time()
-        uq_systemsize = 3
-        UQObj = UQScanEagleOpt(uq_systemsize)
+        uq_systemsize = 6
+        UQObj = UQScanEagleOpt(uq_systemsize, all_rv=True)
         xi = np.zeros(uq_systemsize)
-        mu = np.array([0.071, 9.80665 * 8.6e-6, 10.])
 
         # Get some information on the total number of constraints
         n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
@@ -229,12 +255,13 @@ if __name__ == "__main__":
         n_constraints = 1 + n_thickness_intersects  + 1 + n_CM + 3
 
         # Create the stochastic collocation object based on the dominant directions
-        dominant_dir = UQObj.dominant_space.iso_eigenvecs[:, UQObj.dominant_space.dominant_indices]
+        dominant_dir = UQObj.dominant_space.dominant_dir
         sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
                                         include_derivs=True , reduced_collocation=True,
                                         dominant_dir=dominant_dir)
         sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
 
+        # Set up optimization in pyOptSparse
         optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc_uq)
         n_twist_cp = UQObj.QoI.input_dict['n_twist_cp']
         n_thickness_cp = UQObj.QoI.input_dict['n_thickness_cp']
@@ -258,75 +285,27 @@ if __name__ == "__main__":
         opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
         sol = opt(optProb, sens=sens_uq)
         sol = opt(optProb)
-        time_elapsed = time.time() - start_time
+        end_time = time.time()
+        elapsed_time = end_time - start_time
         print(sol)
+        print(sol.fStar)
         print()
-        print("time_elapsed = ", time_elapsed)
-
-    elif sys.argv[1] == "all_rv":
-        uq_systemsize = 6
-        UQObj = UQScanEagleOpt(uq_systemsize, all_rv=True)
-        xi = np.zeros(uq_systemsize)
-        mu = np.array([0.071, 9.80665 * 8.6e-6, 10., 85.e9, 25.e9, 1.6e3])
-
-        # Get some information on the total number of constraints
-        n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
-        n_CM = 3
-        n_constraints = 1 + n_thickness_intersects  + 1 + n_CM + 3
-
-        # Create the stochastic collocation object based on the dominant directions
-        dominant_dir = UQObj.dominant_space.iso_eigenvecs[:, UQObj.dominant_space.dominant_indices]
-        sc_obj = StochasticCollocation2(UQObj.jdist, 6, 'MvNormal', UQObj.QoI_dict,
-                                        include_derivs=True , reduced_collocation=True,
-                                        dominant_dir=dominant_dir)
-        sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
-
-        optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc_uq)
-        n_twist_cp = UQObj.QoI.input_dict['n_twist_cp']
-        n_thickness_cp = UQObj.QoI.input_dict['n_thickness_cp']
-        optProb.addVarGroup('twist_cp', n_twist_cp, 'c', lower=-5., upper=10, value=init_twist_cp)
-        optProb.addVarGroup('thickness_cp', n_thickness_cp, 'c', lower=0.001, upper=0.01, scale=1.e3, value=init_thickness_cp)
-        optProb.addVar('sweep', lower=10., upper=30., value=init_sweep)
-        # optProb.addVar('alpha', lower=-10., upper=10.)
-        optProb.addVar('alpha', lower=0., upper=10., value=init_alpha)
-
-        # Constraints
-        optProb.addConGroup('con_failure', 1, upper=0.)
-        optProb.addConGroup('con_thickness_intersects', n_thickness_intersects,
-                            upper=0., wrt=['thickness_cp'])
-        optProb.addConGroup('con_L_equals_W', 1, lower=0., upper=0.)
-        optProb.addConGroup('con_CM', n_CM, lower=-0.001, upper=0.001)
-        optProb.addConGroup('con_twist_cp', 3, lower=np.array([-1e20, -1e20, 5.]),
-                            upper=np.array([1e20, 1e20, 5.]), wrt=['twist_cp'])
-
-        # Objective
-        optProb.addObj('obj')
-        opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
-        sol = opt(optProb, sens=sens_uq)
-        sol = opt(optProb)
-        print(sol)
+        print("twist = ", UQObj.QoI.p['oas_scaneagle.wing.geometry.twist'])
+        print("thickness =", UQObj.QoI.p['oas_scaneagle.wing.thickness'])
+        print("sweep = ", UQObj.QoI.p['oas_scaneagle.wing.sweep'])
+        print("aoa = ", UQObj.QoI.p['oas_scaneagle.alpha'])
+        print()
+        print('time elapsed = ', elapsed_time)
 
     elif sys.argv[1] == "debug":
         uq_systemsize = 6
         UQObj = UQScanEagleOpt(uq_systemsize, all_rv=True)
         print("eigenvals = ", UQObj.dominant_space.iso_eigenvals)
-        """
-        xi = np.zeros(uq_systemsize)
-        mu = np.array([0.071, 9.80665 * 8.6e-6, 10., 85.e9, 25.e9, 1.6e3])
-        fburn_orig = UQObj.QoI.eval_QoI(mu, xi)
-        print("fburn_orig = ", fburn_orig)
 
-        # Check if the values change
-        mu_pert = np.array([0.071, 9.80665 * 8.6e-6, 10., 88.e9, 28.e9, 1700])
-        fburn1 = UQObj.QoI.eval_QoI(mu_pert, xi)
-        print("fburn1 = ", fburn1)
-        print("new surface_dict_rv = ", UQObj.QoI.surface_dict_rv)
-        """
     elif sys.argv[1] == "full_collocation":
         uq_systemsize = 6
         UQObj = UQScanEagleOpt(uq_systemsize, all_rv=True)
         xi = np.zeros(uq_systemsize)
-        mu = np.array([0.071, 9.80665 * 8.6e-6, 10., 85.e9, 25.e9, 1.6e3])
 
         # Get some information on the total number of constraints
         n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
@@ -336,7 +315,7 @@ if __name__ == "__main__":
         # Full collocation
         sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict, include_derivs=True)
         sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
-        
+
         optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc_uq)
         n_twist_cp = UQObj.QoI.input_dict['n_twist_cp']
         n_thickness_cp = UQObj.QoI.input_dict['n_thickness_cp']
