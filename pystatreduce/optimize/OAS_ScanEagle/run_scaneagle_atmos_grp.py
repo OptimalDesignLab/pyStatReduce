@@ -15,7 +15,8 @@ import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
-from openaerostruct.common.atmos_group import AtmosGroup
+# from openaerostruct.common.atmos_group import AtmosGroup
+from pystatreduce.common.atmos_group import AtmosGroup
 from openmdao.api import IndepVarComp, Problem, SqliteRecorder
 
 # Total number of nodes to use in the spanwise (num_y) and
@@ -228,16 +229,16 @@ prob.model.add_objective('AS_point_0.fuelburn', scaler=.1)
 # Set up the problem
 prob.setup(check=True)
 
-# # Use this if you just want to run analysis and not optimization
-# prob.run_model()
+# Use this if you just want to run analysis and not optimization
+prob.run_model()
 
-# Actually run the optimization problem
-prob.run_driver()
-# print('v = ', prob['v'])
-# print('re = ', prob['re'])
-# print('rho = ', prob['rho'])
-# print('speed_of_sound = ', prob['speed_of_sound'])
-
+# # Actually run the optimization problem
+# prob.run_driver()
+print('v = ', prob['v'])
+print('re = ', prob['re'])
+print('rho = ', prob['rho'])
+print('speed_of_sound = ', prob['speed_of_sound'])
+print()
 print("fval = ", prob['AS_point_0.fuelburn'][0])
 print("twist = ", prob['wing.geometry.twist'])
 print("thickness = ", prob['wing.thickness'])

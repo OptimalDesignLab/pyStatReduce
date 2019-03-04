@@ -41,7 +41,7 @@ from scipy import sparse
 import argparse
 import pyoptsparse # from pyoptsparse import Optimization, OPT, SNOPT
 
-# Import the OpenMDAo shenanigans
+# Import the OpenMDAO
 from openmdao.api import IndepVarComp, Problem, Group, NewtonSolver, \
     ScipyIterativeSolver, LinearBlockGS, NonlinearBlockGS, \
     DirectSolver, LinearBlockGS, PetscKSP, SqliteRecorder, ScipyOptimizeDriver
