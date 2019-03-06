@@ -36,13 +36,14 @@ class OASScanEagle(Group):
     """
     def initialize(self):
         self.options.declare('mesh_dict', types=dict)
-        self.options.declare('surface_dict_rv', types=dict)
+        self.options.declare('rv_dict', types=dict)
 
     def setup(self):
         # Total number of nodes to use in the spanwise (num_y) and
         # chordwise (num_x) directions. Vary these to change the level of fidelity.
 
         mesh_dict = self.options['mesh_dict']
+        rv_dict = self.options['rv_dict']
         num_y = mesh_dict['num_y']
         num_x = mesh_dict['num_x']
 
@@ -124,19 +125,30 @@ class OASScanEagle(Group):
         indep_var_comp = IndepVarComp()
         # indep_var_comp.add_output('v', val=22.876, units='m/s')
         indep_var_comp.add_output('alpha', val=5., units='deg')
+        indep_var_comp.add_output('altitude', val=4.57e3, units='m')
         # indep_var_comp.add_output('re', val=1.e6, units='1/m')
         # indep_var_comp.add_output('rho', val=0.770816, units='kg/m**3')
         # indep_var_comp.add_output('speed_of_sound', val=322.2, units='m/s')
         indep_var_comp.add_output('empty_cg', val=np.array([0.2, 0., 0.]), units='m')
 
-        # indep_var_comp.add_output('R', val=1800e3, units='m')
-        # indep_var_comp.add_output('load_factor', val=1.)
-        # indep_var_comp.add_output('Mach_number', val=mean_val_dict['mean_Ma'])
-        # indep_var_comp.add_output('CT', val=mean_val_dict['mean_TSFC'], units='1/s')
-        # indep_var_comp.add_output('W0', val=mean_val_dict['mean_W0'],  units='kg')
-        # indep_var_comp.add_output('E', val=mean_val_dict['mean_E'], units='N/m**2')
-        # indep_var_comp.add_output('G', val=mean_val_dict['mean_G'], units='N/m**2')
-        # indep_var_comp.add_output('mrho', val=mean_val_dict['mean_mrho'], units='kg/m**3')
+        # Create independent input variables depending on which variables are
+        # being considered as random variables
+        if 'Mach_number' not in rv_dict:
+            indep_var_comp.add_output('Mach_number', val=mean_val_dict['mean_Ma'])
+        if 'CT' not in rv_dict:
+            indep_var_comp.add_output('CT', val=mean_val_dict['mean_TSFC'], units='1/s')
+        if 'W0' not in rv_dict:
+            indep_var_comp.add_output('W0', val=mean_val_dict['mean_W0'],  units='kg')
+        if 'R' not in rv_dict:
+            indep_var_comp.add_output('R', val=1800e3, units='m')
+        if 'load_factor' not in rv_dict:
+            indep_var_comp.add_output('load_factor', val=1.)
+        if 'E' not in rv_dict:
+            indep_var_comp.add_output('E', val=mean_val_dict['mean_E'], units='N/m**2')
+        if 'G' not in rv_dict:
+            indep_var_comp.add_output('G', val=mean_val_dict['mean_G'], units='N/m**2')
+        if 'mrho' not in rv_dict:
+            indep_var_comp.add_output('mrho', val=mean_val_dict['mean_mrho'], units='kg/m**3')
 
         self.add_subsystem('prob_vars', indep_var_comp, promotes=['*'])
         # Add atmosphere related properties
@@ -179,3 +191,15 @@ class OASScanEagle(Group):
         self.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + name + '_cg_location')
         self.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
         self.connect(name + '.t_over_c', com_name + '.t_over_c')
+
+        # Make connections based on whether a variable is a random variable or not
+        if 'E' not in rv_dict:
+            self.connect('E', com_name + '.struct_funcs.vonmises.E')
+            self.connect('E', name + '.struct_setup.assembly.E')
+        if 'G' not in rv_dict:
+            self.connect('G', com_name + '.struct_funcs.vonmises.G')
+            self.connect('G', name + '.struct_setup.assembly.G')
+        if 'mrho' not in rv_dict:
+            self.connect('mrho', name + '.struct_setup.structural_weight.mrho')
+        if 'load_factor' not in rv_dict:
+            self.connect('load_factor', point_name + '.coupled.' + name + '.load_factor')

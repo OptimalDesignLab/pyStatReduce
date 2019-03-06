@@ -36,37 +36,45 @@ class OASScanEagleWrapper2(QuantityOfInterest):
         self.rvs = self.p.model.add_subsystem('random_variables', IndepVarComp(), promotes_outputs=['*'])
         self.p.model.add_subsystem('oas_scaneagle',
                                    OASScanEagle(mesh_dict=self.input_dict['mesh_dict'],
-                                                surface_dict_rv=self.rv_dict))
+                                                rv_dict=self.rv_dict))
 
         # Declare rvs units to ensure type stability
-        self.rvs.add_output('Mach_number', val=self.rv_dict['Mach_number'])
-        self.p.model.connect('Mach_number', 'oas_scaneagle.Mach_number')
+        if 'Mach_number' in self.rv_dict:
+            self.rvs.add_output('Mach_number', val=self.rv_dict['Mach_number'])
+            self.p.model.connect('Mach_number', 'oas_scaneagle.Mach_number')
 
-        self.rvs.add_output('CT', val=self.rv_dict['CT'], units='1/s') # TSFC
-        self.p.model.connect('CT', 'oas_scaneagle.CT')
+        if 'CT' in self.rv_dict:
+            self.rvs.add_output('CT', val=self.rv_dict['CT'], units='1/s') # TSFC
+            self.p.model.connect('CT', 'oas_scaneagle.CT')
 
-        self.rvs.add_output('W0', val=self.rv_dict['W0'],  units='kg')
-        self.p.model.connect('W0', 'oas_scaneagle.W0')
+        if 'W0' in self.rv_dict:
+            self.rvs.add_output('W0', val=self.rv_dict['W0'],  units='kg')
+            self.p.model.connect('W0', 'oas_scaneagle.W0')
 
-        self.rvs.add_output('R', val=self.rv_dict['R'], units='m')
-        self.p.model.connect('R', 'oas_scaneagle.R')
+        if 'R' in self.rv_dict:
+            self.rvs.add_output('R', val=self.rv_dict['R'], units='m')
+            self.p.model.connect('R', 'oas_scaneagle.R')
 
-        self.rvs.add_output('load_factor', val=self.rv_dict['load_factor'])
-        self.p.model.connect('load_factor', 'oas_scaneagle.load_factor')
-        self.p.model.connect('load_factor', 'oas_scaneagle.AS_point_0.coupled.wing.load_factor')
+        if 'load_factor' in self.rv_dict:
+            self.rvs.add_output('load_factor', val=self.rv_dict['load_factor'])
+            self.p.model.connect('load_factor', 'oas_scaneagle.load_factor')
+            self.p.model.connect('load_factor', 'oas_scaneagle.AS_point_0.coupled.wing.load_factor')
 
-        self.rvs.add_output('E', val=self.rv_dict['E'], units='N/m**2')
-        self.p.model.connect('E', 'oas_scaneagle.wing.struct_setup.assembly.E')
-        self.p.model.connect('E', 'oas_scaneagle.AS_point_0.wing_perf.struct_funcs.vonmises.E')
+        if 'E' in self.rv_dict:
+            self.rvs.add_output('E', val=self.rv_dict['E'], units='N/m**2')
+            self.p.model.connect('E', 'oas_scaneagle.wing.struct_setup.assembly.E')
+            self.p.model.connect('E', 'oas_scaneagle.AS_point_0.wing_perf.struct_funcs.vonmises.E')
 
-        self.rvs.add_output('G', val=self.rv_dict['G'], units='N/m**2')
-        self.p.model.connect('G', 'oas_scaneagle.wing.struct_setup.assembly.G')
-        self.p.model.connect('G', 'oas_scaneagle.AS_point_0.wing_perf.struct_funcs.vonmises.G')
+        if 'G' in self.rv_dict:
+            self.rvs.add_output('G', val=self.rv_dict['G'], units='N/m**2')
+            self.p.model.connect('G', 'oas_scaneagle.wing.struct_setup.assembly.G')
+            self.p.model.connect('G', 'oas_scaneagle.AS_point_0.wing_perf.struct_funcs.vonmises.G')
 
-        self.rvs.add_output('mrho', val=self.rv_dict['mrho'], units='kg/m**3')
-        self.p.model.connect('mrho', 'oas_scaneagle.wing.struct_setup.structural_weight.mrho')
+        if 'mrho' in self.rv_dict:
+            self.rvs.add_output('mrho', val=self.rv_dict['mrho'], units='kg/m**3')
+            self.p.model.connect('mrho', 'oas_scaneagle.wing.struct_setup.structural_weight.mrho')
 
-        self.p.setup(check=False)
+        self.p.setup(check=True)
 
         # Set up reusable arrays
         self.dJ_ddv = np.zeros(self.input_dict['ndv'], dtype=self.data_type) # Used in eval_ObjGradient_dv
@@ -91,16 +99,26 @@ class OASScanEagleWrapper2(QuantityOfInterest):
         deriv_arr = np.zeros(self.systemsize, dtype=self.data_type)
         self.update_rv(rv)
         self.p.run_model()
+        rv_name_list = list(self.rv_dict.keys())
         deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.fuelburn'],
-                            wrt=['Mach_number', 'CT', 'W0', 'E', 'G', 'mrho', 'R', 'load_factor'])
-        deriv_arr[0] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'Mach_number']
-        deriv_arr[1] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'CT']
-        deriv_arr[2] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'W0']
-        deriv_arr[3] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'E']
-        deriv_arr[4] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'G']
-        deriv_arr[5] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'mrho']
-        deriv_arr[6] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'R']
-        deriv_arr[7] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'load_factor']
+                                      wrt=rv_name_list)
+        # Populate deriv_arr
+        ctr = 0
+        for rvs in self.rv_dict:
+            deriv_arr[ctr] = deriv['oas_scaneagle.AS_point_0.fuelburn', rvs]
+            ctr += 1
+
+        # OLD CODE
+        # deriv = self.p.compute_totals(of=['oas_scaneagle.AS_point_0.fuelburn'],
+        #                     wrt=['Mach_number', 'CT', 'W0', 'E', 'G', 'mrho', 'R', 'load_factor'])
+        # deriv_arr[0] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'Mach_number']
+        # deriv_arr[1] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'CT']
+        # deriv_arr[2] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'W0']
+        # deriv_arr[3] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'E']
+        # deriv_arr[4] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'G']
+        # deriv_arr[5] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'mrho']
+        # deriv_arr[6] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'R']
+        # deriv_arr[7] = deriv['oas_scaneagle.AS_point_0.fuelburn', 'load_factor']
 
         return deriv_arr
 
@@ -240,11 +258,16 @@ class OASScanEagleWrapper2(QuantityOfInterest):
         return dcon_failure
 
     def update_rv(self, rv):
-        self.p['Mach_number'] = rv[0]
-        self.p['CT'] = rv[1]
-        self.p['W0'] = rv[2]
-        self.p['E'] = rv[3]
-        self.p['G'] = rv[4]
-        self.p['mrho'] = rv[5]
-        self.p['R'] = rv[6]
-        self.p['load_factor'] = rv[7]
+
+        ctr = 0
+        for rvs in self.rv_dict:
+            self.p[rvs] = rv[ctr]
+            ctr += 1
+        # self.p['Mach_number'] = rv[0]
+        # self.p['CT'] = rv[1]
+        # self.p['W0'] = rv[2]
+        # self.p['E'] = rv[3]
+        # self.p['G'] = rv[4]
+        # self.p['mrho'] = rv[5]
+        # self.p['R'] = rv[6]
+        # self.p['load_factor'] = rv[7]
