@@ -34,24 +34,33 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
+# Default mean values
+mean_Ma = 0.071
+mean_TSFC = 9.80665 * 8.6e-6
+mean_W0 = 10.0
+mean_E = 85.e9
+mean_G = 25.e9
+mean_mrho = 1600
+mean_R = 1800e3
+mean_load_factor = 1.0
+# Default standard values
+std_dev_Ma = 0.005
+std_dev_TSFC = 0.00607/3600
+std_dev_W0 = 0.2
+std_dev_mrho = 50
+std_dev_R = 500.e3
+std_dev_load_factor = 0.1
+std_dev_E = 5.e9
+std_dev_G = 1.e9
+
 class UQScanEagleOpt(object):
     """
     This class is the conduit for linking pyStatReduce and OpenAeroStruct with
     pyOptSparse.
     """
-    def __init__(self, uq_systemsize):
+    def __init__(self):
 
         self.rdo_factor = 3.0
-
-        # Default values
-        mean_Ma = 0.071
-        mean_TSFC = 9.80665 * 8.6e-6
-        mean_W0 = 10.0
-        mean_E = 85.e9
-        mean_G = 25.e9
-        mean_mrho = 1600
-        mean_R = 1800e3
-        mean_load_factor = 1.0
 
         # Total number of nodes to use in the spanwise (num_y) and
         # chordwise (num_x) directions. Vary these to change the level of fidelity.
@@ -69,12 +78,13 @@ class UQScanEagleOpt(object):
         rv_dict = {'Mach_number' : mean_Ma,
                    'CT' : mean_TSFC,
                    'W0' : mean_W0,
+                   # 'R' : mean_R,
+                   # 'load_factor' : mean_load_factor,
                    'E' : mean_E, # surface RV
                    'G' : mean_G, # surface RV
                    'mrho' : mean_mrho, # surface RV
-                   'R' : mean_R,
-                   'load_factor' : mean_load_factor,
                     }
+        self.uq_systemsize = len(rv_dict)
 
         dv_dict = {'n_twist_cp' : 3,
                    'n_thickness_cp' : 3,
@@ -87,10 +97,13 @@ class UQScanEagleOpt(object):
                     }
 
 
-        mu = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho, mean_R, mean_load_factor])
-        std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50, 500e3, 0.1])
+        # mu = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho, mean_R, mean_load_factor])
+        # std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50, 500e3, 0.1])
+        mu, std_dev = self.get_input_rv_statistics(rv_dict)
+        print('mu = ', mu)
+        print('std_dev = ', np.diagonal(std_dev))
         self.jdist = cp.MvNormal(mu, std_dev)
-        self.QoI = examples.oas_scaneagle2.OASScanEagleWrapper2(uq_systemsize,
+        self.QoI = examples.oas_scaneagle2.OASScanEagleWrapper2(self.uq_systemsize,
                                                                 dv_dict)
         self.QoI.p['oas_scaneagle.wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5]) # This setup is according to the one in the scaneagle paper
         self.QoI.p['oas_scaneagle.wing.twist_cp'] = 2.5*np.ones(3)
@@ -98,7 +111,7 @@ class UQScanEagleOpt(object):
         self.QoI.p['oas_scaneagle.alpha'] = 5.0
         self.QoI.p.final_setup()
 
-        self.dominant_space = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
+        self.dominant_space = DimensionReduction(n_arnoldi_sample=self.uq_systemsize+1,
                                                  exact_Hessian=False,
                                                  sample_radius=1.e-2)
         self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=2)
@@ -127,6 +140,39 @@ class UQScanEagleOpt(object):
                                           'deriv_dict' : dcon_failure_dict
                                          }
                         }
+    def get_input_rv_statistics(self, rv_dict):
+        mu = np.zeros(len(rv_dict))
+        std_dev = np.eye(len(rv_dict))
+        i = 0
+        for rvs in rv_dict:
+            if rvs == 'Mach_number':
+                mu[i] = mean_Ma
+                std_dev[i,i] = std_dev_Ma
+            elif rvs == 'CT':
+                mu[i] = mean_TSFC
+                std_dev[i,i] = std_dev_TSFC
+            elif rvs == 'W0':
+                mu[i] = mean_W0
+                std_dev[i,i] = std_dev_W0
+            elif rvs == 'mrho':
+                mu[i] = mean_mrho
+                std_dev[i,i] = std_dev_mrho
+            elif rvs == 'R':
+                mu[i] = mean_R
+                std_dev[i,i] = std_dev_R
+            elif rvs == 'load_factor':
+                mu[i] = mean_load_factor
+                std_dev[i,i] = std_dev_load_factor
+            elif rvs == 'E':
+                mu[i] = mean_E
+                std_dev[i,i] = std_dev_E
+            elif rvs == 'G':
+                mu[i] = mean_G
+                std_dev[i,i] = std_dev_G
+            i += 1
+
+        return mu, std_dev
+
 
 def objfunc_uq(xdict):
     """
@@ -231,12 +277,14 @@ if __name__ == "__main__":
     init_alpha = 5.
 
     start_time = time.time()
-    uq_systemsize = 8
-    UQObj = UQScanEagleOpt(uq_systemsize)
-
+    # uq_systemsize = 8
+    UQObj = UQScanEagleOpt()
     # Evaluate derivatives
-    deriv = UQObj.QoI.eval_QoIGradient(cp.E(UQObj.jdist), np.zeros(uq_systemsize))
-    # print('\nderiv = ', deriv)
+    deriv = UQObj.QoI.eval_QoIGradient(cp.E(UQObj.jdist), np.zeros(UQObj.uq_systemsize))
+    print('\nderiv = ', deriv)
+    print("eigenvals = ", UQObj.dominant_space.iso_eigenvals)
+    print('eigenvecs = \n', UQObj.dominant_space.iso_eigenvecs)
+    """
 
     # Get some information on the total number of constraints
     ndv = 3 + 3 + 1 + 1 # number of design variabels
@@ -291,3 +339,4 @@ if __name__ == "__main__":
     var_j = sc_obj.variance(of=['fuelburn'])
     print('mu fuelburn = ', mu_j['fuelburn'])
     print('var fuelburn = ', var_j['fuelburn'])
+    """

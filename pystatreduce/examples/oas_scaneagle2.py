@@ -29,7 +29,6 @@ class OASScanEagleWrapper2(QuantityOfInterest):
     def __init__(self, systemsize, input_dict, data_type=np.float):
         QuantityOfInterest.__init__(self, systemsize, data_type=data_type)
         self.input_dict = input_dict
-        # self.include_dict_rv = include_dict_rv # Bool for including random variables in the durface dictionary
         self.rv_dict = self.input_dict['rv_dict']
 
         self.p = Problem()
@@ -74,7 +73,7 @@ class OASScanEagleWrapper2(QuantityOfInterest):
             self.rvs.add_output('mrho', val=self.rv_dict['mrho'], units='kg/m**3')
             self.p.model.connect('mrho', 'oas_scaneagle.wing.struct_setup.structural_weight.mrho')
 
-        self.p.setup(check=True)
+        self.p.setup(check=False)
 
         # Set up reusable arrays
         self.dJ_ddv = np.zeros(self.input_dict['ndv'], dtype=self.data_type) # Used in eval_ObjGradient_dv
