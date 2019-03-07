@@ -134,21 +134,21 @@ class OASScanEagle(Group):
         # Create independent input variables depending on which variables are
         # being considered as random variables
         if 'Mach_number' not in rv_dict:
-            indep_var_comp.add_output('Mach_number', val=mean_val_dict['mean_Ma'])
+            indep_var_comp.add_output('Mach_number', val=0.071)
         if 'CT' not in rv_dict:
-            indep_var_comp.add_output('CT', val=mean_val_dict['mean_TSFC'], units='1/s')
+            indep_var_comp.add_output('CT', val=9.80665 * 8.6e-6, units='1/s')
         if 'W0' not in rv_dict:
-            indep_var_comp.add_output('W0', val=mean_val_dict['mean_W0'],  units='kg')
+            indep_var_comp.add_output('W0', val=10.0,  units='kg')
         if 'R' not in rv_dict:
             indep_var_comp.add_output('R', val=1800e3, units='m')
         if 'load_factor' not in rv_dict:
             indep_var_comp.add_output('load_factor', val=1.)
         if 'E' not in rv_dict:
-            indep_var_comp.add_output('E', val=mean_val_dict['mean_E'], units='N/m**2')
+            indep_var_comp.add_output('E', val=85.e9, units='N/m**2')
         if 'G' not in rv_dict:
-            indep_var_comp.add_output('G', val=mean_val_dict['mean_G'], units='N/m**2')
+            indep_var_comp.add_output('G', val=25.e9, units='N/m**2')
         if 'mrho' not in rv_dict:
-            indep_var_comp.add_output('mrho', val=mean_val_dict['mean_mrho'], units='kg/m**3')
+            indep_var_comp.add_output('mrho', val=1600, units='kg/m**3')
 
         self.add_subsystem('prob_vars', indep_var_comp, promotes=['*'])
         # Add atmosphere related properties
