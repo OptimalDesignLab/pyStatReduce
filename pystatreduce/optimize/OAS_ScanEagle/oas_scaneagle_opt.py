@@ -10,6 +10,7 @@ from pystatreduce.quantity_of_interest import QuantityOfInterest
 from pystatreduce.dimension_reduction import DimensionReduction
 from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 import pystatreduce.examples as examples
+import pystatreduce.utils as utils
 
 #pyoptsparse sepecific imports
 from scipy import sparse
@@ -118,36 +119,7 @@ class UQScanEagleOpt(object):
                                          }
                         }
     def get_input_rv_statistics(self, rv_dict):
-        mu = np.zeros(len(rv_dict))
-        std_dev = np.eye(len(rv_dict))
-        i = 0
-        for rvs in rv_dict:
-            if rvs == 'Mach_number':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'CT':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'W0':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'mrho':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'R':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'load_factor':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'E':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'G':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            i += 1
-
+        mu, std_dev = utils.get_scaneagle_input_rv_statistics(rv_dict)
         return mu, std_dev
 
 if __name__ == "__main__":

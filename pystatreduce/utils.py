@@ -87,3 +87,36 @@ def compute_subspace_angles(S1, S2):
     s_radians = np.arccos(s)
 
     return s_radians
+
+def get_scaneagle_input_rv_statistics(rv_dict):
+    mu = np.zeros(len(rv_dict))
+    std_dev = np.eye(len(rv_dict))
+    i = 0
+    for rvs in rv_dict:
+        if rvs == 'Mach_number':
+            mu[i] = rv_dict[rvs]['mean']
+            std_dev[i,i] = rv_dict[rvs]['std_dev']
+        elif rvs == 'CT':
+            mu[i] = rv_dict[rvs]['mean']
+            std_dev[i,i] = rv_dict[rvs]['std_dev']
+        elif rvs == 'W0':
+            mu[i] = rv_dict[rvs]['mean']
+            std_dev[i,i] = rv_dict[rvs]['std_dev']
+        elif rvs == 'mrho':
+            mu[i] = rv_dict[rvs]['mean']
+            std_dev[i,i] = rv_dict[rvs]['std_dev']
+        elif rvs == 'R':
+            mu[i] = rv_dict[rvs]['mean']
+            std_dev[i,i] = rv_dict[rvs]['std_dev']
+        elif rvs == 'load_factor':
+            mu[i] = rv_dict[rvs]['mean']
+            std_dev[i,i] = rv_dict[rvs]['std_dev']
+        elif rvs == 'E':
+            mu[i] = rv_dict[rvs]['mean']
+            std_dev[i,i] = rv_dict[rvs]['std_dev']
+        elif rvs == 'G':
+            mu[i] = rv_dict[rvs]['mean']
+            std_dev[i,i] = rv_dict[rvs]['std_dev']
+        i += 1
+
+    return mu, std_dev

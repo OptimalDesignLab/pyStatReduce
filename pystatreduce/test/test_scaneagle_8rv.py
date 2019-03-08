@@ -19,6 +19,7 @@ from pystatreduce.quantity_of_interest import QuantityOfInterest
 from pystatreduce.dimension_reduction import DimensionReduction
 from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 import pystatreduce.examples as examples
+import pystatreduce.utils as utils
 
 np.set_printoptions(precision=8)
 np.set_printoptions(linewidth=150, suppress=True)
@@ -73,43 +74,6 @@ mesh_dict = {'num_y' : num_y,
 
 class OASScanEagleTest(unittest.TestCase):
 
-    def get_input_rv_statistics(self, rv_dict):
-        """
-        This utility function is used to select the random variables in a specific
-        order.
-        """
-        mu = np.zeros(len(rv_dict))
-        std_dev = np.eye(len(rv_dict))
-        i = 0
-        for rvs in rv_dict:
-            if rvs == 'Mach_number':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'CT':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'W0':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'mrho':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'R':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'load_factor':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'E':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            elif rvs == 'G':
-                mu[i] = rv_dict[rvs]['mean']
-                std_dev[i,i] = rv_dict[rvs]['std_dev']
-            i += 1
-
-        return mu, std_dev
-
     def test_deterministic_model(self):
         # Check if the quantity of interest is being computed as expected
         rv_dict = { 'Mach_number' : {'mean' : mean_Ma,
@@ -131,7 +95,7 @@ class OASScanEagleTest(unittest.TestCase):
                    }
 
         uq_systemsize = len(rv_dict)
-        mu_orig, std_dev = self.get_input_rv_statistics(rv_dict)
+        mu_orig, std_dev = utils.get_scaneagle_input_rv_statistics(rv_dict)
         jdist = cp.MvNormal(mu_orig, std_dev)
 
         input_dict = {'n_twist_cp' : 3,
@@ -178,7 +142,7 @@ class OASScanEagleTest(unittest.TestCase):
                    }
 
         uq_systemsize = len(rv_dict)
-        mu_orig, std_dev = self.get_input_rv_statistics(rv_dict)
+        mu_orig, std_dev = utils.get_scaneagle_input_rv_statistics(rv_dict)
         jdist = cp.MvNormal(mu_orig, std_dev)
 
         input_dict = {'n_twist_cp' : 3,
@@ -226,7 +190,7 @@ class OASScanEagleTest(unittest.TestCase):
                    }
 
         uq_systemsize = len(rv_dict)
-        mu_orig, std_dev = self.get_input_rv_statistics(rv_dict)
+        mu_orig, std_dev = utils.get_scaneagle_input_rv_statistics(rv_dict)
         jdist = cp.MvNormal(mu_orig, std_dev)
 
         input_dict = {'n_twist_cp' : 3,
@@ -283,7 +247,7 @@ class OASScanEagleTest(unittest.TestCase):
                     }
 
         uq_systemsize = len(rv_dict)
-        mu, std_dev = self.get_input_rv_statistics(rv_dict)
+        mu, std_dev = utils.get_scaneagle_input_rv_statistics(rv_dict)
         jdist = cp.MvNormal(mu, std_dev)
 
         QoI = examples.oas_scaneagle2.OASScanEagleWrapper2(uq_systemsize, input_dict)
