@@ -19,6 +19,7 @@ from pystatreduce.quantity_of_interest import QuantityOfInterest
 from pystatreduce.dimension_reduction import DimensionReduction
 from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 import pystatreduce.examples as examples
+import pystatreduce.optimize.OAS_ScanEagle.oas_scaneagle_opt as scaneagle_opt
 
 #pyoptsparse sepecific imports
 from scipy import sparse
@@ -53,131 +54,10 @@ std_dev_load_factor = 0.1
 std_dev_E = 5.e9
 std_dev_G = 1.e9
 
-class UQScanEagleOpt(object):
-    """
-    This class is the conduit for linking pyStatReduce and OpenAeroStruct with
-    pyOptSparse.
-    """
-    def __init__(self):
-
-        self.rdo_factor = 3.0
-
-        # Total number of nodes to use in the spanwise (num_y) and
-        # chordwise (num_x) directions. Vary these to change the level of fidelity.
-        num_y = 21
-        num_x = 3
-        mesh_dict = {'num_y' : num_y,
-                     'num_x' : num_x,
-                     'wing_type' : 'rect',
-                     'symmetry' : True,
-                     'span_cos_spacing' : 0.5,
-                     'span' : 3.11,
-                     'root_chord' : 0.3,
-                     }
-
-        rv_dict = {'Mach_number' : mean_Ma,
-                   'CT' : mean_TSFC,
-                   'W0' : mean_W0,
-                   # 'R' : mean_R,
-                   # 'load_factor' : mean_load_factor,
-                   'E' : mean_E, # surface RV
-                   'G' : mean_G, # surface RV
-                   'mrho' : mean_mrho, # surface RV
-                    }
-        self.uq_systemsize = len(rv_dict)
-
-        dv_dict = {'n_twist_cp' : 3,
-                   'n_thickness_cp' : 3,
-                   'n_CM' : 3,
-                   'n_thickness_intersects' : 10,
-                   'n_constraints' : 1 + 10 + 1 + 3 + 3,
-                   'ndv' : 3 + 3 + 2,
-                   'mesh_dict' : mesh_dict,
-                   'rv_dict' : rv_dict
-                    }
-
-
-        # mu = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho, mean_R, mean_load_factor])
-        # std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50, 500e3, 0.1])
-        mu, std_dev = self.get_input_rv_statistics(rv_dict)
-        print('mu = ', mu)
-        print('std_dev = ', np.diagonal(std_dev))
-        self.jdist = cp.MvNormal(mu, std_dev)
-        self.QoI = examples.oas_scaneagle2.OASScanEagleWrapper2(self.uq_systemsize,
-                                                                dv_dict)
-        self.QoI.p['oas_scaneagle.wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5]) # This setup is according to the one in the scaneagle paper
-        self.QoI.p['oas_scaneagle.wing.twist_cp'] = 2.5*np.ones(3)
-        self.QoI.p['oas_scaneagle.wing.sweep'] = 20.0
-        self.QoI.p['oas_scaneagle.alpha'] = 5.0
-        self.QoI.p.final_setup()
-
-        self.dominant_space = DimensionReduction(n_arnoldi_sample=self.uq_systemsize+1,
-                                                 exact_Hessian=False,
-                                                 sample_radius=1.e-2)
-        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=2)
-        dfuelburn_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ObjGradient_dv,
-                                  'output_dimensions' : dv_dict['ndv'],
-                                  }
-                         }
-        dcon_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ConGradient_dv,
-                             'output_dimensions' : dv_dict['ndv']
-                            }
-                    }
-        dcon_failure_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ConFailureGradient_dv,
-                                     'output_dimensions' : dv_dict['ndv'],
-                                    }
-                            }
-        self.QoI_dict = {'fuelburn' : {'QoI_func' : self.QoI.eval_QoI,
-                                       'output_dimensions' : 1,
-                                       'deriv_dict' : dfuelburn_dict
-                                      },
-                         'constraints' : {'QoI_func' : self.QoI.eval_AllConstraintQoI,
-                                          'output_dimensions' : dv_dict['n_constraints'],
-                                          'deriv_dict' : dcon_dict
-                                         },
-                         'con_failure' : {'QoI_func' : self.QoI.eval_confailureQoI,
-                                          'output_dimensions' : 1,
-                                          'deriv_dict' : dcon_failure_dict
-                                         }
-                        }
-    def get_input_rv_statistics(self, rv_dict):
-        mu = np.zeros(len(rv_dict))
-        std_dev = np.eye(len(rv_dict))
-        i = 0
-        for rvs in rv_dict:
-            if rvs == 'Mach_number':
-                mu[i] = mean_Ma
-                std_dev[i,i] = std_dev_Ma
-            elif rvs == 'CT':
-                mu[i] = mean_TSFC
-                std_dev[i,i] = std_dev_TSFC
-            elif rvs == 'W0':
-                mu[i] = mean_W0
-                std_dev[i,i] = std_dev_W0
-            elif rvs == 'mrho':
-                mu[i] = mean_mrho
-                std_dev[i,i] = std_dev_mrho
-            elif rvs == 'R':
-                mu[i] = mean_R
-                std_dev[i,i] = std_dev_R
-            elif rvs == 'load_factor':
-                mu[i] = mean_load_factor
-                std_dev[i,i] = std_dev_load_factor
-            elif rvs == 'E':
-                mu[i] = mean_E
-                std_dev[i,i] = std_dev_E
-            elif rvs == 'G':
-                mu[i] = mean_G
-                std_dev[i,i] = std_dev_G
-            i += 1
-
-        return mu, std_dev
-
-
 def objfunc_uq(xdict):
-    """
-    Objective funtion supplied to pyOptSparse for RDO.
-    """
+    #
+    # Objective funtion supplied to pyOptSparse for RDO.
+    #
     rdo_factor = UQObj.rdo_factor
     UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = xdict['twist_cp']
     UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
@@ -206,9 +86,9 @@ def objfunc_uq(xdict):
     return funcs, fail
 
 def sens_uq(xdict, funcs):
-    """
-    Sensitivity function provided to pyOptSparse for RDO.
-    """
+    #
+    # Sensitivity function provided to pyOptSparse for RDO.
+    #
     rdo_factor = UQObj.rdo_factor
     UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = xdict['twist_cp']
     UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = xdict['thickness_cp']
@@ -268,8 +148,28 @@ def sens_uq(xdict, funcs):
     fail = False
     return funcsSens, fail
 
-
 if __name__ == "__main__":
+
+    # Declare the dictionary
+    rv_dict = { 'Mach_number' : {'mean' : mean_Ma,
+                                 'std_dev' : std_dev_Ma},
+                'CT' : {'mean' : mean_TSFC,
+                        'std_dev' : std_dev_TSFC},
+                'W0' : {'mean' : mean_W0,
+                        'std_dev' : std_dev_W0},
+                'R' : {'mean' : mean_R,
+                       'std_dev' : std_dev_R},
+                'load_factor' : {'mean' : mean_load_factor,
+                                 'std_dev' : std_dev_load_factor},
+                # 'E' : {'mean' : mean_E,
+                #        'std_dev' : std_dev_E},
+                # 'G' : {'mean' : mean_G,
+                #        'std_dev' : std_dev_G},
+                'mrho' : {'mean' : mean_mrho,
+                         'std_dev' : std_dev_mrho},
+
+               }
+
     # Set some of the initial values of the design variables
     init_twist_cp = np.array([2.5, 2.5, 2.5])
     init_thickness_cp = 1.e-3 * np.array([5.5, 5.5, 5.5]) # np.array([0.008, 0.008, 0.008])
@@ -277,14 +177,14 @@ if __name__ == "__main__":
     init_alpha = 5.
 
     start_time = time.time()
-    # uq_systemsize = 8
-    UQObj = UQScanEagleOpt()
+    UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, rdo_factor=3.0, krylov_pert=1.e-2, max_eigenmodes=2)
+
     # Evaluate derivatives
     deriv = UQObj.QoI.eval_QoIGradient(cp.E(UQObj.jdist), np.zeros(UQObj.uq_systemsize))
     print('\nderiv = ', deriv)
     print("eigenvals = ", UQObj.dominant_space.iso_eigenvals)
     print('eigenvecs = \n', UQObj.dominant_space.iso_eigenvecs)
-    """
+    print('#-------------------------------------------------------------#')
 
     # Get some information on the total number of constraints
     ndv = 3 + 3 + 1 + 1 # number of design variabels
@@ -339,4 +239,3 @@ if __name__ == "__main__":
     var_j = sc_obj.variance(of=['fuelburn'])
     print('mu fuelburn = ', mu_j['fuelburn'])
     print('var fuelburn = ', var_j['fuelburn'])
-    """

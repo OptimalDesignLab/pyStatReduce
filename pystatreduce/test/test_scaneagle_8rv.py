@@ -83,49 +83,56 @@ class OASScanEagleTest(unittest.TestCase):
         i = 0
         for rvs in rv_dict:
             if rvs == 'Mach_number':
-                mu[i] = mean_Ma
-                std_dev[i,i] = std_dev_Ma
+                mu[i] = rv_dict[rvs]['mean']
+                std_dev[i,i] = rv_dict[rvs]['std_dev']
             elif rvs == 'CT':
-                mu[i] = mean_TSFC
-                std_dev[i,i] = std_dev_TSFC
+                mu[i] = rv_dict[rvs]['mean']
+                std_dev[i,i] = rv_dict[rvs]['std_dev']
             elif rvs == 'W0':
-                mu[i] = mean_W0
-                std_dev[i,i] = std_dev_W0
+                mu[i] = rv_dict[rvs]['mean']
+                std_dev[i,i] = rv_dict[rvs]['std_dev']
             elif rvs == 'mrho':
-                mu[i] = mean_mrho
-                std_dev[i,i] = std_dev_mrho
+                mu[i] = rv_dict[rvs]['mean']
+                std_dev[i,i] = rv_dict[rvs]['std_dev']
             elif rvs == 'R':
-                mu[i] = mean_R
-                std_dev[i,i] = std_dev_R
+                mu[i] = rv_dict[rvs]['mean']
+                std_dev[i,i] = rv_dict[rvs]['std_dev']
             elif rvs == 'load_factor':
-                mu[i] = mean_load_factor
-                std_dev[i,i] = std_dev_load_factor
+                mu[i] = rv_dict[rvs]['mean']
+                std_dev[i,i] = rv_dict[rvs]['std_dev']
             elif rvs == 'E':
-                mu[i] = mean_E
-                std_dev[i,i] = std_dev_E
+                mu[i] = rv_dict[rvs]['mean']
+                std_dev[i,i] = rv_dict[rvs]['std_dev']
             elif rvs == 'G':
-                mu[i] = mean_G
-                std_dev[i,i] = std_dev_G
+                mu[i] = rv_dict[rvs]['mean']
+                std_dev[i,i] = rv_dict[rvs]['std_dev']
             i += 1
 
         return mu, std_dev
 
     def test_deterministic_model(self):
         # Check if the quantity of interest is being computed as expected
-        uq_systemsize = 8
-        mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho, mean_R, mean_load_factor])
-        std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50, 100e3, 0.02])
-        jdist = cp.MvNormal(mu_orig, std_dev)
+        rv_dict = { 'Mach_number' : {'mean' : mean_Ma,
+                                     'std_dev' : std_dev_Ma},
+                    'CT' : {'mean' : mean_TSFC,
+                            'std_dev' : std_dev_TSFC},
+                    'W0' : {'mean' : mean_W0,
+                            'std_dev' : std_dev_W0},
+                    'R' : {'mean' : mean_R,
+                           'std_dev' : std_dev_R},
+                    'load_factor' : {'mean' : mean_load_factor,
+                                     'std_dev' : std_dev_load_factor},
+                    'E' : {'mean' : mean_E,
+                           'std_dev' : std_dev_E},
+                    'G' : {'mean' : mean_G,
+                           'std_dev' : std_dev_G},
+                    'mrho' : {'mean' : mean_mrho,
+                             'std_dev' : std_dev_mrho},
+                   }
 
-        rv_dict = {'Mach_number' : mean_Ma,
-                   'CT' : mean_TSFC,
-                   'W0' : mean_W0,
-                   'E' : mean_E, # surface RV
-                   'G' : mean_G, # surface RV
-                   'mrho' : mean_mrho, # surface RV
-                   'R' : mean_R,
-                   'load_factor' : mean_load_factor,
-                    }
+        uq_systemsize = len(rv_dict)
+        mu_orig, std_dev = self.get_input_rv_statistics(rv_dict)
+        jdist = cp.MvNormal(mu_orig, std_dev)
 
         input_dict = {'n_twist_cp' : 3,
                    'n_thickness_cp' : 3,
@@ -152,20 +159,27 @@ class OASScanEagleTest(unittest.TestCase):
         self.assertTrue(err < 1.e-6)
 
     def test_dfuelburn_drv(self):
-        uq_systemsize = 8
-        mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho, mean_R, mean_load_factor])
-        std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50, 100e3, 0.02])
-        jdist = cp.MvNormal(mu_orig, std_dev)
+        rv_dict = { 'Mach_number' : {'mean' : mean_Ma,
+                                     'std_dev' : std_dev_Ma},
+                    'CT' : {'mean' : mean_TSFC,
+                            'std_dev' : std_dev_TSFC},
+                    'W0' : {'mean' : mean_W0,
+                            'std_dev' : std_dev_W0},
+                    'R' : {'mean' : mean_R,
+                           'std_dev' : std_dev_R},
+                    'load_factor' : {'mean' : mean_load_factor,
+                                     'std_dev' : std_dev_load_factor},
+                    'E' : {'mean' : mean_E,
+                           'std_dev' : std_dev_E},
+                    'G' : {'mean' : mean_G,
+                           'std_dev' : std_dev_G},
+                    'mrho' : {'mean' : mean_mrho,
+                             'std_dev' : std_dev_mrho},
+                   }
 
-        rv_dict = {'Mach_number' : mean_Ma,
-                   'CT' : mean_TSFC,
-                   'W0' : mean_W0,
-                   'E' : mean_E, # surface RV
-                   'G' : mean_G, # surface RV
-                   'mrho' : mean_mrho, # surface RV
-                   'R' : mean_R,
-                   'load_factor' : mean_load_factor,
-                    }
+        uq_systemsize = len(rv_dict)
+        mu_orig, std_dev = self.get_input_rv_statistics(rv_dict)
+        jdist = cp.MvNormal(mu_orig, std_dev)
 
         input_dict = {'n_twist_cp' : 3,
                    'n_thickness_cp' : 3,
@@ -184,29 +198,36 @@ class OASScanEagleTest(unittest.TestCase):
         true_val = np.array([-86.161737972784,
                              73657.54314740685,
                              0.439735298404,
+                             0.00000345115,
+                             6.014451860042,
                              -7.34403789212763e-13,
                              -2.527193348815028e-13,
-                             0.879771028302,
-                             0.00000345115,
-                             6.014451860042])
+                             0.879771028302])
         err = abs(dJdrv - true_val) / true_val
         self.assertTrue((err < 1.e-6).all())
 
     def test_variable_update(self):
-        uq_systemsize = 8
-        mu_orig = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho, mean_R, mean_load_factor])
-        std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50, 100e3, 0.02])
-        jdist = cp.MvNormal(mu_orig, std_dev)
+        rv_dict = { 'Mach_number' : {'mean' : mean_Ma,
+                                     'std_dev' : std_dev_Ma},
+                    'CT' : {'mean' : mean_TSFC,
+                            'std_dev' : std_dev_TSFC},
+                    'W0' : {'mean' : mean_W0,
+                            'std_dev' : std_dev_W0},
+                    'R' : {'mean' : mean_R,
+                           'std_dev' : std_dev_R},
+                    'load_factor' : {'mean' : mean_load_factor,
+                                     'std_dev' : std_dev_load_factor},
+                    'E' : {'mean' : mean_E,
+                           'std_dev' : std_dev_E},
+                    'G' : {'mean' : mean_G,
+                           'std_dev' : std_dev_G},
+                    'mrho' : {'mean' : mean_mrho,
+                             'std_dev' : std_dev_mrho},
+                   }
 
-        rv_dict = {'Mach_number' : mean_Ma,
-                   'CT' : mean_TSFC,
-                   'W0' : mean_W0,
-                   'E' : mean_E, # surface RV
-                   'G' : mean_G, # surface RV
-                   'mrho' : mean_mrho, # surface RV
-                   'R' : mean_R,
-                   'load_factor' : mean_load_factor,
-                    }
+        uq_systemsize = len(rv_dict)
+        mu_orig, std_dev = self.get_input_rv_statistics(rv_dict)
+        jdist = cp.MvNormal(mu_orig, std_dev)
 
         input_dict = {'n_twist_cp' : 3,
                    'n_thickness_cp' : 3,
@@ -226,22 +247,30 @@ class OASScanEagleTest(unittest.TestCase):
         self.assertEqual(mu_pert[0], QoI.p['Mach_number'])
         self.assertEqual(mu_pert[1], QoI.p['CT'])
         self.assertEqual(mu_pert[2], QoI.p['W0'])
-        self.assertEqual(mu_pert[3], QoI.p['E'])
-        self.assertEqual(mu_pert[4], QoI.p['G'])
-        self.assertEqual(mu_pert[5], QoI.p['mrho'])
-        self.assertEqual(mu_pert[6], QoI.p['R'])
-        self.assertEqual(mu_pert[7], QoI.p['load_factor'])
+        self.assertEqual(mu_pert[3], QoI.p['R'])
+        self.assertEqual(mu_pert[4], QoI.p['load_factor'])
+        self.assertEqual(mu_pert[5], QoI.p['E'])
+        self.assertEqual(mu_pert[6], QoI.p['G'])
+        self.assertEqual(mu_pert[7], QoI.p['mrho'])
 
     def test_selective_rv(self):
-        rv_dict = {'Mach_number' : mean_Ma,
-                   'CT' : mean_TSFC,
-                   'W0' : mean_W0,
-                   'R' : mean_R,
-                   'load_factor' : mean_load_factor,
-                   # 'E' : mean_E, # surface RV
-                   # 'G' : mean_G, # surface RV
-                   'mrho' : mean_mrho, # surface RV
-                    }
+        rv_dict = { 'Mach_number' : {'mean' : mean_Ma,
+                                     'std_dev' : std_dev_Ma},
+                    'CT' : {'mean' : mean_TSFC,
+                            'std_dev' : std_dev_TSFC},
+                    'W0' : {'mean' : mean_W0,
+                            'std_dev' : std_dev_W0},
+                    'R' : {'mean' : mean_R,
+                           'std_dev' : std_dev_R},
+                    'load_factor' : {'mean' : mean_load_factor,
+                                     'std_dev' : std_dev_load_factor},
+                    # 'E' : {'mean' : mean_E,
+                    #        'std_dev' : std_dev_E},
+                    # 'G' : {'mean' : mean_G,
+                    #        'std_dev' : std_dev_G},
+                    'mrho' : {'mean' : mean_mrho,
+                             'std_dev' : std_dev_mrho},
+                   }
 
         input_dict = {'n_twist_cp' : 3,
                    'n_thickness_cp' : 3,
@@ -268,8 +297,6 @@ class OASScanEagleTest(unittest.TestCase):
         self.assertEqual(mu_pert[3], QoI.p['R'])
         self.assertEqual(mu_pert[4], QoI.p['load_factor'])
         self.assertEqual(mu_pert[5], QoI.p['mrho'])
-
-
 
     """
     def test_dominant_dir(self):

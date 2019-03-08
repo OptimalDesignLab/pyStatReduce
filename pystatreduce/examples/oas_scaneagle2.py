@@ -39,38 +39,38 @@ class OASScanEagleWrapper2(QuantityOfInterest):
 
         # Declare rvs units to ensure type stability
         if 'Mach_number' in self.rv_dict:
-            self.rvs.add_output('Mach_number', val=self.rv_dict['Mach_number'])
+            self.rvs.add_output('Mach_number', val=self.rv_dict['Mach_number']['mean'])
             self.p.model.connect('Mach_number', 'oas_scaneagle.Mach_number')
 
         if 'CT' in self.rv_dict:
-            self.rvs.add_output('CT', val=self.rv_dict['CT'], units='1/s') # TSFC
+            self.rvs.add_output('CT', val=self.rv_dict['CT']['mean'], units='1/s') # TSFC
             self.p.model.connect('CT', 'oas_scaneagle.CT')
 
         if 'W0' in self.rv_dict:
-            self.rvs.add_output('W0', val=self.rv_dict['W0'],  units='kg')
+            self.rvs.add_output('W0', val=self.rv_dict['W0']['mean'],  units='kg')
             self.p.model.connect('W0', 'oas_scaneagle.W0')
 
         if 'R' in self.rv_dict:
-            self.rvs.add_output('R', val=self.rv_dict['R'], units='m')
+            self.rvs.add_output('R', val=self.rv_dict['R']['mean'], units='m')
             self.p.model.connect('R', 'oas_scaneagle.R')
 
         if 'load_factor' in self.rv_dict:
-            self.rvs.add_output('load_factor', val=self.rv_dict['load_factor'])
+            self.rvs.add_output('load_factor', val=self.rv_dict['load_factor']['mean'])
             self.p.model.connect('load_factor', 'oas_scaneagle.load_factor')
             self.p.model.connect('load_factor', 'oas_scaneagle.AS_point_0.coupled.wing.load_factor')
 
         if 'E' in self.rv_dict:
-            self.rvs.add_output('E', val=self.rv_dict['E'], units='N/m**2')
+            self.rvs.add_output('E', val=self.rv_dict['E']['mean'], units='N/m**2')
             self.p.model.connect('E', 'oas_scaneagle.wing.struct_setup.assembly.E')
             self.p.model.connect('E', 'oas_scaneagle.AS_point_0.wing_perf.struct_funcs.vonmises.E')
 
         if 'G' in self.rv_dict:
-            self.rvs.add_output('G', val=self.rv_dict['G'], units='N/m**2')
+            self.rvs.add_output('G', val=self.rv_dict['G']['mean'], units='N/m**2')
             self.p.model.connect('G', 'oas_scaneagle.wing.struct_setup.assembly.G')
             self.p.model.connect('G', 'oas_scaneagle.AS_point_0.wing_perf.struct_funcs.vonmises.G')
 
         if 'mrho' in self.rv_dict:
-            self.rvs.add_output('mrho', val=self.rv_dict['mrho'], units='kg/m**3')
+            self.rvs.add_output('mrho', val=self.rv_dict['mrho']['mean'], units='kg/m**3')
             self.p.model.connect('mrho', 'oas_scaneagle.wing.struct_setup.structural_weight.mrho')
 
         self.p.setup(check=False)
