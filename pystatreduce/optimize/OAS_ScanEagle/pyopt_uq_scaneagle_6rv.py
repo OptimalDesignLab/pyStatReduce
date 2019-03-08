@@ -300,7 +300,14 @@ if __name__ == "__main__":
     elif sys.argv[1] == "debug":
         uq_systemsize = 6
         UQObj = UQScanEagleOpt(uq_systemsize, all_rv=True)
+
+        # Compute gradient
+        mu = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho])
+        grad = UQObj.QoI.eval_QoIGradient(mu, np.zeros(uq_systemsize))
+        print('\ngrad =', grad)
+        # print('grad[4] =', grad[4])
         print("eigenvals = ", UQObj.dominant_space.iso_eigenvals)
+        print('eigenvecs = \n', UQObj.dominant_space.iso_eigenvecs)
 
     elif sys.argv[1] == "full_collocation":
         uq_systemsize = 6
