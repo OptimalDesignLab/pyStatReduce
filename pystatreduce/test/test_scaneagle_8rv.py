@@ -21,7 +21,7 @@ from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 import pystatreduce.examples as examples
 import pystatreduce.utils as utils
 
-np.set_printoptions(precision=8)
+np.set_printoptions(precision=12)
 np.set_printoptions(linewidth=150, suppress=True)
 
 #pyoptsparse sepecific imports
@@ -38,8 +38,6 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-np.set_printoptions(precision=12)
-
 # Default mean values
 mean_Ma = 0.071
 mean_TSFC = 9.80665 * 8.6e-6
@@ -49,6 +47,7 @@ mean_G = 25.e9
 mean_mrho = 1600
 mean_R = 1800e3
 mean_load_factor = 1.0
+mean_altitude = 4.57e3
 # Default standard values
 std_dev_Ma = 0.005
 std_dev_TSFC = 0.00607/3600
@@ -58,6 +57,7 @@ std_dev_R = 500.e3
 std_dev_load_factor = 0.1
 std_dev_E = 5.e9
 std_dev_G = 1.e9
+std_dev_altitude = 0.5e3
 
 # Total number of nodes to use in the spanwise (num_y) and
 # chordwise (num_x) directions. Vary these to change the level of fidelity.
@@ -234,6 +234,8 @@ class OASScanEagleTest(unittest.TestCase):
                     #        'std_dev' : std_dev_G},
                     'mrho' : {'mean' : mean_mrho,
                              'std_dev' : std_dev_mrho},
+                    'altitude' :{'mean' : mean_altitude,
+                                 'std_dev' : std_dev_altitude},
                    }
 
         input_dict = {'n_twist_cp' : 3,
@@ -261,6 +263,7 @@ class OASScanEagleTest(unittest.TestCase):
         self.assertEqual(mu_pert[3], QoI.p['R'])
         self.assertEqual(mu_pert[4], QoI.p['load_factor'])
         self.assertEqual(mu_pert[5], QoI.p['mrho'])
+        self.assertEqual(mu_pert[6], QoI.p['altitude'])
 
     """
     def test_dominant_dir(self):

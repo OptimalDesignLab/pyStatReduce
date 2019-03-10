@@ -73,7 +73,11 @@ class OASScanEagleWrapper2(QuantityOfInterest):
             self.rvs.add_output('mrho', val=self.rv_dict['mrho']['mean'], units='kg/m**3')
             self.p.model.connect('mrho', 'oas_scaneagle.wing.struct_setup.structural_weight.mrho')
 
-        self.p.setup(check=False)
+        if 'altitude' in self.rv_dict:
+            self.rvs.add_output('altitude', val=4.57e3, units='m')
+            self.p.model.connect('altitude', 'oas_scaneagle.altitude')
+
+        self.p.setup(check=True)
 
         # Set up reusable arrays
         self.dJ_ddv = np.zeros(self.input_dict['ndv'], dtype=self.data_type) # Used in eval_ObjGradient_dv

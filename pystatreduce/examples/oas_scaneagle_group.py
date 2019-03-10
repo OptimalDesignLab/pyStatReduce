@@ -125,7 +125,7 @@ class OASScanEagle(Group):
         indep_var_comp = IndepVarComp()
         # indep_var_comp.add_output('v', val=22.876, units='m/s')
         indep_var_comp.add_output('alpha', val=5., units='deg')
-        indep_var_comp.add_output('altitude', val=4.57e3, units='m')
+        # indep_var_comp.add_output('altitude', val=4.57e3, units='m')
         # indep_var_comp.add_output('re', val=1.e6, units='1/m')
         # indep_var_comp.add_output('rho', val=0.770816, units='kg/m**3')
         # indep_var_comp.add_output('speed_of_sound', val=322.2, units='m/s')
@@ -149,6 +149,8 @@ class OASScanEagle(Group):
             indep_var_comp.add_output('G', val=25.e9, units='N/m**2')
         if 'mrho' not in rv_dict:
             indep_var_comp.add_output('mrho', val=1600, units='kg/m**3')
+        if 'altitude' not in rv_dict:
+            indep_var_comp.add_output('altitude', val=4.57e3, units='m')
 
         self.add_subsystem('prob_vars', indep_var_comp, promotes=['*'])
         # Add atmosphere related properties
