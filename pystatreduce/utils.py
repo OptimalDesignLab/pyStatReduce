@@ -117,6 +117,9 @@ def get_scaneagle_input_rv_statistics(rv_dict):
         elif rvs == 'G':
             mu[i] = rv_dict[rvs]['mean']
             std_dev[i,i] = rv_dict[rvs]['std_dev']
+        elif rvs == 'altitude':
+            mu[i] = rv_dict[rvs]['mean']
+            std_dev[i,i] = rv_dict[rvs]['std_dev']
         i += 1
 
     return mu, std_dev
