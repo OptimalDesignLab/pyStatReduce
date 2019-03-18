@@ -149,7 +149,7 @@ class OASScanEagle(Group):
         if 'mrho' not in rv_dict:
             indep_var_comp.add_output('mrho', val=1600, units='kg/m**3')
         if 'altitude' not in rv_dict:
-            indep_var_comp.add_output('altitude', val=4.57e3, units='m')
+            indep_var_comp.add_output('altitude', val=4.57, units='km')
 
         self.add_subsystem('prob_vars', indep_var_comp, promotes=['*'])
         # Add atmosphere related properties

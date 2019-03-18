@@ -74,7 +74,7 @@ class OASScanEagleWrapper2(QuantityOfInterest):
             self.p.model.connect('mrho', 'oas_scaneagle.wing.struct_setup.structural_weight.mrho')
 
         if 'altitude' in self.rv_dict:
-            self.rvs.add_output('altitude', val=4.57e3, units='m')
+            self.rvs.add_output('altitude', val=self.rv_dict['altitude']['mean'], units='km')
             self.p.model.connect('altitude', 'oas_scaneagle.altitude')
 
         self.p.setup(check=False)
