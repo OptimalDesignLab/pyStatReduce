@@ -77,7 +77,7 @@ class OASScanEagleWrapper2(QuantityOfInterest):
             self.rvs.add_output('altitude', val=4.57e3, units='m')
             self.p.model.connect('altitude', 'oas_scaneagle.altitude')
 
-        self.p.setup(check=True)
+        self.p.setup(check=False)
 
         # Set up reusable arrays
         self.dJ_ddv = np.zeros(self.input_dict['ndv'], dtype=self.data_type) # Used in eval_ObjGradient_dv
