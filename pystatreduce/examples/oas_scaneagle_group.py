@@ -139,7 +139,7 @@ class OASScanEagle(Group):
         if 'W0' not in rv_dict:
             indep_var_comp.add_output('W0', val=10.0,  units='kg')
         if 'R' not in rv_dict:
-            indep_var_comp.add_output('R', val=1800e3, units='m')
+            indep_var_comp.add_output('R', val=1800, units='km')
         if 'load_factor' not in rv_dict:
             indep_var_comp.add_output('load_factor', val=1.)
         if 'E' not in rv_dict:

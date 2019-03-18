@@ -51,7 +51,7 @@ class OASScanEagleWrapper2(QuantityOfInterest):
             self.p.model.connect('W0', 'oas_scaneagle.W0')
 
         if 'R' in self.rv_dict:
-            self.rvs.add_output('R', val=self.rv_dict['R']['mean'], units='m')
+            self.rvs.add_output('R', val=self.rv_dict['R']['mean'], units='km')
             self.p.model.connect('R', 'oas_scaneagle.R')
 
         if 'load_factor' in self.rv_dict:

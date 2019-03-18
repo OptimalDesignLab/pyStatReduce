@@ -45,7 +45,7 @@ mean_W0 = 10.0
 mean_E = 85.e9
 mean_G = 25.e9
 mean_mrho = 1600
-mean_R = 1800e3
+mean_R = 1800
 mean_load_factor = 1.0
 mean_altitude = 4.57e3
 # Default standard values
@@ -53,7 +53,7 @@ std_dev_Ma = 0.005
 std_dev_TSFC = 0.00607/3600
 std_dev_W0 = 0.2
 std_dev_mrho = 50
-std_dev_R = 500.e3
+std_dev_R = 500
 std_dev_load_factor = 0.1
 std_dev_E = 5.e9
 std_dev_G = 1.e9
@@ -158,11 +158,10 @@ class OASScanEagleTest(unittest.TestCase):
         QoI = examples.oas_scaneagle2.OASScanEagleWrapper2(uq_systemsize, input_dict)
         dJdrv = QoI.eval_QoIGradient(mu_orig, np.zeros(uq_systemsize))
 
-        # print('dJdrv = ', dJdrv)
         true_val = np.array([-86.161737972784,
                              73657.54314740685,
                              0.439735298404,
-                             0.00000345115,
+                             0.003451150117,
                              6.014451860042,
                              -7.34403789212763e-13,
                              -2.527193348815028e-13,
