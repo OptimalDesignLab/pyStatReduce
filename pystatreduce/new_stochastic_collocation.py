@@ -199,7 +199,10 @@ class StochasticCollocation2(object):
                 dstd_dev_val[i] = {}
                 for j in wrt:
                     if j in self.QoI_dict[i]['deriv_dict']:
-                        dstd_dev_val[i][j] = 0.5 * dvar[i][j] / np.sqrt(var[i])
+                        if abs(var[i]) > 10 * np.finfo(self.data_type).eps:
+                            dstd_dev_val[i][j] = 0.5 * dvar[i][j] / np.sqrt(var[i])
+                        else:
+                            dstd_dev_val[i][j] = np.zeros(dvar[i][j].shape, dtype=self.data_type)
         return dstd_dev_val
 
     def __compute_quad(self, sqrt_Sigma, ref_collocation_pts, ref_collocation_w,
