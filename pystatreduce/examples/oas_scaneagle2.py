@@ -43,7 +43,8 @@ class OASScanEagleWrapper2(QuantityOfInterest):
             self.p.model.connect('Mach_number', 'oas_scaneagle.Mach_number')
 
         if 'CT' in self.rv_dict:
-            self.rvs.add_output('CT', val=self.rv_dict['CT']['mean'], units='1/s') # TSFC
+            # self.rvs.add_output('CT', val=self.rv_dict['CT']['mean'], units='1/s') # TSFC
+            self.rvs.add_output('CT', val=self.rv_dict['CT']['mean'], units='1/h') # TSFC
             self.p.model.connect('CT', 'oas_scaneagle.CT')
 
         if 'W0' in self.rv_dict:

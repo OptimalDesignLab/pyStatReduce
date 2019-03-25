@@ -145,7 +145,8 @@ class OASScanEagle(Group):
         if 'E' not in rv_dict:
             indep_var_comp.add_output('E', val=85.e9, units='N/m**2')
         if 'G' not in rv_dict:
-            indep_var_comp.add_output('G', val=25.e9, units='N/m**2')
+            # indep_var_comp.add_output('G', val=25.e9, units='N/m**2')
+            indep_var_comp.add_output('G', val=5.e9, units='N/m**2')
         if 'mrho' not in rv_dict:
             indep_var_comp.add_output('mrho', val=1600, units='kg/m**3')
         if 'altitude' not in rv_dict:

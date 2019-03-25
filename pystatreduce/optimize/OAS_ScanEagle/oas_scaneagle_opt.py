@@ -26,25 +26,6 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-# Default mean values
-mean_Ma = 0.071
-mean_TSFC = 9.80665 * 8.6e-6
-mean_W0 = 10.0
-mean_E = 85.e9
-mean_G = 25.e9
-mean_mrho = 1600
-mean_R = 1800e3
-mean_load_factor = 1.0
-# Default standard values
-std_dev_Ma = 0.005
-std_dev_TSFC = 0.00607/3600
-std_dev_W0 = 0.2
-std_dev_mrho = 50
-std_dev_R = 500.e3
-std_dev_load_factor = 0.1
-std_dev_E = 5.e9
-std_dev_G = 1.e9
-
 class UQScanEagleOpt(object):
     """
     This class is the conduit for linking pyStatReduce and OpenAeroStruct with
@@ -83,8 +64,8 @@ class UQScanEagleOpt(object):
         self.jdist = cp.MvNormal(mu, std_dev)
         self.QoI = examples.oas_scaneagle2.OASScanEagleWrapper2(self.uq_systemsize,
                                                                 dv_dict)
-        self.QoI.p['oas_scaneagle.wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5]) # This setup is according to the one in the scaneagle paper
-        self.QoI.p['oas_scaneagle.wing.twist_cp'] = 2.5*np.ones(3)
+        self.QoI.p['oas_scaneagle.wing.thickness_cp'] = np.array([0.008, 0.008, 0.008]) # 1.e-3 * np.array([5.5, 5.5, 5.5]) # This setup is according to the one in the scaneagle paper
+        self.QoI.p['oas_scaneagle.wing.twist_cp'] = np.array([2.5, 2.5, 5.0]) # 2.5*np.ones(3)
         self.QoI.p['oas_scaneagle.wing.sweep'] = 20.0
         self.QoI.p['oas_scaneagle.alpha'] = 5.0
         self.QoI.p.final_setup()
@@ -123,11 +104,48 @@ class UQScanEagleOpt(object):
         return mu, std_dev
 
 if __name__ == "__main__":
-    # Set some of the initial values of the design variables
-    init_twist_cp = np.array([2.5, 2.5, 2.5])
-    init_thickness_cp = 1.e-3 * np.array([5.5, 5.5, 5.5]) # np.array([0.008, 0.008, 0.008])
-    init_sweep = 20.0
-    init_alpha = 5.
+    # Default mean values
+    mean_Ma = 0.071
+    mean_TSFC = 9.80665 * 8.6e-6
+    mean_W0 = 10.0
+    mean_E = 85.e9
+    mean_G = 25.e9
+    mean_mrho = 1600
+    mean_R = 1800
+    mean_load_factor = 1.0
+    mean_altitude = 4.57
+    # Default standard values
+    std_dev_Ma = 0.005
+    std_dev_TSFC = 0.00607/3600
+    std_dev_W0 = 0.2
+    std_dev_mrho = 50
+    std_dev_R = 500
+    std_dev_load_factor = 0.1
+    std_dev_E = 5.e9
+    std_dev_G = 1.e9
+    std_dev_altitude = 0.5
+    
+    # Random variable
+    rv_dict = { 'Mach_number' : {'mean' : mean_Ma,
+                                 'std_dev' : std_dev_Ma},
+                'CT' : {'mean' : mean_TSFC,
+                        'std_dev' : std_dev_TSFC},
+                'W0' : {'mean' : mean_W0,
+                        'std_dev' : std_dev_W0},
+                'R' : {'mean' : mean_R,
+                       'std_dev' : std_dev_R},
+                'load_factor' : {'mean' : mean_load_factor,
+                                 'std_dev' : std_dev_load_factor},
+                'mrho' : {'mean' : mean_mrho,
+                         'std_dev' : std_dev_mrho},
+                'altitude' :{'mean' : mean_altitude,
+                             'std_dev' : std_dev_altitude},
+               }
 
-    start_time = time.time()
-    UQObj = UQScanEagleOpt()
+
+    UQObj = UQScanEagleOpt(rv_dict)
+    print("Design variables")
+    print('thickness_cp = ', UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'])
+    print('twist_cp = ', UQObj.QoI.p['oas_scaneagle.wing.twist_cp'])
+    print('sweep = ', UQObj.QoI.p['oas_scaneagle.wing.sweep'])
+    print('alpha = ', UQObj.QoI.p['oas_scaneagle.alpha'])
