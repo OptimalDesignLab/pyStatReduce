@@ -62,6 +62,7 @@ class UQScanEagleOpt(object):
 
         mu, std_dev = self.get_input_rv_statistics(rv_dict)
         self.jdist = cp.MvNormal(mu, std_dev)
+        # self.jdist = cp.MvNormal(mu, np.zeros([len(mu), len(mu)]))
         self.QoI = examples.oas_scaneagle2.OASScanEagleWrapper2(self.uq_systemsize,
                                                                 dv_dict)
         self.QoI.p['oas_scaneagle.wing.thickness_cp'] = np.array([0.008, 0.008, 0.008]) # 1.e-3 * np.array([5.5, 5.5, 5.5]) # This setup is according to the one in the scaneagle paper
@@ -124,7 +125,7 @@ if __name__ == "__main__":
     std_dev_E = 5.e9
     std_dev_G = 1.e9
     std_dev_altitude = 0.5
-    
+
     # Random variable
     rv_dict = { 'Mach_number' : {'mean' : mean_Ma,
                                  'std_dev' : std_dev_Ma},

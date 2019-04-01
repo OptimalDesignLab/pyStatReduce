@@ -47,7 +47,7 @@ mean_G = 25.e9
 mean_mrho = 1600
 mean_R = 1800
 mean_load_factor = 1.0
-mean_altitude = 4.57e3
+mean_altitude = 4.57
 # Default standard values
 std_dev_Ma = 0.005
 std_dev_TSFC = 0.00607/3600
@@ -57,7 +57,7 @@ std_dev_R = 500
 std_dev_load_factor = 0.1
 std_dev_E = 5.e9
 std_dev_G = 1.e9
-std_dev_altitude = 0.5e3
+std_dev_altitude = 0.5
 
 # Total number of nodes to use in the spanwise (num_y) and
 # chordwise (num_x) directions. Vary these to change the level of fidelity.

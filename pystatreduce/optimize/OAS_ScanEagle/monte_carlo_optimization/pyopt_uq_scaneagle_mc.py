@@ -35,14 +35,14 @@ mean_W0 = 10.0
 mean_E = 85.e9
 mean_G = 25.e9
 mean_mrho = 1600
-mean_R = 1800e3
+mean_R = 1800
 mean_load_factor = 1.0
 # Default standard values
 std_dev_Ma = 0.005
 std_dev_TSFC = 0.00607/3600
 std_dev_W0 = 0.2
 std_dev_mrho = 50
-std_dev_R = 500.e3
+std_dev_R = 500
 std_dev_load_factor = 0.1
 std_dev_E = 5.e9
 std_dev_G = 1.e9
@@ -208,9 +208,10 @@ if __name__ == "__main__":
         optProb.addObj('obj')
         opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
         sol = opt(optProb, sens=sens_uq)
-        sol = opt(optProb)
+
         end_time = time.time()
         elapsed_time = end_time - start_time
+
         print(sol)
         print(sol.fStar)
         print()

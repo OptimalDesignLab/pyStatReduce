@@ -115,15 +115,11 @@ prob = Problem()
 # Add problem information as an independent variables component
 indep_var_comp = IndepVarComp()
 indep_var_comp.add_output('alpha', val=5., units='deg')
-indep_var_comp.add_output('Mach_number', val=0.071)
-indep_var_comp.add_output('altitude', val=4.57e3, units='m')
-# indep_var_comp.add_output('v', val=22.876, units='m/s')
-# indep_var_comp.add_output('re', val=1.e6, units='1/m')
-# indep_var_comp.add_output('rho', val=0.770816, units='kg/m**3')
+indep_var_comp.add_output('Mach_number', val=0.08) # val=0.071)
+indep_var_comp.add_output('altitude', val=4.57, units='km')
 indep_var_comp.add_output('CT', val=9.80665 * 8.6e-6, units='1/s') # TSFC
-indep_var_comp.add_output('R', val=1800e3, units='m')
+indep_var_comp.add_output('R', val=1800, units='km')
 indep_var_comp.add_output('W0', val=10.,  units='kg')
-# indep_var_comp.add_output('speed_of_sound', val=322.2, units='m/s')
 indep_var_comp.add_output('load_factor', val=1.)
 indep_var_comp.add_output('empty_cg', val=np.array([0.2, 0., 0.]), units='m')
 indep_var_comp.add_output('E', val=85.e9, units='N/m**2')
@@ -225,22 +221,23 @@ prob.model.add_constraint('wing.twist_cp', lower=np.array([-1e20, -1e20, 5.]), u
 
 # We're trying to minimize fuel burn
 prob.model.add_objective('AS_point_0.fuelburn', scaler=.1)
+# prob.model.add_objective('wing.structural_weight')
 
 # Set up the problem
 prob.setup(check=True)
 
-# Use this if you just want to run analysis and not optimization
 prob.run_model()
-
-# # Actually run the optimization problem
+# print('fburn = ', prob['AS_point_0.fuelburn'])
+# Actually run the optimization problem
 # prob.run_driver()
-print('v = ', prob['v'])
-print('re = ', prob['re'])
-print('rho = ', prob['rho'])
-print('speed_of_sound = ', prob['speed_of_sound'])
-print()
 print("fval = ", prob['AS_point_0.fuelburn'][0])
-print("twist = ", prob['wing.geometry.twist'])
-print("thickness = ", prob['wing.thickness'])
+print('failure = ', prob['AS_point_0.wing_perf.failure'])
+print('lift con = ', prob['AS_point_0.L_equals_W'])
+print('thickness_intersects = \n', prob['AS_point_0.wing_perf.thickness_intersects'])
+print('CM = ', prob['AS_point_0.CM'])
+# print('wing weight = ', prob['wing.structural_weight'])
+print()
+print("twist_cp = ", prob['wing.twist_cp'])
+print("thickness = ", prob['wing.thickness_cp'])
 print("sweep = ", prob['wing.sweep'])
 print("aoa = ", prob['alpha'])

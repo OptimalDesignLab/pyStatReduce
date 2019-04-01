@@ -36,23 +36,25 @@ from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
 # Default mean values
-mean_Ma = 0.071
-mean_TSFC = 9.80665 * 8.6e-6
-mean_W0 = 10.0
+mean_Ma = 0.08
+mean_TSFC = 9.80665 * 8.6e-6 * 3600
+mean_W0 = 10 # 10.0
 mean_E = 85.e9
 mean_G = 25.e9
 mean_mrho = 1600
 mean_R = 1800
 mean_load_factor = 1.0
+mean_altitude = 4.57
 # Default standard values
-std_dev_Ma = 0.005
-std_dev_TSFC = 0.00607/3600
-std_dev_W0 = 0.2
+std_dev_Ma = 0.005 # 0.015
+std_dev_TSFC = 0.00607 # /3600
+std_dev_W0 = 1
 std_dev_mrho = 50
-std_dev_R = 500
-std_dev_load_factor = 0.1
+std_dev_R = 300 # 500
+std_dev_load_factor = 0.3
 std_dev_E = 5.e9
 std_dev_G = 1.e9
+std_dev_altitude = 0.1
 
 def objfunc_uq(xdict):
     #
@@ -117,7 +119,6 @@ def sens_uq(xdict, funcs):
 
     dmu_con = dmu_js['constraints']['dv']
     dstd_dev_con = dstd_dev_js['con_failure']['dv']
-    # print('dstd_dev_con = ', dstd_dev_con)
     funcsSens['con_failure', 'twist_cp'] = dmu_con[0,0:n_twist_cp] + rdo_factor * dstd_dev_con[0,0:n_twist_cp]
     funcsSens['con_failure', 'thickness_cp'] = dmu_con[0,n_twist_cp:n_cp] + rdo_factor * dstd_dev_con[0,n_twist_cp:n_cp]
     funcsSens['con_failure', 'sweep'] = dmu_con[0,n_cp] + rdo_factor * dstd_dev_con[0,n_cp]
@@ -161,13 +162,10 @@ if __name__ == "__main__":
                        'std_dev' : std_dev_R},
                 'load_factor' : {'mean' : mean_load_factor,
                                  'std_dev' : std_dev_load_factor},
-                # 'E' : {'mean' : mean_E,
-                #        'std_dev' : std_dev_E},
-                # 'G' : {'mean' : mean_G,
-                #        'std_dev' : std_dev_G},
                 'mrho' : {'mean' : mean_mrho,
                          'std_dev' : std_dev_mrho},
-
+                'altitude' : {'mean' : mean_altitude,
+                              'std_dev' : std_dev_altitude},
                }
 
     # Set some of the initial values of the design variables
@@ -183,7 +181,8 @@ if __name__ == "__main__":
 
     # Evaluate derivatives
     deriv = UQObj.QoI.eval_QoIGradient(cp.E(UQObj.jdist), np.zeros(UQObj.uq_systemsize))
-    print('\nderiv = ', deriv)
+    # print('mu = ', cp.E(UQObj.jdist))
+    # print('\nderiv = ', deriv)
     print("eigenvals = ", UQObj.dominant_space.iso_eigenvals)
     print('eigenvecs = \n', UQObj.dominant_space.iso_eigenvecs)
     print('#-------------------------------------------------------------#')
@@ -199,6 +198,9 @@ if __name__ == "__main__":
                                     include_derivs=True , reduced_collocation=True,
                                     dominant_dir=UQObj.dominant_space.dominant_dir)
     sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
+    # sc_obj = StochasticCollocation2(UQObj.jdist, 1, 'MvNormal', UQObj.QoI_dict,
+    #                                 include_derivs=True , reduced_collocation=False)
+    # sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
 
     # Create the optimization problem for pyOptSparse
     optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc_uq)
@@ -209,7 +211,8 @@ if __name__ == "__main__":
     optProb.addVarGroup('thickness_cp', n_thickness_cp, 'c', lower=0.001,
                         upper=0.01, scale=1.e3, value=init_thickness_cp)
     optProb.addVar('sweep', lower=10., upper=30., value=init_sweep)
-    optProb.addVar('alpha', lower=-10., upper=10.)
+    optProb.addVar('alpha', lower=-10., upper=10., value=init_alpha)
+
     # Constraints
     optProb.addConGroup('con_failure', 1, upper=0.)
     optProb.addConGroup('con_L_equals_W', 1, lower=0., upper=0.)
@@ -220,7 +223,7 @@ if __name__ == "__main__":
                         upper=np.array([1e20, 1e20, 5.]), wrt=['twist_cp'])
 
     # Objective
-    optProb.addObj('obj')
+    optProb.addObj('obj', scale=1.e-1)
     opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
     sol = opt(optProb, sens=sens_uq)
 

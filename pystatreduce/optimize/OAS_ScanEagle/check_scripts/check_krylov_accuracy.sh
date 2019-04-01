@@ -2,7 +2,7 @@
 
 #python scaneagle_check_krylov_pert.py full
 
-declare -a ndirection_array=(1 2 3 4 5 6)
+declare -a ndirection_array=(1 2 3 4 5 6 7)
 
 for i in {0..5}
 do
