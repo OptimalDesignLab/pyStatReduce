@@ -227,14 +227,31 @@ prob.model.add_objective('AS_point_0.fuelburn', scaler=.1)
 prob.setup(check=True)
 
 prob.run_model()
+
+deriv = prob.compute_totals(of=['AS_point_0.wing_perf.failure'],
+                            wrt=['Mach_number', 'CT', 'W0', 'R', 'load_factor', 'mrho', 'altitude'])
+print('#-----------#')
+print(deriv['AS_point_0.wing_perf.failure', 'Mach_number'])
+print(deriv['AS_point_0.wing_perf.failure', 'CT'])
+print(deriv['AS_point_0.wing_perf.failure', 'W0'])
+print(deriv['AS_point_0.wing_perf.failure', 'R'])
+print(deriv['AS_point_0.wing_perf.failure', 'load_factor'])
+print(deriv['AS_point_0.wing_perf.failure', 'mrho'])
+print(deriv['AS_point_0.wing_perf.failure', 'altitude'])
+print('#-----------#')
+
+
 # print('fburn = ', prob['AS_point_0.fuelburn'])
 # Actually run the optimization problem
 # prob.run_driver()
+
+
+
 print("fval = ", prob['AS_point_0.fuelburn'][0])
-print('failure = ', prob['AS_point_0.wing_perf.failure'])
-print('lift con = ', prob['AS_point_0.L_equals_W'])
+print('failure = ', prob['AS_point_0.wing_perf.failure'][0])
+print('lift con = ', prob['AS_point_0.L_equals_W'][0])
 print('thickness_intersects = \n', prob['AS_point_0.wing_perf.thickness_intersects'])
-print('CM = ', prob['AS_point_0.CM'])
+print('CM = ', prob['AS_point_0.CM'][1])
 # print('wing weight = ', prob['wing.structural_weight'])
 print()
 print("twist_cp = ", prob['wing.twist_cp'])

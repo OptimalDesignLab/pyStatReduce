@@ -235,6 +235,8 @@ if __name__ == "__main__":
     print()
     print("twist = ", UQObj.QoI.p['oas_scaneagle.wing.geometry.twist'])
     print("thickness =", UQObj.QoI.p['oas_scaneagle.wing.thickness'])
+    print('\nthickness_cp = ', UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'])
+    print('twist_cp = ', UQObj.QoI.p['oas_scaneagle.wing.twist_cp'])
     print("sweep = ", UQObj.QoI.p['oas_scaneagle.wing.sweep'])
     print("aoa = ", UQObj.QoI.p['oas_scaneagle.alpha'])
     print()
