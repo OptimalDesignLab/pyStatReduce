@@ -8,12 +8,27 @@ class MonteCarlo(object):
     user must create an object of this class in order to propagate uncertainty
     using monte carlo.
     """
-    def __init__(self, nsamples, jdist, QoI_dict, include_derivs=False, data_type=np.float):
+    def __init__(self, nsamples, jdist, QoI_dict, include_derivs=False,
+                 reduced_collocation=False, dominant_dir=None, data_type=np.float):
         assert nsamples > 0, "Number of MonteCarlo samples must be greater than 0"
         self.num_samples = nsamples
         self.data_type = data_type # To enable complex variables
         self.QoI_dict = QoI_dict
-        self.samples = jdist.sample(self.num_samples)
+
+        if reduced_collocation == False:
+            self.samples = jdist.sample(self.num_samples)
+        else:
+            # !!! This implementation is only for normal distribution !!!
+            # Get the number of dominant directions
+            ndims = dominant_dir.shape[1]
+            mu = cp.E(jdist)
+            covariance = cp.Cov(jdist)
+            sqrt_Sigma = np.sqrt(covariance) # This assumes the random variables are independent
+            self.iso_jdist = cp.MvNormal(np.zeros(ndims), np.eye(ndims))
+            self.iso_samples = self.iso_jdist.sample(self.num_samples)
+            int_mat = np.matmul(sqrt_Sigma, dominant_dir)
+            self.samples = np.add(np.einsum('ij,jk', int_mat, self.iso_samples).T, mu).T
+
         for i in self.QoI_dict:
             self.QoI_dict[i]['fvals'] = np.zeros([self.num_samples,
                                         self.QoI_dict[i]['output_dimensions']],
