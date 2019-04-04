@@ -1,6 +1,7 @@
 # File that contains the class for Monte-Carlo methods
 import numpy as np
 import chaospy as cp
+import pystatreduce.utils as utils
 
 class MonteCarlo(object):
     """
@@ -13,7 +14,7 @@ class MonteCarlo(object):
         assert nsamples > 0, "Number of MonteCarlo samples must be greater than 0"
         self.num_samples = nsamples
         self.data_type = data_type # To enable complex variables
-        self.QoI_dict = QoI_dict
+        self.QoI_dict = utils.copy_qoi_dict(QoI_dict)
 
         if reduced_collocation == False:
             self.samples = jdist.sample(self.num_samples)

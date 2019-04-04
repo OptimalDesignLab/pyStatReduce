@@ -123,11 +123,8 @@ class MonteCarloTest(unittest.TestCase):
                                         dominant_dir=dominant_dir)
         sc_obj.evaluateQoIs(jdist)
         mu_j_sc = sc_obj.mean(of=['hadamard4_2'])
-        print('mu_j_mc = ', mu_j_mc['hadamard4_2'])
-        print('mu_j_sc = ', mu_j_sc['hadamard4_2'])
 
         rel_err = abs( (mu_j_mc['hadamard4_2'] - mu_j_sc['hadamard4_2']) / mu_j_sc['hadamard4_2'])
-        print('rel_err = ', rel_err)
         self.assertTrue(rel_err[0] < 1.e-3)
 
 if __name__ == "__main__":

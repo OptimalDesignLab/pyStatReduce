@@ -3,6 +3,7 @@
 # life easier
 
 import numpy as np
+import copy
 
 def isDiag(matrix):
     """
@@ -89,6 +90,18 @@ def compute_subspace_angles(S1, S2):
     return s_radians
 
 def get_scaneagle_input_rv_statistics(rv_dict):
+
+    """
+    This function is specific to the ScanEagle problem, in that it creates the
+    mean value and standard deviation arrays necessary to create a joint
+    distribution object rom chaospy. It accepts a dictionary, and then parses it
+    to create the arrays. The random varaiable dictionary should look like
+    ```
+    rv_dict = {'rv_name' : {'mean' : 0.0,
+                            'std_dev' : 1.0},
+              }
+    ```
+    """
     mu = np.zeros(len(rv_dict))
     std_dev = np.eye(len(rv_dict))
     i = 0
@@ -123,3 +136,28 @@ def get_scaneagle_input_rv_statistics(rv_dict):
         i += 1
 
     return mu, std_dev
+
+def copy_qoi_dict(QoI_dict):
+    """
+    This function is used for copying the QoI dict, in instances where a simple
+    copy.deepcopy cannot be used. This function is disctionary specific, and
+    should not be used for copying any other dictionary
+    """
+    new_dict = dict.fromkeys(QoI_dict)
+    for keys in QoI_dict:
+        new_dict[keys] = dict.fromkeys(QoI_dict[keys])
+        new_dict[keys]['QoI_func'] = QoI_dict[keys]['QoI_func']
+        new_dict[keys]['output_dimensions'] = copy.deepcopy(QoI_dict[keys]['output_dimensions'])
+        # Copy the deriv_dict now
+        if 'deriv_dict' in QoI_dict[keys]:
+            new_dict[keys]['deriv_dict'] = dict.fromkeys(QoI_dict[keys]['deriv_dict'])
+            for key2 in new_dict[keys]['deriv_dict']:
+                new_dict[keys]['deriv_dict'][key2] =  dict.fromkeys(QoI_dict[keys]['deriv_dict'][key2])
+                new_dict[keys]['deriv_dict'][key2]['dQoI_func'] = QoI_dict[keys]['deriv_dict'][key2]['dQoI_func']
+                new_dict[keys]['deriv_dict'][key2]['output_dimensions'] = copy.copy(QoI_dict[keys]['deriv_dict'][key2]['output_dimensions'])
+
+    # Make sure that the dictionaries have been copied correctly
+    assert new_dict == QoI_dict
+    assert new_dict is not QoI_dict
+
+    return new_dict
