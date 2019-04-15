@@ -77,7 +77,7 @@ std_dev_R = 300 # 500
 std_dev_load_factor = 0.3
 std_dev_E = 5.e9
 std_dev_G = 1.e9
-std_dev_altitude = 0.4
+std_dev_altitude = 0.1
 
 
 def eval_uq_fuelburn(dv_dict, collocation_obj):
@@ -133,102 +133,99 @@ if __name__ == "__main__":
                               'std_dev' : std_dev_altitude},
 
                }
-    print(rv_dict['altitude'])
+
     # RDO factor 2 Results
     sc_sol_dict = { 'sc_init' : {'twist_cp' : np.array([2.5, 2.5, 5.0]), # 2.5*np.ones(3),
                                  'thickness_cp' : np.array([0.008, 0.008, 0.008]), # 1.e-3 * np.array([5.5, 5.5, 5.5]),
                                  'sweep' : 20.,
                                  'alpha' : 5.,
                                 },
-
-                    'sc_sol_1D' : {'twist_cp' : np.array([2.522784, 10, 5.0]),
-                                'thickness_cp' : 1.e-3 * np.array([1.0, 1.0, 1.0]),
-                                'sweep' : 18.91067,
-                                'alpha' : 2.216330,
-                                },
-
-                    'sc_sol_2D' : {'twist_cp' : np.array([2.591936, 10, 5.0]),
-                                'thickness_cp' : 1.e-3 * np.array([1.0, 1.0, 1.020770]),
-                                'sweep' : 18.89184,
-                                'alpha' : 2.183216,
-                                },
-
-                    'sc_sol_3D' : {'twist_cp' : np.array([2.625412, 10, 5.0]),
-                                'thickness_cp' : 1.e-3 * np.array([1.0, 1.0, 1.0]),
-                                'sweep' : 18.87683,
-                                'alpha' : 2.144569,
-                                },
-
-                    'sc_sol_4D' : {'twist_cp' : np.array([2.591936, 10, 5.0]),
-                                'thickness_cp' : 1.e-3 * np.array([1.0, 1.0, 1.004335]),
-                                'sweep' : 18.86231,
-                                'alpha' : 2.088403,
-                                },
-
-                    'sc_sol_5D' : {'twist_cp' : np.array([2.643664, 10, 5.0]),
-                                'thickness_cp' : 1.e-3 * np.array([1.0, 1.0, 1.023398]),
-                                'sweep' : 18.83332,
-                                'alpha' : 1.974722,
-                                },
-
+                    
                     'deterministic' : {'twist_cp' : np.array([3.37718983, 10, 5]) ,
                                        'thickness_cp' : np.array([0.001, 0.001, 0.00114519]), # 1.e-3 * np.ones(3) ,
                                        'sweep' : 17.97227386,
                                        'alpha' : -0.24701157},
 
-                    '7rv_1e_1_2_2' :  {'twist_cp' : np.array([4.825586, 10, 5]),
-                                       'thickness_cp' : 1.e-3 * np.ones(3), # np.array([0.001, 0.001, 0.001141680]),
-                                       'sweep' : 17.59059178,
-                                       'alpha' : -0.09239151},
-
-                    '7rv_1e_1_2_3' : {'twist_cp' : np.array([4.819646, 10, 5]),
+                    # Optimal design values obtained using the initial deterministic design variables
+                    # 7 RV, sample radius = 1.e-1, n_dominant_dir = 1, rdo factor=2
+                    '7rv_1e_1_1_2' :  {'twist_cp' : np.array([4.5766595, 10, 5]),
                                        'thickness_cp' : 1.e-3 * np.ones(3),
-                                       'sweep' : 17.5924635,
-                                       'alpha' : -0.09117171},
+                                       'sweep' : 17.93557251,
+                                       'alpha' : 0.52838575},
+                    # 7 RV, sample radius = 1.e-1, n_dominant_dir = 2, rdo factor=2
+                    '7rv_1e_1_2_2' :  {'twist_cp' : np.array([4.82659706, 10, 5]),
+                                       'thickness_cp' : 1.e-3 * np.ones(3),
+                                       'sweep' : 17.59063958,
+                                       'alpha' : -0.09187924},
+                    # 7 RV, sample radius = 1.e-1, n_dominant_dir = 3, rdo factor=2
+                    '7rv_1e_1_3_2' :  {'twist_cp' : np.array([4.9103329, 10, 5]),
+                                       'thickness_cp' : 1.e-3 * np.ones(3),
+                                       'sweep' : 17.46974998,
+                                       'alpha' : -0.28339684},
+                    # 7 RV, sample radius = 1.e-1, n_dominant_dir = 4, rdo factor=2
+                    '7rv_1e_1_4_2' :  {'twist_cp' : np.array([4.85883309, 10, 5]),
+                                       'thickness_cp' : 1.e-3 * np.ones(3),
+                                       'sweep' : 17.48184078,
+                                       'alpha' : -0.28440502},
+                    # 7 RV, sample radius = 1.e-1, n_dominant_dir = 5, rdo factor=2
+                    '7rv_1e_1_5_2' :  {'twist_cp' : np.array([4.87843855, 10, 5]),
+                                       'thickness_cp' : 1.e-3 * np.ones(3),
+                                       'sweep' : 17.4693496,
+                                       'alpha' : -0.3003593},
+                    # 7 RV, sample radius = 1.e-1, n_dominant_dir = 6, rdo factor=2
+                    '7rv_1e_1_6_2' :  {'twist_cp' : np.array([4.92920057, 10, 5]),
+                                       'thickness_cp' : 1.e-3 * np.ones(3),
+                                       'sweep' : 17.45015421,
+                                       'alpha' : -0.31792675},
+                    # 7rv, Full Monte Carlo simulation
+                    '7rv_mc' :  {'twist_cp' : np.array([4.93195234, 10, 5]),
+                                 'thickness_cp' : 1.e-3 * np.ones(3),
+                                 'sweep' : 17.48339411,
+                                 'alpha' : -0.25422074},
+
+                    '7rv_full_2' : {'twist_cp' : np.array([4.87264491, 10, 5]),
+                                    'thickness_cp' : 1.e-3 * np.ones(3),
+                                    'sweep' : 17.54128459,
+                                    'alpha' : -0.17390615},
+
+                    # '7rv_1e_1_2_3' : {'twist_cp' : np.array([4.819646, 10, 5]),
+                    #                    'thickness_cp' : 1.e-3 * np.ones(3),
+                    #                    'sweep' : 17.5924635,
+                    #                    'alpha' : -0.09117171},
                     }
 
     # Step 1: Instantiate all objects needed for test
-    UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, krylov_pert=1.e-1, max_eigenmodes=2)
+    UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, design_point=sc_sol_dict['deterministic'] ,
+                                         krylov_pert=1.e-1, max_eigenmodes=2)
 
-    # # Full collocation
-    # sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
-    #                                 include_derivs=False)
+    # Full collocation
+    sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
+                                    include_derivs=False)
 
     # iso_grad, reg_grad = get_iso_gradients(sc_sol_dict['sc_init'])
     # print('reg_grad = \n', reg_grad)
     # print('iso_grad = \n', iso_grad)
 
     # mu_j_full, var_j_full = eval_uq_fuelburn(sc_sol_dict['sc_init'], sc_obj)
+    print("eigenvals = ", UQObj.dominant_space.iso_eigenvals)
+    print('eigenvecs = \n', UQObj.dominant_space.iso_eigenvecs)
     print('\n#-----------------------------------------------------------#')
-    # mu_j_full = 5.39597929
-    # var_j_full = 3.86455449
-    # print('mu_j_full = ', mu_j_full)
-    # print('var_j_full = ', var_j_full)
-
-    # # Reduced collocation
-    # i = 1
-    # for sc_sol in sc_sol_dict:
-    #     if sc_sol != 'sc_init':
-    #         dominant_dir = dominant_space.iso_eigenvecs[:,0:i]
-    #         red_sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
-    #                                         include_derivs=False, reduced_collocation=True,
-    #                                         dominant_dir=dominant_dir)
-    #         mu_j_red, var_j_red = eval_uq_fuelburn(sc_sol_dict[sc_sol], red_sc_obj)
-    #         print('\n', i)
-    #         print('mu_j_red = ', mu_j_red)
-    #         print('var_j_red = ', var_j_red)
-    #         i += 1
 
     red_sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
                                         include_derivs=False, reduced_collocation=True,
                                         dominant_dir=UQObj.dominant_space.dominant_dir)
-    key_name = 'deterministic'
+    key_name = '7rv_full_2'
     print('key_name = ', key_name)
     mu_j_red, var_j_red = eval_uq_fuelburn(sc_sol_dict[key_name], red_sc_obj)
     print('mu_j_red = ', mu_j_red['fuelburn'][0])
     print('var_j_red = ', var_j_red['fuelburn'][0,0])
 
-    # err_mu = abs((mu_j_red['fuelburn'][0] - mu_j_full) / mu_j_full)
-    # err_var = abs((var_j_red['fuelburn'][0,0] - var_j_full) / var_j_full)
-    # print('err_mu = ', err_mu)
-    # print('err_var = ', err_var)
+    # mu_j_full, var_j_full = eval_uq_fuelburn(sc_sol_dict[key_name], sc_obj)
+    # print('mu_j_full = ', mu_j_full['fuelburn'][0])
+    # print('var_j_full = ', var_j_full['fuelburn'][0,0])
+
+    # for sc_sol in sc_sol_dict:
+    #     print('\ndesign point = ', sc_sol)
+    #     mu_j, var_j = eval_uq_fuelburn(sc_sol_dict[sc_sol], sc_obj)
+    #     print('mu_j = ', mu_j)
+    #     print('var_j = ', var_j)

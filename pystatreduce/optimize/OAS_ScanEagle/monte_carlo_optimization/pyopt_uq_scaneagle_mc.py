@@ -29,23 +29,25 @@ from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
 # Default mean values
-mean_Ma = 0.071
-mean_TSFC = 9.80665 * 8.6e-6
-mean_W0 = 10.0
+mean_Ma = 0.08
+mean_TSFC = 9.80665 * 8.6e-6 * 3600
+mean_W0 = 10 # 10.0
 mean_E = 85.e9
 mean_G = 25.e9
 mean_mrho = 1600
 mean_R = 1800
 mean_load_factor = 1.0
+mean_altitude = 4.57
 # Default standard values
-std_dev_Ma = 0.005
-std_dev_TSFC = 0.00607/3600
-std_dev_W0 = 0.2
+std_dev_Ma = 0.005 # 0.015
+std_dev_TSFC = 0.00607 # /3600
+std_dev_W0 = 1
 std_dev_mrho = 50
-std_dev_R = 500
-std_dev_load_factor = 0.1
+std_dev_R = 300 # 500
+std_dev_load_factor = 0.3
 std_dev_E = 5.e9
 std_dev_G = 1.e9
+std_dev_altitude = 0.1
 
 def objfunc_uq(xdict):
     """
@@ -110,7 +112,6 @@ def sens_uq(xdict, funcs):
 
     dmu_con = dmu_js['constraints']['dv']
     dstd_dev_con = dstd_dev_js['con_failure']['dv']
-    # print('dstd_dev_con = ', dstd_dev_con)
     funcsSens['con_failure', 'twist_cp'] = dmu_con[0,0:n_twist_cp] + rdo_factor * dstd_dev_con[0,0:n_twist_cp]
     funcsSens['con_failure', 'thickness_cp'] = dmu_con[0,n_twist_cp:n_cp] + rdo_factor * dstd_dev_con[0,n_twist_cp:n_cp]
     funcsSens['con_failure', 'sweep'] = dmu_con[0,n_cp] + rdo_factor * dstd_dev_con[0,n_cp]
@@ -156,7 +157,8 @@ if __name__ == "__main__":
                                  'std_dev' : std_dev_load_factor},
                 'mrho' : {'mean' : mean_mrho,
                          'std_dev' : std_dev_mrho},
-
+                'altitude' : {'mean' : mean_altitude,
+                              'std_dev' : std_dev_altitude},
                }
 
     # Set some of the initial values of the design variables
@@ -167,13 +169,11 @@ if __name__ == "__main__":
 
     ndv = 3 + 3 + 1 + 1 # number of design variabels
 
-    if sys.argv[1] == "stochastic":
+    if sys.argv[1] == "full":
         start_time = time.time()
-        uq_systemsize = 6
         UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, rdo_factor=2.0,
                                              krylov_pert=1.e-1,
-                                             max_eigenmodes=1)
-        xi = np.zeros(uq_systemsize)
+                                             max_eigenmodes=len(rv_dict))
 
         # Get some information on the total number of constraints
         n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
@@ -193,7 +193,7 @@ if __name__ == "__main__":
         optProb.addVarGroup('thickness_cp', n_thickness_cp, 'c', lower=0.001,
                             upper=0.01, scale=1.e3, value=init_thickness_cp)
         optProb.addVar('sweep', lower=10., upper=30., value=init_sweep)
-        optProb.addVar('alpha', lower=-10., upper=10.)
+        optProb.addVar('alpha', lower=-10., upper=10., value=init_alpha)
 
         # Constraints
         optProb.addConGroup('con_failure', 1, upper=0.)
@@ -212,25 +212,72 @@ if __name__ == "__main__":
         end_time = time.time()
         elapsed_time = end_time - start_time
 
-        print(sol)
-        print(sol.fStar)
-        print()
-        print("twist = ", UQObj.QoI.p['oas_scaneagle.wing.geometry.twist'])
-        print("thickness =", UQObj.QoI.p['oas_scaneagle.wing.thickness'])
-        print('twist_cp = ', UQObj.QoI.p['oas_scaneagle.wing.twist_cp'])
-        print('thickness_cp = ', UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'])
-        print("sweep = ", UQObj.QoI.p['oas_scaneagle.wing.sweep'])
-        print("aoa = ", UQObj.QoI.p['oas_scaneagle.alpha'])
+    elif sys.argv[1] == "reduced":
+        start_time = time.time()
+        UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, rdo_factor=float(sys.argv[2]),
+                                             krylov_pert=float(sys.argv[3]),
+                                             max_eigenmodes=int(sys.argv[4]))
+
+        # Get some information on the total number of constraints
+        n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
+        n_CM = 3
+        n_constraints = 1 + n_thickness_intersects  + 1 + n_CM + 3
+
+        # Create the Monte Carlo object based on the dominant directions
+        nsample = 1000
+        mc_obj = MonteCarlo(nsample, UQObj.jdist, UQObj.QoI_dict,
+                            reduced_collocation=True,
+                            dominant_dir=UQObj.dominant_space.dominant_dir,
+                            include_derivs=True)
+        mc_obj.getSamples(UQObj.jdist, include_derivs=True)
+
+        optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc_uq)
+        n_twist_cp = UQObj.QoI.input_dict['n_twist_cp']
+        n_thickness_cp = UQObj.QoI.input_dict['n_thickness_cp']
+        optProb.addVarGroup('twist_cp', n_twist_cp, 'c', lower=-5., upper=10,
+                            value=init_twist_cp)
+        optProb.addVarGroup('thickness_cp', n_thickness_cp, 'c', lower=0.001,
+                            upper=0.01, scale=1.e3, value=init_thickness_cp)
+        optProb.addVar('sweep', lower=10., upper=30., value=init_sweep)
+        optProb.addVar('alpha', lower=-10., upper=10., value=init_alpha)
+
+        # Constraints
+        optProb.addConGroup('con_failure', 1, upper=0.)
+        optProb.addConGroup('con_thickness_intersects', n_thickness_intersects,
+                            upper=0., wrt=['thickness_cp'])
+        optProb.addConGroup('con_L_equals_W', 1, lower=0., upper=0.)
+        optProb.addConGroup('con_CM', n_CM, lower=-0.001, upper=0.001)
+        optProb.addConGroup('con_twist_cp', 3, lower=np.array([-1e20, -1e20, 5.]),
+                            upper=np.array([1e20, 1e20, 5.]), wrt=['twist_cp'])
+
+        # Objective
+        optProb.addObj('obj')
+        opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
+        sol = opt(optProb, sens=sens_uq)
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
         print()
         print('time elapsed = ', elapsed_time)
-
-        # Compute the statistical moments
-        mc_obj.getSamples(UQObj.jdist)
-        mu_j = mc_obj.mean(UQObj.jdist, of=['fuelburn'])
-        var_j = mc_obj.variance(UQObj.jdist, of=['fuelburn'])
-        print('mu fuelburn = ', mu_j['fuelburn'])
-        print('var fuelburn = ', var_j['fuelburn'])
-
-
     else:
         raise NotImplementedError
+
+    print()
+    print(sol)
+    print(sol.fStar)
+    print()
+    print("twist = ", UQObj.QoI.p['oas_scaneagle.wing.geometry.twist'])
+    print("thickness =", UQObj.QoI.p['oas_scaneagle.wing.thickness'])
+    print('twist_cp = ', UQObj.QoI.p['oas_scaneagle.wing.twist_cp'])
+    print('thickness_cp = ', UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'])
+    print("sweep = ", UQObj.QoI.p['oas_scaneagle.wing.sweep'])
+    print("aoa = ", UQObj.QoI.p['oas_scaneagle.alpha'])
+    print()
+    print('time elapsed = ', elapsed_time)
+
+    # Compute the statistical moments
+    mc_obj.getSamples(UQObj.jdist)
+    mu_j = mc_obj.mean(UQObj.jdist, of=['fuelburn'])
+    var_j = mc_obj.variance(UQObj.jdist, of=['fuelburn'])
+    print('mu fuelburn = ', mu_j['fuelburn'])
+    print('var fuelburn = ', var_j['fuelburn'])

@@ -43,7 +43,7 @@ mean_E = 85.e9
 mean_G = 25.e9
 mean_mrho = 1600
 mean_R = 1800
-mean_load_factor = 1.0
+mean_load_factor = 2.5 # 1.0
 mean_altitude = 4.57
 # Default standard values
 std_dev_Ma = 0.005 # 0.015
@@ -169,13 +169,30 @@ if __name__ == "__main__":
                }
 
     # Set some of the initial values of the design variables
-    init_twist_cp = np.array([2.5, 2.5, 5.0])
-    init_thickness_cp = np.array([0.008, 0.008, 0.008])
-    init_sweep = 20.0
-    init_alpha = 5.
+    dv_val_dict = { 'init_design' :  {'twist_cp' : np.array([2.5, 2.5, 5.0]),
+                                     'thickness_cp' : np.array([0.008, 0.008, 0.008]),
+                                     'sweep' : 20.,
+                                     'alpha' : 5.,},
+                    'deterministic_lf1' : {'twist_cp' : np.array([3.37718983, 10, 5]) ,
+                                       'thickness_cp' : np.array([0.001, 0.001, 0.00114519]),
+                                       'sweep' : 17.97227386,
+                                       'alpha' : -0.24701157},
+                    'deterministic_lf2.5' : {'twist_cp' : np.array([10., 10, 5]) ,
+                                             'thickness_cp' : np.array([0.001, 0.001, 0.002222788]),
+                                             'sweep' : 19.07479829,
+                                             'alpha' : 10.},
+
+                  }
+
+    # init_twist_cp = np.array([2.5, 2.5, 5.0])
+    # init_thickness_cp = np.array([0.008, 0.008, 0.008])
+    # init_sweep = 20.0
+    # init_alpha = 5.
 
     start_time = time.time()
-    UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, rdo_factor=float(sys.argv[1]),
+    dict_val = 'init_design'
+    UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, design_point=dv_val_dict[dict_val],
+                                         rdo_factor=float(sys.argv[1]),
                                          krylov_pert=float(sys.argv[2]),
                                          max_eigenmodes=int(sys.argv[3]))
 
@@ -198,7 +215,7 @@ if __name__ == "__main__":
                                     include_derivs=True , reduced_collocation=True,
                                     dominant_dir=UQObj.dominant_space.dominant_dir)
     sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
-    # sc_obj = StochasticCollocation2(UQObj.jdist, 1, 'MvNormal', UQObj.QoI_dict,
+    # sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
     #                                 include_derivs=True , reduced_collocation=False)
     # sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
 
@@ -207,11 +224,11 @@ if __name__ == "__main__":
     n_twist_cp = UQObj.QoI.input_dict['n_twist_cp']
     n_thickness_cp = UQObj.QoI.input_dict['n_thickness_cp']
     optProb.addVarGroup('twist_cp', n_twist_cp, 'c', lower=-5., upper=10,
-                        value=init_twist_cp)
+                        value=dv_val_dict[dict_val]['twist_cp'])
     optProb.addVarGroup('thickness_cp', n_thickness_cp, 'c', lower=0.001,
-                        upper=0.01, scale=1.e3, value=init_thickness_cp)
-    optProb.addVar('sweep', lower=10., upper=30., value=init_sweep)
-    optProb.addVar('alpha', lower=-10., upper=10., value=init_alpha)
+                        upper=0.01, scale=1.e3, value=dv_val_dict[dict_val]['thickness_cp'])
+    optProb.addVar('sweep', lower=10., upper=30., value=dv_val_dict[dict_val]['sweep'])
+    optProb.addVar('alpha', lower=-10., upper=10., value=dv_val_dict[dict_val]['alpha'])
 
     # Constraints
     optProb.addConGroup('con_failure', 1, upper=0.)

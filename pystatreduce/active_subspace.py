@@ -8,7 +8,7 @@ from monte_carlo import MonteCarlo
 
 class ActiveSubspace(object):
 
-    def __init__(self, n_dominant_dimensions=1, n_monte_carlo_samples=1000):
+    def __init__(self, n_dominant_dimensions=1, QoI, n_monte_carlo_samples=1000):
         """
         This file contains the dimension reduction method presented by
         Constantine in the paper "Active subspace methods in theory and
@@ -20,7 +20,6 @@ class ActiveSubspace(object):
 
     def getDominantDirections(self, QoI, jdist):
         systemsize = QoI.systemsize
-        C_tilde = np.zeros([systemsize, systemsize])
 
         # Get C_tilde using Monte Carlo
         grad = np.zeros(systemsize)
@@ -29,7 +28,7 @@ class ActiveSubspace(object):
         for i in xrange(0, self.n_monte_carlo_samples):
             rv = jdist.sample()
             grad[:] = QoI.eval_QoIGradient(mu, rv)
-            C_tilde[:,:] = np.outer(grad, grad)
+            C_tilde[:,:] += np.outer(grad, grad)
         C_tilde[:,:] = C_tilde[:,:]/self.n_monte_carlo_samples
 
         # Factorize C_tilde that

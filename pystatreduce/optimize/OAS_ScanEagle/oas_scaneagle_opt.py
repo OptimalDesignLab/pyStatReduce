@@ -31,7 +31,7 @@ class UQScanEagleOpt(object):
     This class is the conduit for linking pyStatReduce and OpenAeroStruct with
     pyOptSparse.
     """
-    def __init__(self, rv_dict, rdo_factor=2.0, krylov_pert=1.e-6, max_eigenmodes=2):
+    def __init__(self, rv_dict, design_point, rdo_factor=2.0, krylov_pert=1.e-6, max_eigenmodes=2):
 
         self.rdo_factor = rdo_factor
 
@@ -65,10 +65,10 @@ class UQScanEagleOpt(object):
         # self.jdist = cp.MvNormal(mu, np.zeros([len(mu), len(mu)]))
         self.QoI = examples.oas_scaneagle2.OASScanEagleWrapper2(self.uq_systemsize,
                                                                 dv_dict)
-        self.QoI.p['oas_scaneagle.wing.thickness_cp'] = np.array([0.008, 0.008, 0.008]) # 1.e-3 * np.array([5.5, 5.5, 5.5]) # This setup is according to the one in the scaneagle paper
-        self.QoI.p['oas_scaneagle.wing.twist_cp'] = np.array([2.5, 2.5, 5.0]) # 2.5*np.ones(3)
-        self.QoI.p['oas_scaneagle.wing.sweep'] = 20.0
-        self.QoI.p['oas_scaneagle.alpha'] = 5.0
+        self.QoI.p['oas_scaneagle.wing.thickness_cp'] = design_point['thickness_cp'] # np.array([0.008, 0.008, 0.008])
+        self.QoI.p['oas_scaneagle.wing.twist_cp'] = design_point['twist_cp'] # np.array([2.5, 2.5, 5.0])
+        self.QoI.p['oas_scaneagle.wing.sweep'] = design_point['sweep'] # 20.0
+        self.QoI.p['oas_scaneagle.alpha'] = design_point['alpha'] # 5.0
         self.QoI.p.final_setup()
 
         self.dominant_space = DimensionReduction(n_arnoldi_sample=self.uq_systemsize+1,

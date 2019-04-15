@@ -165,8 +165,8 @@ dominant_dir_KS_fail = np.copy(dominant_space_failure.dominant_dir)
 dominant_dir_L_equal_w = np.copy(dominant_space_liftcon.dominant_dir)
 dominant_dir_CM = np.copy(dominant_space_CM.dominant_dir)
 
-print('\ndominant_dir_obj =\n', dominant_dir_obj)
-# print('dominant_dir_KS_fail =\n', dominant_dir_KS_fail)
+print('\ndominant_dir_obj =\n', dominant_dir_obj[:,0])
+print('dominant_dir_KS_fail =\n', dominant_dir_KS_fail[:,0])
 # print('dominant_dir_L_equal_w =\n', dominant_dir_L_equal_w)
 # print('dominant_dir_CM =\n', dominant_dir_CM)
 
@@ -191,6 +191,7 @@ print()
 print('angles_liftcon = ', angles_liftcon)
 print('angles_CM = ', angles_CM)
 
+"""
 # Update the design variables to the new design point
 update_dv(oas_obj, dv_val_dict['7rv_1e_1_2_2'])
 new_dominant_space_obj = DimensionReduction(n_arnoldi_sample=uq_systemsize+1,
@@ -223,3 +224,4 @@ print('\nnew_dominant_dir_obj =\n', new_dominant_dir_obj)
 
 angles_obj = utils.compute_subspace_angles(dominant_dir_obj, new_dominant_dir_obj)
 print('angles_obj = ', angles_obj)
+"""

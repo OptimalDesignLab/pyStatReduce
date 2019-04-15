@@ -11,14 +11,20 @@
 ################################################################################
 
 from __future__ import division, print_function
+
+# import pdb; pdb.set_trace()
 import numpy as np
 
 from openaerostruct.geometry.utils import generate_mesh
+# pdb.set_trace()
 from openaerostruct.integration.aerostruct_groups import AerostructGeometry, AerostructPoint
 # from openaerostruct.common.atmos_group import AtmosGroup
 from pystatreduce.common.atmos_group import AtmosGroup
 from openmdao.api import IndepVarComp, Problem, SqliteRecorder
 
+
+import time
+start_time = time.time()
 # Total number of nodes to use in the spanwise (num_y) and
 # chordwise (num_x) directions. Vary these to change the level of fidelity.
 num_y = 21
@@ -120,7 +126,7 @@ indep_var_comp.add_output('altitude', val=4.57, units='km')
 indep_var_comp.add_output('CT', val=9.80665 * 8.6e-6, units='1/s') # TSFC
 indep_var_comp.add_output('R', val=1800, units='km')
 indep_var_comp.add_output('W0', val=10.,  units='kg')
-indep_var_comp.add_output('load_factor', val=1.)
+indep_var_comp.add_output('load_factor', val=2.5) # 1.)
 indep_var_comp.add_output('empty_cg', val=np.array([0.2, 0., 0.]), units='m')
 indep_var_comp.add_output('E', val=85.e9, units='N/m**2')
 indep_var_comp.add_output('G', val=25.e9, units='N/m**2')
@@ -226,26 +232,27 @@ prob.model.add_objective('AS_point_0.fuelburn', scaler=.1)
 # Set up the problem
 prob.setup(check=True)
 
-prob.run_model()
+# prob.run_model()
 
-deriv = prob.compute_totals(of=['AS_point_0.wing_perf.failure'],
-                            wrt=['Mach_number', 'CT', 'W0', 'R', 'load_factor', 'mrho', 'altitude'])
-print('#-----------#')
-print(deriv['AS_point_0.wing_perf.failure', 'Mach_number'])
-print(deriv['AS_point_0.wing_perf.failure', 'CT'])
-print(deriv['AS_point_0.wing_perf.failure', 'W0'])
-print(deriv['AS_point_0.wing_perf.failure', 'R'])
-print(deriv['AS_point_0.wing_perf.failure', 'load_factor'])
-print(deriv['AS_point_0.wing_perf.failure', 'mrho'])
-print(deriv['AS_point_0.wing_perf.failure', 'altitude'])
-print('#-----------#')
+# deriv = prob.compute_totals(of=['AS_point_0.wing_perf.failure'],
+#                             wrt=['Mach_number', 'CT', 'W0', 'R', 'load_factor', 'mrho', 'altitude'])
+# print('#-----------#')
+# print(deriv['AS_point_0.wing_perf.failure', 'Mach_number'])
+# print(deriv['AS_point_0.wing_perf.failure', 'CT'])
+# print(deriv['AS_point_0.wing_perf.failure', 'W0'])
+# print(deriv['AS_point_0.wing_perf.failure', 'R'])
+# print(deriv['AS_point_0.wing_perf.failure', 'load_factor'])
+# print(deriv['AS_point_0.wing_perf.failure', 'mrho'])
+# print(deriv['AS_point_0.wing_perf.failure', 'altitude'])
+# print('#-----------#')
 
 
 # print('fburn = ', prob['AS_point_0.fuelburn'])
 # Actually run the optimization problem
-# prob.run_driver()
+prob.run_driver()
 
-
+time_elapsed = time.time() - start_time
+print('time_elapsed = ', time_elapsed)
 
 print("fval = ", prob['AS_point_0.fuelburn'][0])
 print('failure = ', prob['AS_point_0.wing_perf.failure'][0])
@@ -255,6 +262,6 @@ print('CM = ', prob['AS_point_0.CM'][1])
 # print('wing weight = ', prob['wing.structural_weight'])
 print()
 print("twist_cp = ", prob['wing.twist_cp'])
-print("thickness = ", prob['wing.thickness_cp'])
+print("thickness = ", prob['wing.thickness'])
 print("sweep = ", prob['wing.sweep'])
 print("aoa = ", prob['alpha'])

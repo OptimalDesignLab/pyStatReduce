@@ -153,14 +153,49 @@ sample_radii = [1.e-1, 1.e-2, 1.e-3, 1.e-4, 1.e-5, 1.e-6]
 
 if sys.argv[1] == 'full':
     # Create the stochastic collocation object
-    sc_obj_full = StochasticCollocation2(jdist, 4, 'MvNormal', QoI_dict,
+    sc_obj_full = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict,
                                     include_derivs=False, reduced_collocation=False)
+    start_time = time.time()
     sc_obj_full.evaluateQoIs(jdist, include_derivs=False)
+    t_sampling = time.time()
+
     mu_j_full = sc_obj_full.mean(of=['fuelburn'])
+    time_elapsed_mu = time.time() - t_sampling
+
+    t_before_var = time.time()
     var_j_full = sc_obj_full.variance(of=['fuelburn'])
+    time_elapsed_var = time.time() - t_before_var
 
     print('mu_j_full = ', mu_j_full['fuelburn'][0])
     print('var_j_full = ', var_j_full['fuelburn'][0,0])
+
+    print("time for sampling = ", t_sampling - start_time)
+    print('time mu = ', time_elapsed_mu)
+    print('time var = ', time_elapsed_var)
+
+elif sys.argv[1] == 'monte_carlo':
+
+    start_time = time.time()
+    # Create a Monte Carlo object
+    nsample = 100000
+    mc_obj = MonteCarlo(nsample, jdist, QoI_dict, include_derivs=False)
+    mc_obj.getSamples(jdist, include_derivs=False)
+    t_sampling = time.time()
+
+    mu_j = mc_obj.mean(jdist, of=['fuelburn'])
+    time_elapsed_mu = time.time() - t_sampling
+
+    t_before_var = time.time()
+    var_j = mc_obj.variance(jdist, of=['fuelburn'])
+    time_elapsed_var = time.time() - t_before_var
+
+    print('nsample = ', nsample)
+    print('mu_j_mc = ', mu_j['fuelburn'][0])
+    print('var_j_mc = ', var_j['fuelburn'][0])
+
+    print("time for sampling = ", t_sampling - start_time)
+    print('time mu = ', time_elapsed_mu)
+    print('time var = ', time_elapsed_var)
 
 elif sys.argv[1] == 'reduced':
     # mu_j_full = 5.341619712754059  # RV :- Ma, CT, W0, R, load_factor, mrho
