@@ -4,11 +4,11 @@
 # Kriging Surfaces"
 import numpy as np
 import chaospy as cp
-from monte_carlo import MonteCarlo
+from pystatreduce.monte_carlo import MonteCarlo
 
 class ActiveSubspace(object):
 
-    def __init__(self, n_dominant_dimensions=1, QoI, n_monte_carlo_samples=1000):
+    def __init__(self, QoI, n_dominant_dimensions=1, n_monte_carlo_samples=1000):
         """
         This file contains the dimension reduction method presented by
         Constantine in the paper "Active subspace methods in theory and
@@ -24,10 +24,10 @@ class ActiveSubspace(object):
         # Get C_tilde using Monte Carlo
         grad = np.zeros(systemsize)
         C_tilde = np.zeros([systemsize, systemsize])
-        mu = np.zeros(2)
-        for i in xrange(0, self.n_monte_carlo_samples):
-            rv = jdist.sample()
-            grad[:] = QoI.eval_QoIGradient(mu, rv)
+        rv_arr = jdist.sample(self.n_monte_carlo_samples) # points for computing the uncentered covariance matrix
+        pert = np.zeros(systemsize)
+        for i in range(0, self.n_monte_carlo_samples):
+            grad[:] = QoI.eval_QoIGradient(rv_arr[:,i], pert)
             C_tilde[:,:] += np.outer(grad, grad)
         C_tilde[:,:] = C_tilde[:,:]/self.n_monte_carlo_samples
 
@@ -38,3 +38,4 @@ class ActiveSubspace(object):
         self.iso_eigenvecs[:,:] = self.iso_eigenvecs[:,sort_ind]
         self.iso_eigenvals[:] = self.iso_eigenvals[sort_ind]
         self.dominant_indices = np.arange(0,self.n_dominant_dimensions)
+        self.dominant_dir = self.iso_eigenvecs[:, self.dominant_indices]

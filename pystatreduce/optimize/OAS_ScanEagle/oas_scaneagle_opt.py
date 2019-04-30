@@ -31,7 +31,8 @@ class UQScanEagleOpt(object):
     This class is the conduit for linking pyStatReduce and OpenAeroStruct with
     pyOptSparse.
     """
-    def __init__(self, rv_dict, design_point, rdo_factor=2.0, krylov_pert=1.e-6, max_eigenmodes=2):
+    def __init__(self, rv_dict, design_point, rdo_factor=2.0, krylov_pert=1.e-6,
+                 active_subspace=False, max_eigenmodes=2):
 
         self.rdo_factor = rdo_factor
 
@@ -71,10 +72,18 @@ class UQScanEagleOpt(object):
         self.QoI.p['oas_scaneagle.alpha'] = design_point['alpha'] # 5.0
         self.QoI.p.final_setup()
 
-        self.dominant_space = DimensionReduction(n_arnoldi_sample=self.uq_systemsize+1,
-                                                 exact_Hessian=False,
-                                                 sample_radius=krylov_pert)
-        self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=max_eigenmodes)
+        # Figure out which dimension reduction technique to use
+        if active_subspace == False:
+            self.dominant_space = DimensionReduction(n_arnoldi_sample=self.uq_systemsize+1,
+                                                     exact_Hessian=False,
+                                                     sample_radius=krylov_pert)
+            self.dominant_space.getDominantDirections(self.QoI, self.jdist, max_eigenmodes=max_eigenmodes)
+        else:
+            self.dominant_space = ActiveSubspace(self.QoI,
+                                                 n_dominant_dimensions=max_eigenmodes,
+                                                 n_monte_carlo_samples=1500)
+            active_subspace.getDominantDirections(QoI, jdist)
+
         dfuelburn_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ObjGradient_dv,
                                   'output_dimensions' : dv_dict['ndv'],
                                   }
