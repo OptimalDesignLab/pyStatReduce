@@ -1,4 +1,5 @@
 # New stochastic collocation implementation
+from mpi4py import MPI
 import copy
 import numpy as np
 import chaospy as cp
@@ -11,13 +12,15 @@ class StochasticCollocation2(object):
     """
     def __init__(self, jdist, quadrature_degree, distribution_type, QoI_dict,
                  include_derivs=False, reduced_collocation=False,
-                 dominant_dir=None, data_type=np.float):
+                 dominant_dir=None, data_type=np.float, mpi_comm=None):
         assert quadrature_degree > 0, "Need at least 1 collocation point for \
                                         uncertainty propagation"
         self.n_rv = cp.E(jdist).size
         self.QoI_dict = utils.copy_qoi_dict(QoI_dict) # copy.copy(QoI_dict) # We don't
         self.distribution_type = distribution_type
         self.data_type = data_type
+
+        self.mpi_comm = mpi_comm # MPI communicator. Default is None
 
         # Get the 1D quadrature points based on the distribution being
         # approximated
@@ -94,17 +97,76 @@ class StochasticCollocation2(object):
                                                 self.QoI_dict[i]['deriv_dict'][j]['output_dimensions']],
                                                 dtype=self.data_type)
 
+        if self.mpi_comm != None:
+            self.__allocate_local_QoI_space(include_derivs)
+
+    def __allocate_local_QoI_space(self, include_derivs):
+        # Check the MPI rank
+        my_rank = self.mpi_comm.Get_rank()
+        comm_size = self.mpi_comm.size
+        point_split_tuple = np.array_split(self.points, comm_size, axis=0)
+        n_local_pts = point_split_tuple[my_rank].shape[0]
+
+        for i in self.QoI_dict:
+            self.QoI_dict[i]['local_fvals'] = np.zeros([n_local_pts,
+                                        self.QoI_dict[i]['output_dimensions']],
+                                        dtype=self.data_type)
+        if include_derivs == True:
+            for i in self.QoI_dict:
+                for j in self.QoI_dict[i]['deriv_dict']:
+                    self.QoI_dict[i]['deriv_dict'][j]['local_fvals'] =  np.zeros([n_local_pts,
+                                                self.QoI_dict[i]['output_dimensions'],
+                                                self.QoI_dict[i]['deriv_dict'][j]['output_dimensions']],
+                                                dtype=self.data_type)
+
     def evaluateQoIs(self, jdist, include_derivs=False):
         pert = np.zeros(self.n_rv, dtype=self.data_type)
-        for i in range(0, self.n_points):
-            for j in self.QoI_dict:
-                QoI_func = self.QoI_dict[j]['QoI_func']
-                self.QoI_dict[j]['fvals'][i,:] = QoI_func(self.points[i,:], pert)
+
+        if self.mpi_comm == None: # Serial with no MPI
+            for i in range(0, self.n_points):
+                for j in self.QoI_dict:
+                    QoI_func = self.QoI_dict[j]['QoI_func']
+                    self.QoI_dict[j]['fvals'][i,:] = QoI_func(self.points[i,:], pert)
+                    if include_derivs == True:
+                        for k in self.QoI_dict[j]['deriv_dict']:
+                            dQoI_func = self.QoI_dict[j]['deriv_dict'][k]['dQoI_func']
+                            self.QoI_dict[j]['deriv_dict'][k]['fvals'][i,:] =\
+                            					dQoI_func(self.points[i,:], pert)
+        else:
+            # Check the MPI rank
+            my_rank = self.mpi_comm.Get_rank()
+            comm_size = self.mpi_comm.size
+
+            point_split = np.array_split(self.points, comm_size, axis=0)
+            local_pts = point_split[my_rank]
+            n_local_pts = local_pts.shape[0]
+
+            for i in range(0, n_local_pts):
+                for j in self.QoI_dict:
+                    QoI_func = self.QoI_dict[j]['QoI_func']
+                    self.QoI_dict[j]['local_fvals'][i,:] = QoI_func(local_pts[i,:], pert)
+                    if include_derivs == True:
+                        for k in self.QoI_dict[j]['deriv_dict']:
+                            dQoI_func = self.QoI_dict[j]['deriv_dict'][k]['dQoI_func']
+                            self.QoI_dict[j]['deriv_dict'][k]['local_fvals'][i,:] =\
+                            					dQoI_func(local_pts[i,:], pert)
+
+            # Gather all the local function values into master
+            for i in self.QoI_dict:
+                gathered_fvals = self.mpi_comm.allgather(self.QoI_dict[i]['local_fvals'])
                 if include_derivs == True:
-                    for k in self.QoI_dict[j]['deriv_dict']:
-                        dQoI_func = self.QoI_dict[j]['deriv_dict'][k]['dQoI_func']
-                        self.QoI_dict[j]['deriv_dict'][k]['fvals'][i,:] =\
-                        					dQoI_func(self.points[i,:], pert)
+                    gathered_dfvals = self.mpi_comm.allgather(self.QoI_dict[i]['deriv_dict'][j]['local_fvals'])
+                npts_rank_prev = 0
+                for rank_itr in range(self.mpi_comm.size):
+                    npts_rank = gathered_fvals[rank_itr].shape[0]
+                    self.QoI_dict[i]['fvals'][npts_rank_prev:npts_rank_prev+npts_rank,:] =\
+                                                gathered_fvals[rank_itr][:,:]
+                    if include_derivs == True:
+                        for j in self.QoI_dict[i]['deriv_dict']:
+                            self.QoI_dict[j]['deriv_dict'][k]['fvals'][npts_rank_prev:npts_rank_prev+npts_rank,:] =\
+                                                    gathered_dfvals[rank_itr][:,:]
+                    npts_rank_prev += npts_rank
+
 
     def mean(self, of=None):
         """
