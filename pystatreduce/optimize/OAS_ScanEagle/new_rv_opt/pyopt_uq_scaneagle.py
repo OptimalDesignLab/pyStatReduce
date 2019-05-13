@@ -1,7 +1,7 @@
 ################################################################################
 # pyopt_uq_scaneagle_8rv.py
 # This file performs a robust design optimizarion on a Boeing ScanEagle aircraft
-# with 6 random variables. The random variables are Ma, TSFC, W0, E, G, mrho,
+# with 7 random variables. The random variables are Ma, TSFC, W0, E, G, mrho,
 # load_factor, range.
 # This file can be run as
 #               `python pyopt_uq_scaneagle_8rv.py`
@@ -35,15 +35,17 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
+import pystatreduce.optimize.OAS_ScanEagle.check_scripts.optimal_vals_dict as optimal_vals_dict
+
 # Default mean values
 mean_Ma = 0.08
 mean_TSFC = 9.80665 * 8.6e-6 * 3600
-mean_W0 = 10 # 10.0
+mean_W0 = 10.0
 mean_E = 85.e9
 mean_G = 25.e9
 mean_mrho = 1600
 mean_R = 1800
-mean_load_factor = 2.5 # 1.0
+mean_load_factor = 1.0
 mean_altitude = 4.57
 # Default standard values
 std_dev_Ma = 0.005 # 0.015
@@ -151,6 +153,10 @@ def sens_uq(xdict, funcs):
 
 if __name__ == "__main__":
 
+    sc_sol_dict = optimal_vals_dict.sc_sol_dict
+
+    full_colloc = False # Bool for using full collocation or not
+
     # Declare the dictionary
     rv_dict = { 'Mach_number' : {'mean' : mean_Ma,
                                  'std_dev' : std_dev_Ma},
@@ -168,38 +174,30 @@ if __name__ == "__main__":
                               'std_dev' : std_dev_altitude},
                }
 
-    # Set some of the initial values of the design variables
-    dv_val_dict = { 'init_design' :  {'twist_cp' : np.array([2.5, 2.5, 5.0]),
-                                     'thickness_cp' : np.array([0.008, 0.008, 0.008]),
-                                     'sweep' : 20.,
-                                     'alpha' : 5.,},
-                    'deterministic_lf1' : {'twist_cp' : np.array([3.37718983, 10, 5]) ,
-                                       'thickness_cp' : np.array([0.001, 0.001, 0.00114519]),
-                                       'sweep' : 17.97227386,
-                                       'alpha' : -0.24701157},
-                    'deterministic_lf2.5' : {'twist_cp' : np.array([10., 10, 5]) ,
-                                             'thickness_cp' : np.array([0.001, 0.001, 0.002222788]),
-                                             'sweep' : 19.07479829,
-                                             'alpha' : 10.},
-
-                  }
-
-    # init_twist_cp = np.array([2.5, 2.5, 5.0])
-    # init_thickness_cp = np.array([0.008, 0.008, 0.008])
-    # init_sweep = 20.0
-    # init_alpha = 5.
-
     start_time = time.time()
-    dict_val = 'init_design'
-    UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, design_point=dv_val_dict[dict_val],
-                                         rdo_factor=float(sys.argv[1]),
-                                         krylov_pert=float(sys.argv[2]),
-                                         max_eigenmodes=int(sys.argv[3]))
+    dict_val = 'sc_init' # 'act_init_7rv_2_2_lf1'
 
-    # Evaluate derivatives
-    deriv = UQObj.QoI.eval_QoIGradient(cp.E(UQObj.jdist), np.zeros(UQObj.uq_systemsize))
-    # print('mu = ', cp.E(UQObj.jdist))
-    # print('\nderiv = ', deriv)
+    # Print the sys.argv
+    print('sys.argv[1] = ', sys.argv[1])
+    print('sys.argv[2] = ', sys.argv[2])
+    print('sys.argv[3] = ', sys.argv[3])
+
+    if full_colloc == True:
+        print('Full collocation = ', full_colloc)
+        print('input seed = ', dict_val)
+        UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, design_point=sc_sol_dict[dict_val],
+                                             rdo_factor=float(sys.argv[1]))
+    else:
+        print('Full collocation = ', full_colloc)
+        print('input seed = ', dict_val)
+        UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, design_point=sc_sol_dict[dict_val],
+                                             rdo_factor=float(sys.argv[1]),
+                                             krylov_pert=float(sys.argv[2]),
+                                             max_eigenmodes=int(sys.argv[3]))
+
+    # # Evaluate derivatives
+    # deriv = UQObj.QoI.eval_QoIGradient(cp.E(UQObj.jdist), np.zeros(UQObj.uq_systemsize))
+    print()
     print("eigenvals = ", UQObj.dominant_space.iso_eigenvals)
     print('eigenvecs = \n', UQObj.dominant_space.iso_eigenvecs)
     print('#-------------------------------------------------------------#')
@@ -211,24 +209,26 @@ if __name__ == "__main__":
     n_constraints = 1 + n_thickness_intersects  + 1 + n_CM + 3
 
     # Create the stochastic collocation object
-    sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
-                                    include_derivs=True , reduced_collocation=True,
-                                    dominant_dir=UQObj.dominant_space.dominant_dir)
-    sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
-    # sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
-    #                                 include_derivs=True , reduced_collocation=False)
-    # sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
+    if full_colloc == True:
+        sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
+                                        include_derivs=True , reduced_collocation=False)
+        sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
+    else:
+        sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
+                                        include_derivs=True , reduced_collocation=True,
+                                        dominant_dir=UQObj.dominant_space.dominant_dir)
+        sc_obj.evaluateQoIs(UQObj.jdist, include_derivs=True)
 
     # Create the optimization problem for pyOptSparse
     optProb = pyoptsparse.Optimization('UQ_OASScanEagle', objfunc_uq)
     n_twist_cp = UQObj.QoI.input_dict['n_twist_cp']
     n_thickness_cp = UQObj.QoI.input_dict['n_thickness_cp']
     optProb.addVarGroup('twist_cp', n_twist_cp, 'c', lower=-5., upper=10,
-                        value=dv_val_dict[dict_val]['twist_cp'])
+                        value=sc_sol_dict[dict_val]['twist_cp'])
     optProb.addVarGroup('thickness_cp', n_thickness_cp, 'c', lower=0.001,
-                        upper=0.01, scale=1.e3, value=dv_val_dict[dict_val]['thickness_cp'])
-    optProb.addVar('sweep', lower=10., upper=30., value=dv_val_dict[dict_val]['sweep'])
-    optProb.addVar('alpha', lower=-10., upper=10., value=dv_val_dict[dict_val]['alpha'])
+                        upper=0.01, scale=1.e3, value=sc_sol_dict[dict_val]['thickness_cp'])
+    optProb.addVar('sweep', lower=10., upper=30., value=sc_sol_dict[dict_val]['sweep'])
+    optProb.addVar('alpha', lower=-10., upper=10., value=sc_sol_dict[dict_val]['alpha'])
 
     # Constraints
     optProb.addConGroup('con_failure', 1, upper=0.)
@@ -241,7 +241,8 @@ if __name__ == "__main__":
 
     # Objective
     optProb.addObj('obj', scale=1.e-1)
-    opt = pyoptsparse.SNOPT(optOptions = {'Major feasibility tolerance' : 1e-9})
+    opt = pyoptsparse.SNOPT(options = {'Major feasibility tolerance' : 1e-9,
+                                       'Verify level' : -1})
     sol = opt(optProb, sens=sens_uq)
 
     end_time = time.time()
