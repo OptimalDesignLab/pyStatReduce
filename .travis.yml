@@ -27,7 +27,7 @@ before_install:
 
 install:
   - pip install numpy
-  - pip install scipy
+  - pip install scipy==1.1.0
   - conda install --yes nose sphinx swig pip;
   - pip install --upgrade pip;
   - pip install mpi4py
