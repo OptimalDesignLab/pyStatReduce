@@ -8,6 +8,7 @@ import copy
 from pystatreduce.new_stochastic_collocation import StochasticCollocation2
 from pystatreduce.quantity_of_interest import QuantityOfInterest
 from pystatreduce.dimension_reduction import DimensionReduction
+from pystatreduce.active_subspace import ActiveSubspace
 from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 import pystatreduce.examples as examples
 import pystatreduce.utils as utils
@@ -30,9 +31,26 @@ class UQScanEagleOpt(object):
     """
     This class is the conduit for linking pyStatReduce and OpenAeroStruct with
     pyOptSparse.
+
+    **Arguments**
+    * `rv_dict` : The random variable dictionary which specifies the random variable,
+                  its mean and standard deviation.
+    * `design_point` : dictionary of the design variable values.
+    * `rdo_factor` : robust design optimization factor, its a multiplier that gets
+                     multiplied to the wuantity of interest. Currently a single
+                     value is used across all QoIs.
+    * `krylov_pert` : finite difference perturbation for the modified Arnoldi method.
+    * `active_subspace` : Boolean for either using active subspace or Arnoldi
+                          dimension reduction method.
+    * `max_eigenmodes` : Maximum number of dominant directons expected from the user.
+                         This is the maximum number dominant directions that will be used
+                         in the subsequent stochastic collocation object.
+    * `n_as_samples` : Number of monte carlo samples used by the active subspace
+                       method. This is argument is only utilized if we are using
+                       the active subspace method.
     """
-    def __init__(self, rv_dict, design_point, rdo_factor=2.0, krylov_pert=1.e-6,
-                 active_subspace=False, max_eigenmodes=2):
+    def __init__(self, rv_dict, design_point, rdo_factor=2.0, krylov_pert=1.e-1,
+                 active_subspace=False, max_eigenmodes=2, n_as_samples=1000):
 
         self.rdo_factor = rdo_factor
 
@@ -66,10 +84,10 @@ class UQScanEagleOpt(object):
         # self.jdist = cp.MvNormal(mu, np.zeros([len(mu), len(mu)]))
         self.QoI = examples.oas_scaneagle2.OASScanEagleWrapper2(self.uq_systemsize,
                                                                 dv_dict)
-        self.QoI.p['oas_scaneagle.wing.thickness_cp'] = design_point['thickness_cp'] # np.array([0.008, 0.008, 0.008])
-        self.QoI.p['oas_scaneagle.wing.twist_cp'] = design_point['twist_cp'] # np.array([2.5, 2.5, 5.0])
-        self.QoI.p['oas_scaneagle.wing.sweep'] = design_point['sweep'] # 20.0
-        self.QoI.p['oas_scaneagle.alpha'] = design_point['alpha'] # 5.0
+        self.QoI.p['oas_scaneagle.wing.thickness_cp'] = design_point['thickness_cp']
+        self.QoI.p['oas_scaneagle.wing.twist_cp'] = design_point['twist_cp']
+        self.QoI.p['oas_scaneagle.wing.sweep'] = design_point['sweep']
+        self.QoI.p['oas_scaneagle.alpha'] = design_point['alpha']
         self.QoI.p.final_setup()
 
         # Figure out which dimension reduction technique to use
@@ -81,8 +99,16 @@ class UQScanEagleOpt(object):
         else:
             self.dominant_space = ActiveSubspace(self.QoI,
                                                  n_dominant_dimensions=max_eigenmodes,
-                                                 n_monte_carlo_samples=1500)
-            active_subspace.getDominantDirections(QoI, jdist)
+                                                 n_monte_carlo_samples=n_as_samples)
+            self.dominant_space.getDominantDirections(self.QoI, self.jdist)
+            # Reset the design point
+            self.QoI.p['oas_scaneagle.wing.thickness_cp'] = design_point['thickness_cp']
+            self.QoI.p['oas_scaneagle.wing.twist_cp'] = design_point['twist_cp']
+            self.QoI.p['oas_scaneagle.wing.sweep'] = design_point['sweep']
+            self.QoI.p['oas_scaneagle.alpha'] = design_point['alpha']
+            self.QoI.p.final_setup()
+            # Reset the random variables
+            self.QoI.update_rv(mu)
 
         dfuelburn_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ObjGradient_dv,
                                   'output_dimensions' : dv_dict['ndv'],

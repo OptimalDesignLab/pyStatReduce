@@ -74,6 +74,7 @@ script:
 
   - python ./pystatreduce/test/test_stochastic_collocation3.py
   - python ./pystatreduce/test/test_angles.py
+  - python ./pystatreduce/test/test_active_subspace.py
 
   # Tests with MDOLab examples
   # - python ./pystatreduce/test/test_openaerostruct_examples.py

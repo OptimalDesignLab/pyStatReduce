@@ -1,4 +1,4 @@
-from pystatreduce.examples.exponential_function import ExponentialFunction
+from pystatreduce.examples.exponential_function import ExponentialFunction, Exp_07xp03y
 from pystatreduce.examples.hadamard_quadratic import HadamardQuadratic
 from pystatreduce.examples.paraboloid import Paraboloid2D, Paraboloid3D, Paraboloid5D
 from pystatreduce.examples.random_quadratic import RandomQuadratic
