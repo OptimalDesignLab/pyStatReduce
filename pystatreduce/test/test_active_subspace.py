@@ -51,7 +51,43 @@ class ActiveSubspaceTest(unittest.TestCase):
         err = C - active_subspace.C_tilde
         self.assertTrue((abs(err) < 1.e-2).all())
 
-        """
+    def test_SVD_equivalence(self):
+        systemsize = 4
+        eigen_decayrate = 2.0
+
+        # Create Hadmard Quadratic object
+        QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
+
+        # Create the joint distribution
+        jdist = cp.J(cp.Uniform(-1,1),
+                     cp.Uniform(-1,1),
+                     cp.Uniform(-1,1),
+                     cp.Uniform(-1,1))
+
+        active_subspace_eigen = ActiveSubspace(QoI, n_dominant_dimensions=1,
+                                               n_monte_carlo_samples=10000,
+                                               use_svd=False, read_rv_samples=False,
+                                               write_rv_samples=True)
+        active_subspace_eigen.getDominantDirections(QoI, jdist)
+
+        active_subspace_svd = ActiveSubspace(QoI, n_dominant_dimensions=1,
+                                             n_monte_carlo_samples=10000,
+                                             use_svd=True, read_rv_samples=True,
+                                             write_rv_samples=False)
+        active_subspace_svd.getDominantDirections(QoI, jdist)
+
+        # Check the iso_eigenvals
+        np.testing.assert_almost_equal(active_subspace_eigen.iso_eigenvals, active_subspace_svd.iso_eigenvals)
+        # check the iso_eigenvecs
+        self.assertTrue(active_subspace_eigen.iso_eigenvecs.shape, active_subspace_svd.iso_eigenvecs.shape)
+        for i in range(active_subspace_eigen.iso_eigenvecs.shape[1]):
+            arr1 = active_subspace_eigen.iso_eigenvecs[:,i]
+            arr2 = active_subspace_svd.iso_eigenvecs[:,i]
+            if np.allclose(arr1, arr2) == False:
+                np.testing.assert_almost_equal(arr1, -arr2)
+    """
+    def util_func(arb):
+
         active_dominant_dir = active_subspace.dominant_dir
         print('Active Subspace')
         print('iso_eigenvals = ', active_subspace.iso_eigenvals)
@@ -80,7 +116,7 @@ class ActiveSubspaceTest(unittest.TestCase):
 
         # Create a stochastic collocation object
         sc_obj_active = StochasticCollocation2(jdist, 4, 'MvNormal', QoI_dict,
-                                        include_derivs=False,main()
+                                        include_derivs=False,
                                         reduced_collocation=True,
                                         dominant_dir=active_dominant_dir)
         sc_obj_active.evaluateQoIs(jdist)
@@ -105,6 +141,6 @@ class ActiveSubspaceTest(unittest.TestCase):
         print('mu_j_active = ', mu_j_active['exponential'])
         print('mu_j_full = ', mu_j_full['exponential'])
         # print('mu_j_analytical = ', mu_j_analytical)
-        """
+    """
 if __name__ == '__main__':
     unittest.main()
