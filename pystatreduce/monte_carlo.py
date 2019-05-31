@@ -25,10 +25,18 @@ class MonteCarlo(object):
             mu = cp.E(jdist)
             covariance = cp.Cov(jdist)
             sqrt_Sigma = np.sqrt(covariance) # This assumes the random variables are independent
-            self.iso_jdist = cp.MvNormal(np.zeros(ndims), np.eye(ndims))
-            self.iso_samples = self.iso_jdist.sample(self.num_samples)
-            int_mat = np.matmul(sqrt_Sigma, dominant_dir)
-            self.samples = np.add(np.einsum('ij,jk', int_mat, self.iso_samples).T, mu).T
+            if ndims > 1:
+                self.iso_jdist = cp.MvNormal(np.zeros(ndims), np.eye(ndims))
+                self.iso_samples = self.iso_jdist.sample(self.num_samples)
+                int_mat = np.matmul(sqrt_Sigma, dominant_dir)
+                self.samples = np.add(np.einsum('ij,jk', int_mat, self.iso_samples).T, mu).T
+            else:
+                self.iso_jdist = cp.Normal()
+                self.iso_samples = self.iso_jdist.sample(self.num_samples)
+                int_mat = np.matmul(sqrt_Sigma, dominant_dir)
+                print(np.outer(int_mat, self.iso_samples))
+                self.samples = np.add(np.outer(int_mat, self.iso_samples).T, mu).T
+
 
         for i in self.QoI_dict:
             self.QoI_dict[i]['fvals'] = np.zeros([self.num_samples,
