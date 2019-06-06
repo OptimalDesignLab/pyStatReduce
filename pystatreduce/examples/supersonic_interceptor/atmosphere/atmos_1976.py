@@ -4,7 +4,7 @@ from collections import namedtuple
 import numpy as np
 from scipy.interpolate import Akima1DInterpolator as Akima
 
-from openmdao.api import ExplicitComponent
+from openmdao.api import ExplicitComponent, Group
 
 """United States standard atmosphere 1976 tables, data
 obtained from http://www.digitaldutch.com/atmoscalc/index.htm"""
@@ -121,25 +121,93 @@ USatm1976Data.viscosity = np.array([3.81E-07, 3.78E-07, 3.76E-07, 3.74E-07, 3.72
                                     3.13E-07, 3.18E-07, 3.23E-07, 3.28E-07, 3.33E-07, 3.37E-07,
                                     3.42E-07, 3.47E-07, 3.51E-07, 3.56E-07])
 
-T_interp = Akima(USatm1976Data.alt, USatm1976Data.T)
-P_interp = Akima(USatm1976Data.alt, USatm1976Data.P)
-rho_interp = Akima(USatm1976Data.alt, USatm1976Data.rho)
-visc_interp = Akima(USatm1976Data.alt, USatm1976Data.viscosity)
-
-T_interp_deriv = T_interp.derivative(1)
-P_interp_deriv = P_interp.derivative(1)
-rho_interp_deriv = rho_interp.derivative(1)
-visc_interp_deriv = visc_interp.derivative(1)
+# Interpolations as a function of altitide
+T_interp_alt = Akima(USatm1976Data.alt, USatm1976Data.T)
+P_interp_alt = Akima(USatm1976Data.alt, USatm1976Data.P)
+rho_interp_alt = Akima(USatm1976Data.alt, USatm1976Data.rho)
+visc_interp_alt = Akima(USatm1976Data.alt, USatm1976Data.viscosity)
+# Their derivatives
+T_interp_deriv = T_interp_alt.derivative(1)
+P_interp_deriv = P_interp_alt.derivative(1)
+rho_interp_deriv = rho_interp_alt.derivative(1)
+visc_interp_deriv = visc_interp_alt.derivative(1)
 drho_dh_interp_deriv = rho_interp_deriv.derivative(1)
 
+# Interpolations as a function of density
+a_vs_rho_interp = Akima(np.flip(USatm1976Data.rho), np.flip(USatm1976Data.a))
+a_vs_rho_interp_deriv = a_vs_rho_interp.derivative(1)
+
+class USatm1976Group(Group):
+    def initialize(self):
+        self.options.declare('num_nodes', types=int,
+                             desc='Number of nodes to be evaluated in the RHS')
+        self.options.declare('perturbations', types=np.ndarray,
+                             desc='Perturbations to the temperature that introduce the uncertainty')
+
+    def setup(self):
+        nn = self.options['num_nodes']
+        pert = self.options['perturbations']
+
+        self.add_subsystem(name='density', subsys=PerturbedDensityComp(num_nodes=nn, perturbations=pert),
+                           promotes_inputs=['h'], promotes_outputs=['rho'])
+        self.add_subsystem(name='other_atmos_properties',
+                           subsys=SpeedofSoundComp(num_nodes=nn),
+                           promotes_inputs=['rho'], promotes_outputs=['sos'])
+
+class PerturbedDensityComp(ExplicitComponent):
+    def initialize(self):
+        self.options.declare('num_nodes', types=int,
+                             desc='Number of nodes to be evaluated in the RHS')
+        self.options.declare('perturbations', types=np.ndarray,
+                             desc='Perturbations to the temperature that introduce the uncertainty')
+
+    def setup(self):
+        nn = self.options['num_nodes']
+
+        self.add_input('h', val=1.*np.ones(nn), units='ft')
+        self.add_output('rho', val=1.*np.ones(nn), units='slug/ft**3')
+        arange = np.arange(nn)
+        self.declare_partials(['rho'], ['h'], rows=arange, cols=arange)
+
+    def compute(self, inputs, outputs):
+        pert = self.options['perturbations']
+        outputs['rho'] = rho_interp_alt(inputs['h'], extrapolate=True) + pert
+
+    def compute_partials(self, inputs, partials):
+        H = inputs['h']
+        partials['rho', 'h'] = rho_interp_deriv(H, extrapolate=True)
+
+class SpeedofSoundComp(ExplicitComponent):
+
+    def initialize(self):
+        self.options.declare('num_nodes', types=int,
+                             desc='Number of nodes to be evaluated in the RHS')
+        gamma = 1.4  # Ratio of specific heads
+        gas_c = 1716.49  # Gas constant (ft lbf)/(slug R)
+        self._K = gamma * gas_c
+
+    def setup(self):
+        nn = self.options['num_nodes']
+        self.add_input('rho', val=1.*np.ones(nn), units='slug/ft**3')
+        self.add_output('sos', val=1*np.ones(nn), units='ft/s')
+        arange = np.arange(nn)
+        self.declare_partials(['sos'], ['rho'], rows=arange, cols=arange)
+
+    def compute(self, inputs, outputs):
+        rho = inputs['rho']
+        outputs['sos'] = a_vs_rho_interp(rho, extrapolate=True)
+
+    def compute_partials(self, inputs, partials):
+        rho = inputs['rho']
+        partials['sos', 'rho'] = a_vs_rho_interp_deriv(rho, extrapolate=True)
+
+#-------------------------------------------------------------------------------#
 
 class USatm1976Comp(ExplicitComponent):
 
     def initialize(self):
         self.options.declare('num_nodes', types=int,
                              desc='Number of nodes to be evaluated in the RHS')
-        self.options.declare('perturbations', types=np.ndarray,
-                             desc='Perturbations to the temperature that introduce the uncertainty')
 
         gamma = 1.4  # Ratio of specific heads
         gas_c = 1716.49  # Gas constant (ft lbf)/(slug R)
@@ -147,8 +215,6 @@ class USatm1976Comp(ExplicitComponent):
 
     def setup(self):
         nn = self.options['num_nodes']
-        pert = self.options['perturbations']
-
         self.add_input('h', val=1.*np.ones(nn), units='ft')
 
         self.add_output('temp', val=1.*np.ones(nn), units='degR')
@@ -163,10 +229,10 @@ class USatm1976Comp(ExplicitComponent):
                               rows=arange, cols=arange)
 
     def compute(self, inputs, outputs):
-        outputs['temp'] = T_interp(inputs['h'], extrapolate=True)
-        outputs['pres'] = P_interp(inputs['h'], extrapolate=True)
-        outputs['rho'] = rho_interp(inputs['h'], extrapolate=True)
-        outputs['viscosity'] = visc_interp(inputs['h'], extrapolate=True)
+        outputs['temp'] = T_interp_alt(inputs['h'], extrapolate=True)
+        outputs['pres'] = P_interp_alt(inputs['h'], extrapolate=True)
+        outputs['rho'] = rho_interp_alt(inputs['h'], extrapolate=True)
+        outputs['viscosity'] = visc_interp_alt(inputs['h'], extrapolate=True)
         outputs['drhos_dh'] = rho_interp_deriv(inputs['h'], extrapolate=True)
         outputs['sos'] = np.sqrt(self._K*outputs['temp'])
 
@@ -180,3 +246,60 @@ class USatm1976Comp(ExplicitComponent):
 
         T = T_interp(H, extrapolate=True)
         partials['sos', 'h'] = 0.5/np.sqrt(self._K*T)*partials['temp', 'h'] * self._K
+
+#------------------------------------------------------------------------------#
+"""
+class PerturbedTempComp(ExplicitComponent):
+    def initialize(self):
+        self.options.declare('num_nodes', types=int,
+                             desc='Number of nodes to be evaluated in the RHS')
+        self.options.declare('perturbations', types=np.ndarray,
+                             desc='Perturbations to the temperature that introduce the uncertainty')
+
+    def setup(self):
+        nn = self.options['num_nodes']
+
+        self.add_input('h', val=1.*np.ones(nn), units='ft')
+        self.add_output('temp', val=1.*np.ones(nn), units='degR')
+        arange = np.arange(nn)
+        self.declare_partials(['temp'], ['h'], rows=arange, cols=arange)
+
+    def compute(self, inputs, outputs):
+        pert = self.options['perturbations']
+        outputs['temp'] = T_interp(inputs['h'], extrapolate=True) + pert
+
+    def compute_partials(self, inputs, partials):
+        H = inputs['h']
+        partials['temp', 'h'] = T_interp_deriv(H, extrapolate=True)
+
+class AtmosVariableComp(ExplicitComponent):
+    def initialize(self):
+        self.options.declare('num_nodes', types=int,
+                             desc='Number of nodes to be evaluated in the RHS')
+
+        gamma = 1.4  # Ratio of specific heads
+        gas_c = 1716.49  # Gas constant (ft lbf)/(slug R)
+        self._K = gamma * gas_c
+
+    def setup(self):
+        nn = self.options['num_nodes']
+        self.add_input('temp', val=1.*np.ones(nn), units='degR')
+        self.add_output('rho', val=1.*np.ones(nn), units='slug/ft**3')
+        self.add_output('sos', val=1*np.ones(nn), units='ft/s')
+        arange = np.arange(nn)
+        self.declare_partials(['rho', 'sos'], ['temp'], rows=arange, cols=arange)
+
+    def compute(self, inputs, outputs):
+        T = inputs['temp']
+        outputs['rho'] =  rho_vs_T_interp(T, extrapolate=True)
+        outputs['sos'] = np.sqrt(self._K*T)
+
+    def compute_partials(self, inputs, partials):
+        T = inputs['temp']
+        partials['rho', 'temp'] = drho_dTmp_interp_deriv(T, extrapolate=True)
+        partials['sos'] = 0.5 * np.sqrt(_K / T)
+"""
+if __name__ == '__main__':
+    # Check if the data point aire strictly decreaing
+    print('temperature strictly descending', np.all(np.diff(USatm1976Data.T)) > 0)
+    print('density strictly descending', np.all(np.diff(USatm1976Data.rho)) > 0)
