@@ -26,20 +26,20 @@ from dymos.models.eom import FlightPathEOM2D
 @declare_parameter('Isp', targets=['Isp'], units='s')
 @declare_parameter('S', targets=['S'], units='m**2')
 @declare_parameter('throttle', targets=['throttle'], units=None)
+
+@declare_parameter('rho_pert', targets=['rho_pert'], units='slug/ft**3') # external input parameter
+
 class MinTimeClimbODE(Group):
 
     def initialize(self):
         self.options.declare('num_nodes', types=int)
-        self.options.declare('perutbations', types=np.ndarray,
-                             desc='Perturbations to the temperature that introduce the uncertainty')
 
     def setup(self):
         nn = self.options['num_nodes']
-        pert = self.options['perturbations']
 
         self.add_subsystem(name='atmos',
-                           subsys=USatm1976Group(num_nodes=nn, perturbations=pert),
-                           promotes_inputs=['h'])
+                           subsys=USatm1976Group(num_nodes=nn),
+                           promotes_inputs=['h', 'rho_pert'])
 
         self.add_subsystem(name='aero',
                            subsys=AeroGroup(num_nodes=nn),

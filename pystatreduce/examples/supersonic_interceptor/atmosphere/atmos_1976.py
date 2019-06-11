@@ -141,15 +141,12 @@ class USatm1976Group(Group):
     def initialize(self):
         self.options.declare('num_nodes', types=int,
                              desc='Number of nodes to be evaluated in the RHS')
-        self.options.declare('perturbations', types=np.ndarray,
-                             desc='Perturbations to the temperature that introduce the uncertainty')
 
     def setup(self):
         nn = self.options['num_nodes']
-        pert = self.options['perturbations']
 
-        self.add_subsystem(name='density', subsys=PerturbedDensityComp(num_nodes=nn, perturbations=pert),
-                           promotes_inputs=['h'], promotes_outputs=['rho'])
+        self.add_subsystem(name='density', subsys=PerturbedDensityComp(num_nodes=nn),
+                           promotes_inputs=['h', 'rho_pert'], promotes_outputs=['rho'])
         self.add_subsystem(name='other_atmos_properties',
                            subsys=SpeedofSoundComp(num_nodes=nn),
                            promotes_inputs=['rho'], promotes_outputs=['sos'])
@@ -158,19 +155,19 @@ class PerturbedDensityComp(ExplicitComponent):
     def initialize(self):
         self.options.declare('num_nodes', types=int,
                              desc='Number of nodes to be evaluated in the RHS')
-        self.options.declare('perturbations', types=np.ndarray,
-                             desc='Perturbations to the temperature that introduce the uncertainty')
 
     def setup(self):
         nn = self.options['num_nodes']
 
         self.add_input('h', val=1.*np.ones(nn), units='ft')
+        self.add_input('rho_pert', val=np.zeros(nn), units='slug/ft**3')
         self.add_output('rho', val=1.*np.ones(nn), units='slug/ft**3')
+
         arange = np.arange(nn)
         self.declare_partials(['rho'], ['h'], rows=arange, cols=arange)
 
     def compute(self, inputs, outputs):
-        pert = self.options['perturbations']
+        pert = inputs['rho_pert']
         outputs['rho'] = rho_interp_alt(inputs['h'], extrapolate=True) + pert
 
     def compute_partials(self, inputs, partials):

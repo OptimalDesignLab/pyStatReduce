@@ -85,9 +85,11 @@ class TestAtmosphere(unittest.TestCase):
         # Create the IndepVarComp
         ivc = p.model.add_subsystem('ivc', subsys=IndepVarComp(), promotes_outputs=['*'])
         ivc.add_output(name='alt_m', val=reference[:, 0], units='m')
+        ivc.add_output(name='rho_pert', val=np.zeros(n), units='kg/m**3')
 
-        p.model.add_subsystem('atmos', subsys=USatm1976Group(num_nodes=n, perturbations=np.zeros(n)))
+        p.model.add_subsystem('atmos', subsys=USatm1976Group(num_nodes=n))
         p.model.connect('alt_m', 'atmos.h')
+        p.model.connect('rho_pert', 'atmos.rho_pert')
 
         p.setup()
         p.run_model()

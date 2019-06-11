@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 
-from openmdao.api import Problem, Group, pyOptSparseDriver, DirectSolver
+from openmdao.api import Problem, Group, IndepVarComp, pyOptSparseDriver, DirectSolver
 from openmdao.utils.assert_utils import assert_rel_error
 
 import dymos as dm
@@ -18,6 +18,11 @@ p = Problem(model=Group())
 p.driver = pyOptSparseDriver()
 p.driver.options['optimizer'] = 'SLSQP'
 p.driver.options['dynamic_simul_derivs'] = True
+
+# Add an indep_var_comp that will talk to external calls from pyStatReduce
+random_perturbations = p.model.add_subsystem('random_perturbations', IndepVarComp())
+random_perturbations.add_output('rho_pert', val=np.zeros(80), units='slug/ft**3',
+                                desc="perturbations introduced into the density data")
 
 #
 # Instantiate the trajectory and phase
@@ -40,13 +45,13 @@ phase.set_time_options(fix_initial=True, duration_bounds=(50, 400),
 phase.set_state_options('r', fix_initial=True, lower=0, upper=1.0E6,
                         ref=1.0E3, defect_ref=1.0E3, units='m')
 
-phase.set_state_options('h', fix_initial=True, fix_final=True, lower=0, upper=20000.0,
+phase.set_state_options('h', fix_initial=True, lower=0, upper=20000.0,
                         ref=1.0E2, defect_ref=1.0E2, units='m')
 
 phase.set_state_options('v', fix_initial=True, lower=10.0,
                         ref=1.0E2, defect_ref=1.0E2, units='m/s')
 
-phase.set_state_options('gam', fix_initial=True, fix_final=True, lower=-1.5, upper=1.5,
+phase.set_state_options('gam', fix_initial=True, lower=-1.5, upper=1.5,
                         ref=1.0, defect_scaler=1.0, units='rad')
 
 phase.set_state_options('m', fix_initial=True, lower=10.0, upper=1.0E5,
@@ -60,12 +65,17 @@ phase.add_design_parameter('S', val=49.2386, units='m**2', opt=False)
 phase.add_design_parameter('Isp', val=1600.0, units='s', opt=False)
 phase.add_design_parameter('throttle', val=1.0, opt=False)
 
+# Add the random parameters to dymos
+phase.add_input_parameter('rho_pert', shape=(80,), dynamic=False, units='slug/ft**3')
+
+p.model.connect('random_perturbations.rho_pert', 'traj.phase0.input_parameters:rho_pert')
+
 #
 # Setup the boundary and path constraints
 #
-# phase.add_boundary_constraint('h', loc='final', equals=20000, scaler=1.0E-3, units='m')
+phase.add_boundary_constraint('h', loc='final', equals=20000, scaler=1.0E-3, units='m')
 phase.add_boundary_constraint('aero.mach', loc='final', equals=1.0, shape=(1,))
-# phase.add_boundary_constraint('gam', loc='final', equals=0.0, units='rad')
+phase.add_boundary_constraint('gam', loc='final', equals=0.0, units='rad')
 
 phase.add_path_constraint(name='h', lower=100.0, upper=20000, ref=20000)
 phase.add_path_constraint(name='aero.mach', lower=0.1, upper=1.8, shape=(1,))
@@ -93,8 +103,7 @@ p['traj.phase0.controls:alpha'] = phase.interpolate(ys=[0.0, 0.0], nodes='contro
 #
 # Solve for the optimal trajectory
 #
-p.run_model()
-# p.run_driver()
+p.run_driver()
 # totals = p.compute_totals(of=['traj.phase0.rhs_all.aero.CD'], wrt=['traj.phase0.rhs_all.atmos.rho'])
 # print(totals['traj.phase0.rhs_all.aero.CD', 'traj.phase0.rhs_all.atmos.rho' ])
 #
@@ -132,11 +141,11 @@ print('len path_M = ', p.driver.get_constraint_values()['traj.phases.phase0.path
 #
 # Get the explicitly simulated solution and plot the results
 #
-# exp_out = traj.simulate()
-# plot_results([('traj.phase0.timeseries.time', 'traj.phase0.timeseries.states:h',
-#                'time (s)', 'altitude (m)'),
-#               ('traj.phase0.timeseries.time', 'traj.phase0.timeseries.controls:alpha',
-#                'time (s)', 'alpha (deg)')],
-#              title='Supersonic Minimum Time-to-Climb Solution',
-#              p_sol=p, p_sim=exp_out)
-# plt.show()
+exp_out = traj.simulate()
+plot_results([('traj.phase0.timeseries.time', 'traj.phase0.timeseries.states:h',
+               'time (s)', 'altitude (m)'),
+              ('traj.phase0.timeseries.time', 'traj.phase0.timeseries.controls:alpha',
+               'time (s)', 'alpha (deg)')],
+             title='Supersonic Minimum Time-to-Climb Solution',
+             p_sol=p, p_sim=exp_out)
+plt.show()
