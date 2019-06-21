@@ -102,5 +102,7 @@ class TestAtmosphere(unittest.TestCase):
         assert_rel_error(self, p.get_val('atmos.sos', units='m/s'),
                          reference[:, 4], tolerance=1.0E-2)
 
+        # data = p.check_partials()
+
 if __name__ == "__main__":
     unittest.main()

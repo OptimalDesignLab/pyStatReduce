@@ -18,6 +18,7 @@ p = Problem(model=Group())
 p.driver = pyOptSparseDriver()
 p.driver.options['optimizer'] = 'SLSQP'
 p.driver.options['dynamic_simul_derivs'] = True
+p.driver.options['print_results'] = False
 
 # Add an indep_var_comp that will talk to external calls from pyStatReduce
 random_perturbations = p.model.add_subsystem('random_perturbations', IndepVarComp())
@@ -103,30 +104,29 @@ p['traj.phase0.controls:alpha'] = phase.interpolate(ys=[0.0, 0.0], nodes='contro
 #
 # Solve for the optimal trajectory
 #
+# p.run_model()
 p.run_driver()
-# totals = p.compute_totals(of=['traj.phase0.rhs_all.aero.CD'], wrt=['traj.phase0.rhs_all.atmos.rho'])
-# print(totals['traj.phase0.rhs_all.aero.CD', 'traj.phase0.rhs_all.atmos.rho' ])
+print(p.get_val('traj.phase0.t_duration')[0])
+print(p.get_val('traj.phase0.rhs_all.atmos.rho'))
+p.run_model()
+totals = p.compute_totals(of=['traj.phase0.states:m'], wrt=['traj.phase0.timeseries.controls:alpha'])
+print(totals['traj.phase0.states:m', 'traj.phase0.timeseries.controls:alpha'])
 #
 # Test the results
 #
-print(p.driver.get_constraint_values().keys())
-# print('len m = ', p.driver.get_design_var_values()['traj.phases.phase0.indep_states.states:m'].size)
-# print('len gamma = ', p.driver.get_design_var_values()['traj.phases.phase0.indep_states.states:gam'].size)
-# print('len v = ',  p.driver.get_design_var_values()['traj.phases.phase0.indep_states.states:v'].size)
-# print('len h = ', p.driver.get_design_var_values()['traj.phases.phase0.indep_states.states:h'].size)
-# print('len r = ', p.driver.get_design_var_values()['traj.phases.phase0.indep_states.states:r'].size)
-# print('len alpha = ',  p.driver.get_design_var_values()['traj.phases.phase0.control_group.indep_controls.controls:alpha'].size)
+# print(p.driver.get_constraint_values().keys())
 
-print('len m = ', p.driver.get_constraint_values()['traj.phases.phase0.collocation_constraint.defects:m'].size)
-print('len gamma = ', p.driver.get_constraint_values()['traj.phases.phase0.collocation_constraint.defects:gam'].size)
-print('len v = ', p.driver.get_constraint_values()['traj.phases.phase0.collocation_constraint.defects:v'].size)
-print('len h = ', p.driver.get_constraint_values()['traj.phases.phase0.collocation_constraint.defects:h'].size)
-print('len r = ', p.driver.get_constraint_values()['traj.phases.phase0.collocation_constraint.defects:r'].size)
-print('len alpha = ', p.driver.get_constraint_values()['traj.phases.phase0.continuity_comp.defect_controls:alpha'].size)
-print('len alpha_dot = ', p.driver.get_constraint_values()['traj.phases.phase0.continuity_comp.defect_control_rates:alpha_rate'].size)
-print('len M_f = ', p.driver.get_constraint_values()[ 'traj.phases.phase0.final_boundary_constraints.final_value:mach'].size)
-print('len path_h = ', p.driver.get_constraint_values()['traj.phases.phase0.path_constraints.path:h'].size)
-print('len path_M = ', p.driver.get_constraint_values()['traj.phases.phase0.path_constraints.path:mach'].size)
+
+# print('len m = ', p.driver.get_constraint_values()['traj.phases.phase0.collocation_constraint.defects:m'].size)
+# print('len gamma = ', p.driver.get_constraint_values()['traj.phases.phase0.collocation_constraint.defects:gam'].size)
+# print('len v = ', p.driver.get_constraint_values()['traj.phases.phase0.collocation_constraint.defects:v'].size)
+# print('len h = ', p.driver.get_constraint_values()['traj.phases.phase0.collocation_constraint.defects:h'].size)
+# print('len r = ', p.driver.get_constraint_values()['traj.phases.phase0.collocation_constraint.defects:r'].size)
+# print('len alpha = ', p.driver.get_constraint_values()['traj.phases.phase0.continuity_comp.defect_controls:alpha'].size)
+# print('len alpha_dot = ', p.driver.get_constraint_values()['traj.phases.phase0.continuity_comp.defect_control_rates:alpha_rate'].size)
+# print('len M_f = ', p.driver.get_constraint_values()[ 'traj.phases.phase0.final_boundary_constraints.final_value:mach'].size)
+# print('len path_h = ', p.driver.get_constraint_values()['traj.phases.phase0.path_constraints.path:h'].size)
+# print('len path_M = ', p.driver.get_constraint_values()['traj.phases.phase0.path_constraints.path:mach'].size)
 
 
 
@@ -141,11 +141,11 @@ print('len path_M = ', p.driver.get_constraint_values()['traj.phases.phase0.path
 #
 # Get the explicitly simulated solution and plot the results
 #
-exp_out = traj.simulate()
-plot_results([('traj.phase0.timeseries.time', 'traj.phase0.timeseries.states:h',
-               'time (s)', 'altitude (m)'),
-              ('traj.phase0.timeseries.time', 'traj.phase0.timeseries.controls:alpha',
-               'time (s)', 'alpha (deg)')],
-             title='Supersonic Minimum Time-to-Climb Solution',
-             p_sol=p, p_sim=exp_out)
-plt.show()
+# exp_out = traj.simulate()
+# plot_results([('traj.phase0.timeseries.time', 'traj.phase0.timeseries.states:h',
+#                'time (s)', 'altitude (m)'),
+#               ('traj.phase0.timeseries.time', 'traj.phase0.timeseries.controls:alpha',
+#                'time (s)', 'alpha (deg)')],
+#              title='Supersonic Minimum Time-to-Climb Solution',
+#              p_sol=p, p_sim=exp_out)
+# plt.show()

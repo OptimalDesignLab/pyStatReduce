@@ -37,25 +37,105 @@ class DymosInterceptorQoI(QuantityOfInterest):
 
     def eval_QoI(self, mu, xi):
         rv = mu + xi
-        self.interceptor_obj.set_random_perturbations(rv)
+        # expanded_rv = self.__setNodalEntries(rv)
+        # self.interceptor_obj.set_random_perturbations(expanded_rv)
+        self.update_rv(rv)
         self.interceptor_obj.p.run_driver()
-        return self.p.get_val('traj.phase0.t_duration')[0]
+        return self.interceptor_obj.p.get_val('traj.phase0.t_duration')[0]
 
     def eval_QoIGradient(self, mu, xi):
-        assert interceptor_obj.transcription_type == 'LGR'
+        assert self.interceptor_obj.transcription_type == 'LGR', 'The method is only implemented for LGR transcription.'
         rv = mu + xi
-        self.interceptor_obj.set_random_perturbations(mu)
+        # expanded_rv = self.__setNodalEntries(rv)
+        # self.interceptor_obj.set_random_perturbations(expanded_rv)
+        self.update_rv(rv)
         self.interceptor_obj.p.run_driver()
-        t_orig = self.p.get_val('traj.phase0.t_duration')[0]
+        t_orig = self.interceptor_obj.p.get_val('traj.phase0.t_duration')[0]
 
+        transcription_order = self.input_dict['transcription_order']
         pert_val = 1.e-6
-        pert_arr = np.zeros(mu.size)
-        n_nodes = interceptor_obj.num_segments * (interceptor_obj.transcription_order+1)
-        dtf_drho_all = np.zeros(1.e-6)
+        pert_arr = np.zeros(rv.size)
+        n_nodes = self.interceptor_obj.num_segments * (transcription_order+1)
+        # dtf_drho_all = np.zeros(n_nodes)
+        dtf_drho = np.zeros(rv.size)
 
-        # This is only for LGR
+        # This is only valid for LGR
+        for i in range(rv.size):
+            pert_arr[i] += pert_val
+            self.update_rv(pert_arr)
+            self.interceptor_obj.p.run_driver()
+            t_pert = self.interceptor_obj.p.get_val('traj.phase0.t_duration')[0]
+            dtf_drho[i] = (t_pert - t_orig) / pert_val
+            pert_arr[i] -= pert_val
 
+        # # This is only for LGR
+        # segment_id = 0
+        # i = 0
+        # while i < n_nodes:
+        #     print('i = ', i)
+        #     if i is (segment_id+1)*(transcription_order+1) -1 and i != (n_nodes-1):
+        #         print('     i = ', i)
+        #         pert_arr[i] += pert_val
+        #         pert_arr[i+1] += pert_val
+        #         self.interceptor_obj.set_random_perturbations(pert_arr)
+        #         t_pert = self.evaluate_time(alpha)
+        #         # print('t_pert = ', t_pert)
+        #         dtf_drho_all[i] = (t_pert - t_orig) / pert_val
+        #         dtf_drho_all[i+1] = dtf_drho_all[i]
+        #         segment_id += 1
+        #         pert_arr[i] -= pert_val
+        #         pert_arr[i+1] -= pert_val
+        #         i +=2
+        #     else:
+        #         pert_arr[i] += pert_val
+        #         self.interceptor_obj.set_random_perturbations(pert_arr)
+        #         t_pert = self.evaluate_time(alpha)
+        #         # print('t_pert = ', t_pert)
+        #         dtf_drho_all[i] = (t_pert - t_orig) / pert_val
+        #         pert_arr[i] -= pert_val
+        #         i += 1
 
+        # # Now that we have to get rid of the duplicates in dtf_drho_all
+        # dtf_drho = self.__getUniqueNodalEntries(dtf_drho_all)
+        return dtf_drho
+
+    def __getUniqueNodalEntries(self, input_array):
+        output_list = []
+        for x in input_array:
+            if x not in output_list:
+                output_list.append(x)
+            elif x != output_list[-1]:
+                # Ensures if two distinct points have the same gradient values,
+                # we still capture the values correctly
+                output_list.append(x)
+
+        return np.asarray(output_list)
+
+    def __setNodalEntries(self, input_array):
+        num_segments = self.input_dict['num_segments']
+        transcription_order = self.input_dict['transcription_order']
+        n_nodes = (transcription_order+1)*num_segments
+        output_arr = np.zeros(n_nodes)
+        ctr = 0
+        segment_id = 0
+        i = 0
+        while i < n_nodes:
+            if i is (segment_id+1)*(transcription_order+1) -1 and i != (n_nodes-1):
+                output_arr[i] = input_array[ctr]
+                output_arr[i+1] = input_array[ctr]
+                i += 2
+                ctr += 1
+                segment_id += 1
+            else:
+                output_arr[i] = input_array[ctr]
+                i += 1
+                ctr += 1
+
+        return output_arr
+
+    def update_rv(self, rv):
+        expanded_rv = self.__setNodalEntries(rv)
+        self.interceptor_obj.set_random_perturbations(expanded_rv)
 
 #------------------------------------------------------------------------------#
 #
@@ -180,3 +260,19 @@ class InterceptorWrapper(object):
     def set_random_perturbations(self, std_pert):
         expanded_pert = np.expand_dims(std_pert, axis=0)
         self.p.set_val('random_perturbations.rho_pert', std_pert, 'kg/m**3')
+
+
+if __name__ == '__main__':
+
+    systemsize = 45 + 1
+    input_dict = {'num_segments': 15,
+                  'transcription_order' : 3,
+                  'transcription_type': 'LGR',
+                  'solve_segments': False}
+    dymos_obj = DymosInterceptorQoI(systemsize, input_dict)
+
+    t_f = dymos_obj.eval_QoI(np.zeros(systemsize), np.zeros(systemsize))
+    print('t_f = ', t_f)
+
+    grad_tf = dymos_obj.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize))
+    print('grad_tf = ', grad_tf)

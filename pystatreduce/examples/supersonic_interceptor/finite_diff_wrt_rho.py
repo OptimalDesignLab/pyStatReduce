@@ -171,39 +171,39 @@ class IterceptorWrapper2(object):
         pert_arr = np.zeros(n_nodes)
         pert_val = 1.e-6
         dtf_drho = np.zeros(n_nodes)
-        # for i in range(n_nodes):
-        #     pert_arr[i] += pert_val
-        #     self.set_random_perturbations(pert_arr)
-        #     t_pert = self.evaluate_time(alpha)
-        #     dtf_drho[i] = (t_pert - t_orig) / pert_val
-        #     pert_arr[i] -= pert_val
+        for i in range(n_nodes):
+            pert_arr[i] += pert_val
+            self.set_random_perturbations(pert_arr)
+            t_pert = self.evaluate_time(alpha)
+            dtf_drho[i] = (t_pert - t_orig) / pert_val
+            pert_arr[i] -= pert_val
 
-        # Only for LGR
-        segment_id = 0
-        i = 0
-        while i < n_nodes:
-            print('i = ', i)
-            if i is (segment_id+1)*(self.transcription_order+1) -1 and i != (n_nodes-1):
-                print('     i = ', i)
-                pert_arr[i] += pert_val
-                pert_arr[i+1] += pert_val
-                self.set_random_perturbations(pert_arr)
-                t_pert = self.evaluate_time(alpha)
-                # print('t_pert = ', t_pert)
-                dtf_drho[i] = (t_pert - t_orig) / pert_val
-                dtf_drho[i+1] = dtf_drho[i]
-                segment_id += 1
-                pert_arr[i] -= pert_val
-                pert_arr[i+1] -= pert_val
-                i +=2
-            else:
-                pert_arr[i] += pert_val
-                self.set_random_perturbations(pert_arr)
-                t_pert = self.evaluate_time(alpha)
-                # print('t_pert = ', t_pert)
-                dtf_drho[i] = (t_pert - t_orig) / pert_val
-                pert_arr[i] -= pert_val
-                i += 1
+        # # Only for LGR
+        # segment_id = 0
+        # i = 0
+        # while i < n_nodes:
+        #     print('i = ', i)
+        #     if i is (segment_id+1)*(self.transcription_order+1) -1 and i != (n_nodes-1):
+        #         print('     i = ', i)
+        #         pert_arr[i] += pert_val
+        #         pert_arr[i+1] += pert_val
+        #         self.set_random_perturbations(pert_arr)
+        #         t_pert = self.evaluate_time(alpha)
+        #         # print('t_pert = ', t_pert)
+        #         dtf_drho[i] = (t_pert - t_orig) / pert_val
+        #         dtf_drho[i+1] = dtf_drho[i]
+        #         segment_id += 1
+        #         pert_arr[i] -= pert_val
+        #         pert_arr[i+1] -= pert_val
+        #         i +=2
+        #     else:
+        #         pert_arr[i] += pert_val
+        #         self.set_random_perturbations(pert_arr)
+        #         t_pert = self.evaluate_time(alpha)
+        #         # print('t_pert = ', t_pert)
+        #         dtf_drho[i] = (t_pert - t_orig) / pert_val
+        #         pert_arr[i] -= pert_val
+        #         i += 1
 
         return dtf_drho
 
