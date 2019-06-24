@@ -9,7 +9,8 @@ from pystatreduce.monte_carlo import MonteCarlo
 class ActiveSubspace(object):
 
     def __init__(self, QoI, n_dominant_dimensions=1, n_monte_carlo_samples=1000,
-                 use_svd=False, read_rv_samples=False, write_rv_samples=False):
+                 use_svd=False, read_rv_samples=False, write_rv_samples=False,
+                 use_truncated_samples=False):
         """
         This file contains the dimension reduction method presented by
         Constantine in the paper "Active subspace methods in theory and
@@ -26,6 +27,7 @@ class ActiveSubspace(object):
         self.use_svd = use_svd
         self.read_file = read_rv_samples
         self.write_file = write_rv_samples
+        self.use_truncated_samples = use_truncated_samples
 
     def getDominantDirections(self, QoI, jdist):
         systemsize = QoI.systemsize
@@ -34,8 +36,8 @@ class ActiveSubspace(object):
             rv_arr = np.loadtxt('rv_arr.txt')
             np.testing.assert_equal(self.n_monte_carlo_samples, rv_arr.shape[1])
         else:
-            use_truncated_samples = True
-            if use_truncated_samples:
+            # use_truncated_samples = True
+            if self.use_truncated_samples:
                 rv_arr = self.get_truncated_samples(jdist)
             else:
                 rv_arr = jdist.sample(self.n_monte_carlo_samples) # points for computing the uncentered covariance matrix
@@ -44,7 +46,8 @@ class ActiveSubspace(object):
 
         pert = np.zeros(systemsize)
 
-        new_samples = self.check_3sigma_violation(rv_arr, jdist)
+        if self.use_truncated_samples:
+            new_samples = self.check_3sigma_violation(rv_arr, jdist)
 
         if self.use_svd == False:
             # Get C_tilde using Monte Carlo
@@ -114,8 +117,8 @@ class ActiveSubspace(object):
             if all(sample > lower_bound) == False or all(sample < upper_bound) == False:
                 idx_list.append(i)
 
-        print("number of violations = ", len(idx_list))
-        print(idx_list)
+        # print("number of violations = ", len(idx_list))
+        # print(idx_list)
         # Delete the arrays from the idx_list
         new_samples = np.delete(rv_arr, idx_list, axis=1)
 
