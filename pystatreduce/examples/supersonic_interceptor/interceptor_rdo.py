@@ -160,7 +160,7 @@ class InterceptorWrapper(object):
 
         self.p.driver = pyOptSparseDriver()
         self.p.driver.options['optimizer'] = 'SNOPT'
-        self.p.driver.options['dynamic_simul_derivs'] = False
+        self.p.driver.options['dynamic_simul_derivs'] = True
 
         self.p.driver.opt_settings['Major iterations limit'] = 1000
         # self.p.driver.opt_settings['iSumm'] = 6

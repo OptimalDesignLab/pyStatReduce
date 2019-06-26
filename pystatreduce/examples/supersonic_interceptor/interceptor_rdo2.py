@@ -34,6 +34,7 @@ class DymosInterceptorGlue(QuantityOfInterest):
         transcription_order = input_dict['transcription_order']
         transcription_type = input_dict['transcription_type']
         solve_segments = input_dict['solve_segments']
+        use_polynomial_control = input_dict['use_polynomial_control']
 
         use_for_collocation = input_dict['use_for_collocation']
         if use_for_collocation:
@@ -43,12 +44,14 @@ class DymosInterceptorGlue(QuantityOfInterest):
                 self.collocation_samples[i] = InterceptorWrapper(num_segments=num_segments,
                                                           transcription_order=transcription_order,
                                                           transcription_type=transcription_type,
-                                                          solve_segments=solve_segments)
+                                                          solve_segments=solve_segments,
+                                                          use_polynomial_control=use_polynomial_control)
 
     def eval_QoI(self, mu, xi):
         rv = mu + xi
         interceptor_obj = self.__createInterceptorObj(rv)
         interceptor_obj.p.run_driver()
+
         return interceptor_obj.p.get_val('traj.phase0.t_duration')[0]
 
     def eval_QoIGradient(self, mu, xi, fd_pert=1.e-6):
@@ -73,6 +76,29 @@ class DymosInterceptorGlue(QuantityOfInterest):
 
         return dtf_drho
 
+    def eval_QoIGradient_central(self, mu, xi, fd_pert=1.e-6):
+        rv = mu + xi
+        temp_arr1 = mu + xi # np.zeros(rv.size)
+        temp_arr2 = mu + xi
+        dt_fdrho = np.zeros(rv.size)
+        for i in range(rv.size):
+            temp_arr1[i] += fd_pert
+            temp_arr2[i] -= fd_pert
+            obj1 = self.__createInterceptorObj(temp_arr1)
+            obj2 = self.__createInterceptorObj(temp_arr2)
+            obj1.p.run_driver()
+            obj2.p.run_driver()
+            t_1 = obj1.p.get_val('traj.phase0.t_duration')[0]
+            t_2 = obj2.p.get_val('traj.phase0.t_duration')[0]
+            print('t_1 = ', t_1)
+            print('t_2 = ', t_2)
+            dt_fdrho[i] = (t_1 - t_2) / (2*fd_pert)
+            print('dt_fdrho[i] = ', dt_fdrho[i])
+            temp_arr1[i] -= fd_pert
+            temp_arr2[i] += fd_pert
+
+        return dt_fdrho
+
     def evaluateSCQoIs(self, QoI_dict, QoI_dict_key):
         # Evaluates the QoI for stochastic collocation
         target_dict = QoI_dict[QoI_dict_key]
@@ -90,12 +116,15 @@ class DymosInterceptorGlue(QuantityOfInterest):
         transcription_order = input_dict['transcription_order']
         transcription_type = input_dict['transcription_type']
         solve_segments = input_dict['solve_segments']
+        use_polynomial_control = input_dict['use_polynomial_control']
+
         expanded_arr = self.__getExpandedArray(rv)
-        print('expanded_arr = \n', expanded_arr)
+        # print('expanded_arr = \n', expanded_arr)
         interceptor_obj = InterceptorWrapper(num_segments=num_segments,
                                              transcription_order=transcription_order,
                                              transcription_type=transcription_type,
                                              solve_segments=solve_segments,
+                                             use_polynomial_control=use_polynomial_control,
                                              ivc_pert=expanded_arr)
         return interceptor_obj
 
@@ -124,18 +153,20 @@ class DymosInterceptorGlue(QuantityOfInterest):
 class InterceptorWrapper(object):
     def __init__(self, num_segments=15, transcription_order=3,
                  transcription_type='LGR', solve_segments=False,
-                 ivc_pert=None):
+                 ivc_pert=None, use_polynomial_control=True):
 
         self.num_segments = num_segments
         self.transcription_order = transcription_order
         self.transcription_type = transcription_type
         self.solve_segments = solve_segments
+        self.use_polynomial_control = use_polynomial_control
 
         self.p = Problem(model=Group())
 
         self.p.driver = pyOptSparseDriver()
         self.p.driver.options['optimizer'] = 'SNOPT'
         self.p.driver.options['dynamic_simul_derivs'] = False
+        # self.p.driver.options['declare_coloring'] = True
 
         self.p.driver.opt_settings['Major iterations limit'] = 1000
         # self.p.driver.opt_settings['iSumm'] = 6
@@ -145,6 +176,7 @@ class InterceptorWrapper(object):
         self.p.driver.opt_settings['Linesearch tolerance'] = 0.1
         self.p.driver.opt_settings['Major step limit'] = 0.5
         self.p.driver.options['print_results'] = False
+        self.p.driver.use_fixed_coloring('./coloring_files/total_coloring.pkl')
 
         # Add an indep_var_comp that will talk to external calls from pyStatReduce
         if ivc_pert is None:
@@ -192,7 +224,12 @@ class InterceptorWrapper(object):
         phase.set_state_options('m', fix_initial=True, lower=10.0, upper=1.0E5,
                                 ref=1.0E3, defect_ref=1.0E3, solve_segments=self.solve_segments)
 
-        phase.add_polynomial_control('alpha', units='deg', lower=-8., upper=8., order=5)
+        if self.use_polynomial_control:
+            phase.add_polynomial_control('alpha', units='deg', lower=-8., upper=8., order=5)
+        else:
+            phase.add_control('alpha', units='deg', lower=-8.0, upper=8.0, scaler=1.0,
+                              rate_continuity=True, rate_continuity_scaler=100.0,
+                              rate2_continuity=False)
 
         # Add the random parameters to dymos
         phase.add_input_parameter('rho_pert', shape=(60,), dynamic=False, units='kg/m**3')
@@ -227,13 +264,62 @@ class InterceptorWrapper(object):
         self.p['traj.phase0.states:m'] = phase.interpolate(ys=[19030.468, 16841.431], nodes='state_input')
 
         if self.transcription_type is 'RK4' or self.transcription_type is 'LGR':
-            self.p['traj.phase0.polynomial_controls:alpha'] = np.array([[4.86918595],
-                                                                        [1.30322324],
-                                                                        [1.41897019],
-                                                                        [1.10227365],
-                                                                        [3.58780732],
-                                                                        [5.36233472]])
-            self.p['traj.phase0.t_duration'] = 346.13171325
+
+            if self.use_polynomial_control:
+                self.p['traj.phase0.polynomial_controls:alpha'] = np.array([[4.86918595],
+                                                                            [1.30322324],
+                                                                            [1.41897019],
+                                                                            [1.10227365],
+                                                                            [3.58780732],
+                                                                            [5.36233472]])
+                self.p['traj.phase0.t_duration'] = 346.13171325
+            else:
+                # self.p['traj.phase0.controls:alpha'] = phase.interpolate(ys=[0.0, 0.0], nodes='control_input')
+                self.p['traj.phase0.controls:alpha'] = np.array([[ 5.28001465],
+                                                               [ 3.13975533],
+                                                               [ 1.98865951],
+                                                               [ 2.05967779],
+                                                               [ 2.22378148],
+                                                               [ 1.66812216],
+                                                               [ 1.30331958],
+                                                               [ 0.69713879],
+                                                               [ 0.95481437],
+                                                               [ 1.30067776],
+                                                               [ 1.89992733],
+                                                               [ 1.61608848],
+                                                               [ 1.25793436],
+                                                               [ 0.61321823],
+                                                               [ 0.78469243],
+                                                               [ 1.09529382],
+                                                               [ 1.75985378],
+                                                               [ 2.06015107],
+                                                               [ 2.00622047],
+                                                               [ 1.80482513],
+                                                               [ 1.54044227],
+                                                               [ 1.46002774],
+                                                               [ 1.31279412],
+                                                               [ 1.22493615],
+                                                               [ 1.22498241],
+                                                               [ 1.2379623 ],
+                                                               [ 1.24779616],
+                                                               [ 1.24895759],
+                                                               [ 1.24532979],
+                                                               [ 1.22320548],
+                                                               [ 1.21206765],
+                                                               [ 1.18520735],
+                                                               [ 1.15116935],
+                                                               [ 1.14112692],
+                                                               [ 1.22312977],
+                                                               [ 1.67973464],
+                                                               [ 1.90722158],
+                                                               [ 2.4858537 ],
+                                                               [ 3.32375899],
+                                                               [ 3.59849829],
+                                                               [ 3.9384917 ],
+                                                               [ 3.44095692],
+                                                               [ 3.04996246],
+                                                               [ 1.07581437],
+                                                               [-4.76838553]])
         elif self.solve_segments is True:
             self.p['traj.phase0.t_duration'] = 346.13171325
 
@@ -245,11 +331,17 @@ if __name__ == '__main__':
                   'transcription_type': 'LGR',
                   'solve_segments': False,
                   'use_for_collocation' : False,
-                  'n_collocation_samples': 20,}
+                  'n_collocation_samples': 20,
+                  'use_polynomial_control': False}
 
     qoi = DymosInterceptorGlue(systemsize, input_dict)
-    # t_f =   qoi.eval_QoI(np.zeros(systemsize), np.zeros(systemsize))
+    dummy_vec = np.zeros(systemsize)
+    # dummy_vec[2] = 1.e-6
+    # t_f =   qoi.eval_QoI(dummy_vec, np.zeros(systemsize))
     # print('t_f = ', t_f)
 
-    grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize))
-    print('grad_tf = ', grad_tf)
+    # grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-1)
+    # print('grad_tf = \n', grad_tf)
+
+    grad_tf = qoi.eval_QoIGradient_central(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-2)
+    print('grad_tf = \n', grad_tf)
