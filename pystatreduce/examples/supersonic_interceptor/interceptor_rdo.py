@@ -19,8 +19,9 @@ from openmdao.api import Problem, Group, IndepVarComp, pyOptSparseDriver, Direct
 from openmdao.utils.assert_utils import assert_rel_error
 
 import dymos as dm
-from dymos.examples.min_time_climb.min_time_climb_ode import MinTimeClimbODE
+# from dymos.examples.min_time_climb.min_time_climb_ode import MinTimeClimbODE
 from pystatreduce.examples.supersonic_interceptor.min_time_climb_ode import MinTimeClimbODE
+import gc
 
 class DymosInterceptorQoI(QuantityOfInterest):
     def __init__(self, systemsize, input_dict, data_type=np.float):
@@ -97,6 +98,7 @@ class DymosInterceptorQoI(QuantityOfInterest):
 
         # # Now that we have to get rid of the duplicates in dtf_drho_all
         # dtf_drho = self.__getUniqueNodalEntries(dtf_drho_all)
+        gc.collect()
         return dtf_drho
 
     def __getUniqueNodalEntries(self, input_array):
@@ -135,6 +137,7 @@ class DymosInterceptorQoI(QuantityOfInterest):
 
     def update_rv(self, rv):
         expanded_rv = self.__setNodalEntries(rv)
+        # print('expanded_rv = ', expanded_rv)
         self.interceptor_obj.set_random_perturbations(expanded_rv)
 
 #------------------------------------------------------------------------------#
@@ -271,8 +274,8 @@ if __name__ == '__main__':
                   'solve_segments': False}
     dymos_obj = DymosInterceptorQoI(systemsize, input_dict)
 
-    t_f = dymos_obj.eval_QoI(np.zeros(systemsize), np.zeros(systemsize))
-    print('t_f = ', t_f)
+    # t_f = dymos_obj.eval_QoI(np.zeros(systemsize), np.zeros(systemsize))
+    # print('t_f = ', t_f)
 
     grad_tf = dymos_obj.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize))
     print('grad_tf = ', grad_tf)

@@ -12,7 +12,7 @@ from dymos.examples.min_time_climb.min_time_climb_ode import MinTimeClimbODE
 from pystatreduce.examples.supersonic_interceptor.min_time_climb_ode import MinTimeClimbODE
 # from dymos.examples.plotting import plot_results
 
-class IterceptorWrapper2(object):
+class IterceptorWrapper(object):
     def __init__(self, num_segments=15, transcription_order=3, transcription_type='LGR', solve_segments=False):
         self.num_segments = num_segments
         self.transcription_order = transcription_order

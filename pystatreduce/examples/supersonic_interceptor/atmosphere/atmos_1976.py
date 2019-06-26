@@ -158,7 +158,7 @@ class PerturbedDensityComp(ExplicitComponent):
 
     def setup(self):
         nn = self.options['num_nodes']
-        print('nn = ', nn)
+        # print('nn = ', nn)
         self.add_input('h', val=1.*np.ones(nn), units='ft')
         self.add_input('rho_pert', val=np.zeros(nn), units='slug/ft**3')
         self.add_output('rho', val=1.*np.ones(nn), units='slug/ft**3')
