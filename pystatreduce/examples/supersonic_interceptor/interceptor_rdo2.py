@@ -12,6 +12,7 @@ from pystatreduce.stochastic_collocation import StochasticCollocation
 from pystatreduce.quantity_of_interest import QuantityOfInterest
 from pystatreduce.dimension_reduction import DimensionReduction
 from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
+import pystatreduce.utils as utils
 import pystatreduce.examples as examples
 
 #pyoptsparse sepecific imports
@@ -80,6 +81,15 @@ class DymosInterceptorGlue(QuantityOfInterest):
     """
 
     def eval_QoIGradient(self, mu, xi, fd_pert=1.e-2):
+        def func(x):
+            return self.eval_QoI(x, np.zeros(np.size(x)))
+
+        rv = mu + xi
+        dfdrv = utils.central_fd(func, rv, output_dimensions=1, fd_pert=fd_pert)
+        return dfdrv
+
+    """
+    def eval_QoIGradient(self, mu, xi, fd_pert=1.e-2):
         print('fd_pert = ', fd_pert)
         rv = mu + xi
         temp_arr1 = mu + xi # np.zeros(rv.size)
@@ -102,6 +112,7 @@ class DymosInterceptorGlue(QuantityOfInterest):
             temp_arr2[i] += fd_pert
 
         return dt_fdrho
+    """
 
     def evaluateSCQoIs(self, QoI_dict, QoI_dict_key):
         # Evaluates the QoI for stochastic collocation
@@ -349,5 +360,8 @@ if __name__ == '__main__':
     # grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-1)
     # print('grad_tf = \n', grad_tf)
 
-    grad_tf = qoi.eval_QoIGradient_central(np.zeros(systemsize), np.zeros(systemsize), fd_pert=float(sys.argv[1])) # fd_pert=1.e-4)
-    print('grad_tf = \n', grad_tf)
+    # grad_tf = qoi.eval_QoIGradient_central(np.zeros(systemsize), np.zeros(systemsize), fd_pert=float(sys.argv[1])) # fd_pert=1.e-4)
+    # print('grad_tf = \n', grad_tf)
+
+    grad_tf2 = qoi.eval_QoIGradient2(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-2)
+    print('grad_tf2 = ', grad_tf2)
