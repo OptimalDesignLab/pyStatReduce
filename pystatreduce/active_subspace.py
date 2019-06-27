@@ -10,7 +10,7 @@ class ActiveSubspace(object):
 
     def __init__(self, QoI, n_dominant_dimensions=1, n_monte_carlo_samples=1000,
                  use_svd=False, read_rv_samples=False, write_rv_samples=False,
-                 use_iso_transformation=False):
+                 use_iso_transformation=False, use_truncated_samples=False):
         """
         This file contains the dimension reduction method presented by
         Constantine in the paper "Active subspace methods in theory and
@@ -30,8 +30,8 @@ class ActiveSubspace(object):
         # Debug flags
         self.read_file = read_rv_samples
         self.write_file = write_rv_samples
-        self.use_truncated_samples = False
         self.check_std_dev_violation = False
+        self.use_truncated_samples = use_truncated_samples
 
     def getDominantDirections(self, QoI, jdist):
         systemsize = QoI.systemsize
@@ -49,9 +49,8 @@ class ActiveSubspace(object):
 
         pert = np.zeros(systemsize)
 
-        if self.check_std_dev_violation == True:
-            rv_arr = self.check_3sigma_violation(rv_arr, jdist)
-            self.n_monte_carlo_samples = rv_arr.shape[1]
+        if self.use_truncated_samples:
+            new_samples = self.check_3sigma_violation(rv_arr, jdist)
 
         if self.use_svd == False:
             # Get C_tilde using Monte Carlo
@@ -122,8 +121,8 @@ class ActiveSubspace(object):
             if all(sample > lower_bound) == False or all(sample < upper_bound) == False:
                 idx_list.append(i)
 
-        print("number of violations = ", len(idx_list))
-        print(idx_list)
+        # print("number of violations = ", len(idx_list))
+        # print(idx_list)
         # Delete the arrays from the idx_list
         new_samples = np.delete(rv_arr, idx_list, axis=1)
 
