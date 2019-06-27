@@ -28,26 +28,8 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-# Default mean values
-mean_Ma = 0.08
-mean_TSFC = 9.80665 * 8.6e-6 * 3600
-mean_W0 = 10 # 10.0
-mean_E = 85.e9
-mean_G = 25.e9
-mean_mrho = 1600
-mean_R = 1800
-mean_load_factor = 1.0
-mean_altitude = 4.57
-# Default standard values
-std_dev_Ma = 0.005 # 0.015
-std_dev_TSFC = 0.00607 # /3600
-std_dev_W0 = 1
-std_dev_mrho = 50
-std_dev_R = 300 # 500
-std_dev_load_factor = 0.3
-std_dev_E = 5.e9
-std_dev_G = 1.e9
-std_dev_altitude = 0.1
+import pystatreduce.optimize.OAS_ScanEagle.check_scripts.optimal_vals_dict as optimal_vals_dict
+from pystatreduce.optimize.OAS_ScanEagle.mean_values import *
 
 def objfunc_uq(xdict):
     """
@@ -144,6 +126,9 @@ def sens_uq(xdict, funcs):
 
 if __name__ == "__main__":
 
+    sc_sol_dict = optimal_vals_dict.sc_sol_dict
+    dict_val = 'sc_init'
+
     # Declare the dictionary
     rv_dict = { 'Mach_number' : {'mean' : mean_Ma,
                                  'std_dev' : std_dev_Ma},
@@ -171,7 +156,8 @@ if __name__ == "__main__":
 
     if sys.argv[1] == "full":
         start_time = time.time()
-        UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, rdo_factor=2.0,
+        UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, design_point=sc_sol_dict[dict_val],
+                                             rdo_factor=2.0,
                                              krylov_pert=1.e-1,
                                              max_eigenmodes=len(rv_dict))
 
@@ -215,6 +201,7 @@ if __name__ == "__main__":
     elif sys.argv[1] == "reduced":
         start_time = time.time()
         UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, rdo_factor=float(sys.argv[2]),
+                                             design_point=sc_sol_dict[dict_val],
                                              krylov_pert=float(sys.argv[3]),
                                              max_eigenmodes=int(sys.argv[4]))
 
@@ -277,7 +264,12 @@ if __name__ == "__main__":
 
     # Compute the statistical moments
     mc_obj.getSamples(UQObj.jdist)
-    mu_j = mc_obj.mean(UQObj.jdist, of=['fuelburn'])
-    var_j = mc_obj.variance(UQObj.jdist, of=['fuelburn'])
+    mu_j = mc_obj.mean(UQObj.jdist, of=['fuelburn', 'constraints'])
+    var_j = mc_obj.variance(UQObj.jdist, of=['fuelburn', 'con_failure'])
     print('mu fuelburn = ', mu_j['fuelburn'])
     print('var fuelburn = ', var_j['fuelburn'])
+    print('mu_j KS = ', mu_j['constraints'][0])
+    print('var_j KS = ', var_j['con_failure'][0])
+    print('robust KS = ', mu_j['constraints'][0] + 2 * np.sqrt(var_j_i['con_failure'][0]))
+    print('mu_j_lift = ', mu_j['constraints'][n_thickness_intersects+1])
+    print('mu_j CM = ', mu_j['constraints'][-2])

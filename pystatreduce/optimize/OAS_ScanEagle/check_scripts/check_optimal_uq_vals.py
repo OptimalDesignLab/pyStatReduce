@@ -37,48 +37,8 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-# # Default mean values
-# mean_Ma = 0.071
-# mean_TSFC = 9.80665 * 8.6e-6
-# mean_W0 = 10.0
-# mean_E = 85.e9
-# mean_G = 25.e9
-# mean_mrho = 1600
-# mean_R = 1800
-# mean_load_factor = 1.0
-# mean_altitude = 4.57
-# # Default standard values
-# std_dev_Ma = 0.005
-# std_dev_TSFC = 0.00607/3600
-# std_dev_W0 = 0.2
-# std_dev_mrho = 50
-# std_dev_R = 500
-# std_dev_load_factor = 0.1
-# std_dev_E = 5.e9
-# std_dev_G = 1.e9
-# std_dev_altitude = 0.5
-
-# Default mean values
-mean_Ma = 0.08
-mean_TSFC = 9.80665 * 8.6e-6 * 3600
-mean_W0 = 10 # 10.0
-mean_E = 85.e9
-mean_G = 25.e9
-mean_mrho = 1600
-mean_R = 1800
-mean_load_factor = 1.0
-mean_altitude = 4.57
-# Default standard values
-std_dev_Ma = 0.005 # 0.015
-std_dev_TSFC = 0.00607 # /3600
-std_dev_W0 = 1
-std_dev_mrho = 50
-std_dev_R = 300 # 500
-std_dev_load_factor = 0.3
-std_dev_E = 5.e9
-std_dev_G = 1.e9
-std_dev_altitude = 0.1
-
+import pystatreduce.optimize.OAS_ScanEagle.check_scripts.optimal_vals_dict as optimal_vals_dict
+from pystatreduce.optimize.OAS_ScanEagle.mean_values import *
 
 def eval_uq_fuelburn(dv_dict, collocation_obj):
     UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = dv_dict['twist_cp']
@@ -91,6 +51,25 @@ def eval_uq_fuelburn(dv_dict, collocation_obj):
     collocation_obj.evaluateQoIs(UQObj.jdist)
     mu_j = collocation_obj.mean(of=['fuelburn'])
     var_j = collocation_obj.variance(of=['fuelburn'])
+
+    return mu_j, var_j
+
+def eval_objective_and_constraint(dv_dict, collocation_obj):
+    UQObj.QoI.p['oas_scaneagle.wing.twist_cp'] = dv_dict['twist_cp']
+    UQObj.QoI.p['oas_scaneagle.wing.thickness_cp'] = dv_dict['thickness_cp']
+    UQObj.QoI.p['oas_scaneagle.wing.sweep'] = dv_dict['sweep']
+    UQObj.QoI.p['oas_scaneagle.alpha'] = dv_dict['alpha']
+
+
+    # Compute statistical metrics
+    if isinstance(collocation_obj, StochasticCollocation2):
+        collocation_obj.evaluateQoIs(UQObj.jdist)
+        mu_j = collocation_obj.mean(of=['fuelburn', 'constraints'])
+        var_j = collocation_obj.variance(of=['fuelburn', 'con_failure'])
+    elif isinstance(collocation_obj, MonteCarlo):
+        collocation_obj.getSamples(UQObj.jdist, include_derivs=False)
+        mu_j = collocation_obj.mean(UQObj.jdist, of=['fuelburn', 'constraints'])
+        var_j = collocation_obj.variance(UQObj.jdist, of=['fuelburn', 'con_failure'])
 
     return mu_j, var_j
 
@@ -134,98 +113,92 @@ if __name__ == "__main__":
 
                }
 
-    # RDO factor 2 Results
-    sc_sol_dict = { 'sc_init' : {'twist_cp' : np.array([2.5, 2.5, 5.0]), # 2.5*np.ones(3),
-                                 'thickness_cp' : np.array([0.008, 0.008, 0.008]), # 1.e-3 * np.array([5.5, 5.5, 5.5]),
-                                 'sweep' : 20.,
-                                 'alpha' : 5.,
-                                },
-                    
-                    'deterministic' : {'twist_cp' : np.array([3.37718983, 10, 5]) ,
-                                       'thickness_cp' : np.array([0.001, 0.001, 0.00114519]), # 1.e-3 * np.ones(3) ,
-                                       'sweep' : 17.97227386,
-                                       'alpha' : -0.24701157},
-
-                    # Optimal design values obtained using the initial deterministic design variables
-                    # 7 RV, sample radius = 1.e-1, n_dominant_dir = 1, rdo factor=2
-                    '7rv_1e_1_1_2' :  {'twist_cp' : np.array([4.5766595, 10, 5]),
-                                       'thickness_cp' : 1.e-3 * np.ones(3),
-                                       'sweep' : 17.93557251,
-                                       'alpha' : 0.52838575},
-                    # 7 RV, sample radius = 1.e-1, n_dominant_dir = 2, rdo factor=2
-                    '7rv_1e_1_2_2' :  {'twist_cp' : np.array([4.82659706, 10, 5]),
-                                       'thickness_cp' : 1.e-3 * np.ones(3),
-                                       'sweep' : 17.59063958,
-                                       'alpha' : -0.09187924},
-                    # 7 RV, sample radius = 1.e-1, n_dominant_dir = 3, rdo factor=2
-                    '7rv_1e_1_3_2' :  {'twist_cp' : np.array([4.9103329, 10, 5]),
-                                       'thickness_cp' : 1.e-3 * np.ones(3),
-                                       'sweep' : 17.46974998,
-                                       'alpha' : -0.28339684},
-                    # 7 RV, sample radius = 1.e-1, n_dominant_dir = 4, rdo factor=2
-                    '7rv_1e_1_4_2' :  {'twist_cp' : np.array([4.85883309, 10, 5]),
-                                       'thickness_cp' : 1.e-3 * np.ones(3),
-                                       'sweep' : 17.48184078,
-                                       'alpha' : -0.28440502},
-                    # 7 RV, sample radius = 1.e-1, n_dominant_dir = 5, rdo factor=2
-                    '7rv_1e_1_5_2' :  {'twist_cp' : np.array([4.87843855, 10, 5]),
-                                       'thickness_cp' : 1.e-3 * np.ones(3),
-                                       'sweep' : 17.4693496,
-                                       'alpha' : -0.3003593},
-                    # 7 RV, sample radius = 1.e-1, n_dominant_dir = 6, rdo factor=2
-                    '7rv_1e_1_6_2' :  {'twist_cp' : np.array([4.92920057, 10, 5]),
-                                       'thickness_cp' : 1.e-3 * np.ones(3),
-                                       'sweep' : 17.45015421,
-                                       'alpha' : -0.31792675},
-                    # 7rv, Full Monte Carlo simulation
-                    '7rv_mc' :  {'twist_cp' : np.array([4.93195234, 10, 5]),
-                                 'thickness_cp' : 1.e-3 * np.ones(3),
-                                 'sweep' : 17.48339411,
-                                 'alpha' : -0.25422074},
-
-                    '7rv_full_2' : {'twist_cp' : np.array([4.87264491, 10, 5]),
-                                    'thickness_cp' : 1.e-3 * np.ones(3),
-                                    'sweep' : 17.54128459,
-                                    'alpha' : -0.17390615},
-
-                    # '7rv_1e_1_2_3' : {'twist_cp' : np.array([4.819646, 10, 5]),
-                    #                    'thickness_cp' : 1.e-3 * np.ones(3),
-                    #                    'sweep' : 17.5924635,
-                    #                    'alpha' : -0.09117171},
-                    }
+    sc_sol_dict = optimal_vals_dict.sc_sol_dict
 
     # Step 1: Instantiate all objects needed for test
-    UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, design_point=sc_sol_dict['deterministic'] ,
-                                         krylov_pert=1.e-1, max_eigenmodes=2)
+    UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, design_point=sc_sol_dict['sc_init'] ,
+                                         active_subspace=False, n_as_samples=1000,
+                                         krylov_pert=1.e-1, max_eigenmodes=int(sys.argv[1]))
+    n_thickness_intersects = UQObj.QoI.p['oas_scaneagle.AS_point_0.wing_perf.thickness_intersects'].size
+    n_CM = 3
+
+    print("eigenvals = ", UQObj.dominant_space.iso_eigenvals)
+    print('eigenvecs = \n', UQObj.dominant_space.iso_eigenvecs)
+    print('dominant_dir = \n', UQObj.dominant_space.dominant_dir)
+    print('\n#-----------------------------------------------------------#')
 
     # Full collocation
-    sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
+    use_stochastic_collocation = True
+    use_monte_carlo = False
+    if use_stochastic_collocation:
+        colloc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
+                                        include_derivs=False)
+        red_colloc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
+                                            include_derivs=False, reduced_collocation=True,
+                                            # dominant_dir=custom_eigenvec[:,0:int(sys.argv[1])])
+                                            dominant_dir=UQObj.dominant_space.dominant_dir)
+    elif use_monte_carlo:
+        nsample = 3
+        colloc_obj = MonteCarlo(nsample, UQObj.jdist, UQObj.QoI_dict, include_derivs=False)
+        red_colloc_obj = MonteCarlo(nsample, UQObj.jdist, UQObj.QoI_dict,
+                                    reduced_collocation=True,
+                                    dominant_dir=UQObj.dominant_space.dominant_dir,
                                     include_derivs=False)
 
     # iso_grad, reg_grad = get_iso_gradients(sc_sol_dict['sc_init'])
     # print('reg_grad = \n', reg_grad)
     # print('iso_grad = \n', iso_grad)
 
-    # mu_j_full, var_j_full = eval_uq_fuelburn(sc_sol_dict['sc_init'], sc_obj)
-    print("eigenvals = ", UQObj.dominant_space.iso_eigenvals)
-    print('eigenvecs = \n', UQObj.dominant_space.iso_eigenvecs)
-    print('\n#-----------------------------------------------------------#')
-
-    red_sc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
-                                        include_derivs=False, reduced_collocation=True,
-                                        dominant_dir=UQObj.dominant_space.dominant_dir)
-    key_name = '7rv_full_2'
+    key_name = 'act_init_7rv_2_2_lf1'
     print('key_name = ', key_name)
-    mu_j_red, var_j_red = eval_uq_fuelburn(sc_sol_dict[key_name], red_sc_obj)
-    print('mu_j_red = ', mu_j_red['fuelburn'][0])
-    print('var_j_red = ', var_j_red['fuelburn'][0,0])
+    start_time = time.time()
+    mu_j_full, var_j_full = eval_uq_fuelburn(sc_sol_dict[key_name], colloc_obj)
+    time_elapsed = time.time() - start_time
+    # mu_j_full, var_j_full = eval_objective_and_constraint(sc_sol_dict[key_name], colloc_obj)
 
-    # mu_j_full, var_j_full = eval_uq_fuelburn(sc_sol_dict[key_name], sc_obj)
-    # print('mu_j_full = ', mu_j_full['fuelburn'][0])
-    # print('var_j_full = ', var_j_full['fuelburn'][0,0])
+    mu_mc_mil = 4.681601386475621
+    var_mc_mil = 3.812870581168059
 
-    # for sc_sol in sc_sol_dict:
-    #     print('\ndesign point = ', sc_sol)
-    #     mu_j, var_j = eval_uq_fuelburn(sc_sol_dict[sc_sol], sc_obj)
-    #     print('mu_j = ', mu_j)
-    #     print('var_j = ', var_j)
+
+    print('mu_j fuelburn = ', mu_j_full['fuelburn'][0])
+    print('var_j fuelburn = ', var_j_full['fuelburn'][0])
+
+    # err_mu = np.linalg.norm((mu_j_full['fuelburn'][0] - mu_mc_mil) / mu_mc_mil)
+    # err_var = np.linalg.norm((var_j_full['fuelburn'][0,0] - var_mc_mil) / var_mc_mil)
+    # print('err_mu = ', err_mu)
+    # print('err_var = ', err_var)
+    # print('time_elapsed = ', time_elapsed)
+    # print('robust fburn = ', mu_j_full['fuelburn'][0] + 2 * np.sqrt(var_j_full['fuelburn'][0]))
+    # print('mu_j KS = ', mu_j_full['constraints'][0])
+    # print('var_j KS = ', var_j_full['con_failure'][0])
+    # print('robust KS = ', mu_j_full['constraints'][0] + 2 * np.sqrt(var_j_full['con_failure'][0]))
+    # print('mu_j_lift = ', mu_j_full['constraints'][n_thickness_intersects+1])
+    # print('mu_j CM = ', mu_j_full['constraints'][-2]) # [n_thickness_intersects+2:n_thickness_intersects+2+n_CM])
+    """
+    mu_j_i, var_j_i = eval_objective_and_constraint(sc_sol_dict[key_name], red_colloc_obj)
+    print('Reduced')
+    print('mu_j fuelburn = ', mu_j_i['fuelburn'][0])
+    print('var_j fuelburn = ', var_j_i['fuelburn'][0])
+    print('robust fburn = ', mu_j_i['fuelburn'][0] + 2 * np.sqrt(var_j_i['fuelburn'][0]))
+    print('mu_j KS = ', mu_j_i['constraints'][0])
+    print('var_j KS = ', var_j_i['con_failure'][0])
+    print('robust KS = ', mu_j_i['constraints'][0] + 2 * np.sqrt(var_j_i['con_failure'][0]))
+    print('mu_j_lift = ', mu_j_i['constraints'][n_thickness_intersects+1])
+    print('mu_j CM = ', mu_j_i['constraints'][-2])
+
+    err_mu_f = np.linalg.norm((mu_j_i['fuelburn'][0] - mu_j_full['fuelburn'][0]) / mu_j_full['fuelburn'][0])
+    err_var_f = np.linalg.norm((var_j_i['fuelburn'][0,0] -  var_j_full['fuelburn'][0,0]) /  var_j_full['fuelburn'][0,0])
+    err_mu_KS = np.linalg.norm((mu_j_i['constraints'][0] - mu_j_full['constraints'][0]) / mu_j_full['constraints'][0])
+    err_var_KS = np.linalg.norm((var_j_i['con_failure'][0,0] - var_j_full['con_failure'][0,0]) / var_j_full['con_failure'][0,0])
+    err_mu_L = np.linalg.norm((mu_j_i['constraints'][n_thickness_intersects+1] - mu_j_full['constraints'][n_thickness_intersects+1]) / mu_j_full['constraints'][n_thickness_intersects+1])
+    err_mu_CM = np.linalg.norm((mu_j_i['constraints'][-2] - mu_j_full['constraints'][-2]) / mu_j_full['constraints'][-2])
+
+    # Print  statements
+    print('\nn dir = ', sys.argv[1])
+    print('err_mu_f = ', err_mu_f)
+    print('err_var_f = ', err_var_f)
+    print('err_mu_KS = ', err_mu_KS)
+    print('err_var_KS =', err_var_KS)
+    print('err_mu_L =', err_mu_L)
+    print('err_mu_CM =',  err_mu_CM)
+    """

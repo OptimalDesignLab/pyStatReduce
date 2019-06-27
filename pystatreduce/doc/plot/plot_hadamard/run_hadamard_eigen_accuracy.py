@@ -2,33 +2,34 @@
 import os
 import sys
 import errno
-sys.path.insert(0, '../../src')
 
 import numpy as np
 import chaospy as cp
 
-from stochastic_collocation import StochasticCollocation
-from quantity_of_interest import QuantityOfInterest
-from dimension_reduction import DimensionReduction
-from stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
-import examples
+from pystatreduce.stochastic_collocation import StochasticCollocation
+from pystatreduce.quantity_of_interest import QuantityOfInterest
+from pystatreduce.dimension_reduction import DimensionReduction
+import pystatreduce.examples as examples
 
 def run_hadamard(systemsize, eigen_decayrate, std_dev, n_sample):
-    n_collocation_pts = 2
+    # n_collocation_pts = 2
 
     # Create Hadmard Quadratic object
     QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
 
     # Create stochastic collocation object
-    collocation = StochasticCollocation(n_collocation_pts, "Normal")
+    # collocation = StochasticCollocation(n_collocation_pts, "Normal")
 
     # Initialize chaospy distribution
-    x = np.random.rand(QoI.systemsize)
+    x = np.random.randn(QoI.systemsize)
     jdist = cp.MvNormal(x, np.diag(std_dev))
 
     threshold_factor = 0.5
-    dominant_space_exact = DimensionReduction(threshold_factor, exact_Hessian=True)
-    dominant_space = DimensionReduction(threshold_factor, exact_Hessian=False, n_arnoldi_sample=n_sample)
+    dominant_space_exact = DimensionReduction(threshold_factor=threshold_factor,
+                                              exact_Hessian=True)
+    dominant_space = DimensionReduction(threshold_factor=threshold_factor,
+                                        exact_Hessian=False,
+                                        n_arnoldi_sample=n_sample)
 
     dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=20)
     dominant_space_exact.getDominantDirections(QoI, jdist)
@@ -56,13 +57,13 @@ avg_err = np.zeros(len(n_arnoldi_samples_arr))
 max_err = np.zeros(len(n_arnoldi_samples_arr))
 min_err = np.zeros(len(n_arnoldi_samples_arr))
 
-for eigen_decayrate_arr_idx in xrange(0, len(eigen_decayrate_arr)):
+for eigen_decayrate_arr_idx in range(0, len(eigen_decayrate_arr)):
     for i in systemsize_arr:
-        for j in xrange(0, len(n_arnoldi_samples_arr)):
-            print 'decay rate = ', eigen_decayrate_arr[eigen_decayrate_arr_idx] \
-                    ,', systemsize = ', i, ', arnoldi samples = ', n_arnoldi_samples_arr[j]
-            for k in xrange(0, n_stddev_samples):
-                std_dev = np.random.rand(i)
+        for j in range(0, len(n_arnoldi_samples_arr)):
+            print('decay rate = ', eigen_decayrate_arr[eigen_decayrate_arr_idx]
+                    ,', systemsize = ', i, ', arnoldi samples = ', n_arnoldi_samples_arr[j])
+            for k in range(0, n_stddev_samples):
+                std_dev = abs(np.random.randn(i))
                 err_arr[j,k] = run_hadamard(i, eigen_decayrate_arr[eigen_decayrate_arr_idx],
                                 std_dev, n_arnoldi_samples_arr[j])
                 # print 'error_norm = ', error_norm

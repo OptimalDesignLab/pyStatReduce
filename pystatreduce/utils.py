@@ -75,9 +75,18 @@ def compute_subspace_angles(S1, S2):
     assert S1.shape == S2.shape
     # Do a QR Factorization of S1 and S2
     Q1, R1 = np.linalg.qr(S1)
+    # print('S1 = \n', S1)
+    # print('Q1 = \n', Q1)
     Q2, R2 = np.linalg.qr(S2)
+    # print('S1 = \n', S2)
+    # print('Q2 = \n', Q2)
     intmat = np.matmul(Q1.T, Q2)
+    # print('intmat = \n', intmat)
     Y, s, Z = np.linalg.svd(intmat)
+    # print('Y = \n', Y)
+    # print('U = \n', np.matmul(Q1, Y))
+    # print('V = \n', np.matmul(Q2, Y))
+    # print('s = \n', s)
 
     # NaN prevention check
     indices = np.where(s > 1) # Get the indices where the violation exisits

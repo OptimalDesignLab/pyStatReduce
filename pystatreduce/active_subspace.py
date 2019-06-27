@@ -10,7 +10,7 @@ class ActiveSubspace(object):
 
     def __init__(self, QoI, n_dominant_dimensions=1, n_monte_carlo_samples=1000,
                  use_svd=False, read_rv_samples=False, write_rv_samples=False,
-                 use_truncated_samples=False):
+                 use_iso_transformation=False, use_truncated_samples=False):
         """
         This file contains the dimension reduction method presented by
         Constantine in the paper "Active subspace methods in theory and
@@ -25,8 +25,12 @@ class ActiveSubspace(object):
         self.n_dominant_dimensions = n_dominant_dimensions
         self.n_monte_carlo_samples = n_monte_carlo_samples
         self.use_svd = use_svd
+        self.use_iso_transformation = use_iso_transformation
+
+        # Debug flags
         self.read_file = read_rv_samples
         self.write_file = write_rv_samples
+        self.check_std_dev_violation = False
         self.use_truncated_samples = use_truncated_samples
 
     def getDominantDirections(self, QoI, jdist):
@@ -36,7 +40,6 @@ class ActiveSubspace(object):
             rv_arr = np.loadtxt('rv_arr.txt')
             np.testing.assert_equal(self.n_monte_carlo_samples, rv_arr.shape[1])
         else:
-            # use_truncated_samples = True
             if self.use_truncated_samples:
                 rv_arr = self.get_truncated_samples(jdist)
             else:
@@ -66,16 +69,20 @@ class ActiveSubspace(object):
             for i in range(0, self.n_monte_carlo_samples):
                 grad[:,i] = QoI.eval_QoIGradient(rv_arr[:,i], pert)
             grad[:,:] = grad / np.sqrt(self.n_monte_carlo_samples)
-
             # Perform SVD
             W, s, _ = np.linalg.svd(grad)
+
+            if self.use_iso_transformation:
+                # Do the isoprobabilistic transformation
+                covariance = cp.Cov(jdist)
+                sqrt_Sigma = np.sqrt(covariance)
+                iso_grad = np.dot(grad.T, sqrt_Sigma).T
+                # Perform SVD
+                W, s, _ = np.linalg.svd(iso_grad)
 
             self.iso_eigenvals = s ** 2
             self.iso_eigenvecs = W
 
-        # print('Unsorted')
-        # print('eigenvals = ', self.iso_eigenvals)
-        # print('eigenvecs = \n', self.iso_eigenvecs)
         # get the indices of dominant eigenvalues in descending order
         sort_ind = self.iso_eigenvals.argsort()[::-1]
         self.iso_eigenvecs[:,:] = self.iso_eigenvecs[:,sort_ind]
@@ -88,10 +95,7 @@ class ActiveSubspace(object):
         sigma = cp.Std(jdist)
         upper_bound = mu + 3 * sigma
         lower_bound = mu - 3 * sigma
-        # print('mu = ', mu)
-        # print('sigma = ', sigma)
-        # print('lower_bound = ', lower_bound)
-        # print('upper_bound = ', upper_bound)
+
         dist0 = cp.Truncnorm(lo=lower_bound[0], up=upper_bound[0], mu=mu[0], sigma=sigma[0])
         dist1 = cp.Truncnorm(lo=lower_bound[1], up=upper_bound[1], mu=mu[1], sigma=sigma[1])
         dist2 = cp.Truncnorm(lo=lower_bound[2], up=upper_bound[2], mu=mu[2], sigma=sigma[2])

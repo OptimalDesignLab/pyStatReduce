@@ -57,7 +57,7 @@ np.set_printoptions(precision=10)
 # Default mean values
 mean_Ma = 0.08
 mean_TSFC = 9.80665 * 8.6e-6 * 3600
-mean_W0 = 10 # 10.0
+mean_W0 = 10.0
 mean_E = 85.e9
 mean_G = 25.e9
 mean_mrho = 1600
@@ -73,7 +73,7 @@ std_dev_R = 300 # 500
 std_dev_load_factor = 0.3
 std_dev_E = 5.e9
 std_dev_G = 1.e9
-std_dev_altitude = 0.4
+std_dev_altitude = 0.1
 
 # Total number of nodes to use in the spanwise (num_y) and
 # chordwise (num_x) directions. Vary these to change the level of fidelity.
