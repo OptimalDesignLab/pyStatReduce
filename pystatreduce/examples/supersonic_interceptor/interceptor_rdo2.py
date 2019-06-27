@@ -54,7 +54,9 @@ class DymosInterceptorGlue(QuantityOfInterest):
 
         return interceptor_obj.p.get_val('traj.phase0.t_duration')[0]
 
-    def eval_QoIGradient(self, mu, xi, fd_pert=1.e-6):
+    """
+    def eval_QoIGradient_forward(self, mu, xi, fd_pert=1.e-6):
+        print('fd_pert = ', fd_pert)
         rv = mu + xi
         baseline_obj = self.__createInterceptorObj(rv)
         baseline_obj.p.run_driver()
@@ -75,8 +77,10 @@ class DymosInterceptorGlue(QuantityOfInterest):
             rv[i] -= fd_pert
 
         return dtf_drho
+    """
 
-    def eval_QoIGradient_central(self, mu, xi, fd_pert=1.e-6):
+    def eval_QoIGradient(self, mu, xi, fd_pert=1.e-2):
+        print('fd_pert = ', fd_pert)
         rv = mu + xi
         temp_arr1 = mu + xi # np.zeros(rv.size)
         temp_arr2 = mu + xi
@@ -90,10 +94,10 @@ class DymosInterceptorGlue(QuantityOfInterest):
             obj2.p.run_driver()
             t_1 = obj1.p.get_val('traj.phase0.t_duration')[0]
             t_2 = obj2.p.get_val('traj.phase0.t_duration')[0]
-            print('t_1 = ', t_1)
-            print('t_2 = ', t_2)
+            # print('t_1 = ', t_1)
+            # print('t_2 = ', t_2)
             dt_fdrho[i] = (t_1 - t_2) / (2*fd_pert)
-            print('dt_fdrho[i] = ', dt_fdrho[i])
+            # print('dt_fdrho[i] = ', dt_fdrho[i])
             temp_arr1[i] -= fd_pert
             temp_arr2[i] += fd_pert
 
@@ -111,21 +115,21 @@ class DymosInterceptorGlue(QuantityOfInterest):
         expanded_rv = self.__setNodalEntries(rv_val)
 
     def __createInterceptorObj(self, rv):
-        self.input_dict = input_dict
-        num_segments = input_dict['num_segments']
-        transcription_order = input_dict['transcription_order']
-        transcription_type = input_dict['transcription_type']
-        solve_segments = input_dict['solve_segments']
-        use_polynomial_control = input_dict['use_polynomial_control']
+        # self.input_dict = input_dict
+        num_segments = self.input_dict['num_segments']
+        transcription_order = self.input_dict['transcription_order']
+        transcription_type = self.input_dict['transcription_type']
+        solve_segments = self.input_dict['solve_segments']
+        use_polynomial_control = self.input_dict['use_polynomial_control']
 
-        expanded_arr = self.__getExpandedArray(rv)
+        # expanded_arr = self.__getExpandedArray(rv)
         # print('expanded_arr = \n', expanded_arr)
         interceptor_obj = InterceptorWrapper(num_segments=num_segments,
                                              transcription_order=transcription_order,
                                              transcription_type=transcription_type,
                                              solve_segments=solve_segments,
                                              use_polynomial_control=use_polynomial_control,
-                                             ivc_pert=expanded_arr)
+                                             ivc_pert=np.expand_dims(rv, axis=0))
         return interceptor_obj
 
     def __getExpandedArray(self, input_array):
@@ -166,7 +170,6 @@ class InterceptorWrapper(object):
         self.p.driver = pyOptSparseDriver()
         self.p.driver.options['optimizer'] = 'SNOPT'
         self.p.driver.options['dynamic_simul_derivs'] = False
-        # self.p.driver.options['declare_coloring'] = True
 
         self.p.driver.opt_settings['Major iterations limit'] = 1000
         # self.p.driver.opt_settings['iSumm'] = 6
@@ -176,11 +179,11 @@ class InterceptorWrapper(object):
         self.p.driver.opt_settings['Linesearch tolerance'] = 0.1
         self.p.driver.opt_settings['Major step limit'] = 0.5
         self.p.driver.options['print_results'] = False
-        self.p.driver.use_fixed_coloring('./coloring_files/total_coloring.pkl')
+        self.p.driver.use_fixed_coloring('/home/kinshuk/UserApps/pyStatReduce/pystatreduce/examples/supersonic_interceptor/coloring_files/total_coloring.pkl')
 
         # Add an indep_var_comp that will talk to external calls from pyStatReduce
         if ivc_pert is None:
-            seed_perturbation = np.zeros(60)
+            seed_perturbation = np.zeros(self.transcription_order*self.num_segments)
         else:
             seed_perturbation = ivc_pert
         random_perturbations = self.p.model.add_subsystem('random_perturbations', IndepVarComp())
@@ -231,10 +234,13 @@ class InterceptorWrapper(object):
                               rate_continuity=True, rate_continuity_scaler=100.0,
                               rate2_continuity=False)
 
-        # Add the random parameters to dymos
-        phase.add_input_parameter('rho_pert', shape=(60,), dynamic=False, units='kg/m**3')
+        # # Add the random parameters to dymos
+        # phase.add_input_parameter('rho_pert', shape=(60,), dynamic=False, units='kg/m**3')
 
-        self.p.model.connect('random_perturbations.rho_pert', 'traj.phase0.input_parameters:rho_pert')
+        # Add the density perturbation as a control
+        phase.add_control('rho_pert', units='kg/m**3', opt=False)
+
+        self.p.model.connect('random_perturbations.rho_pert', 'traj.phase0.controls:rho_pert')
 
         phase.add_design_parameter('S', val=49.2386, units='m**2', opt=False)
         phase.add_design_parameter('Isp', val=1600.0, units='s', opt=False)
@@ -325,7 +331,6 @@ class InterceptorWrapper(object):
 
 if __name__ == '__main__':
 
-    systemsize = 45 + 1
     input_dict = {'num_segments': 15,
                   'transcription_order' : 3,
                   'transcription_type': 'LGR',
@@ -333,6 +338,7 @@ if __name__ == '__main__':
                   'use_for_collocation' : False,
                   'n_collocation_samples': 20,
                   'use_polynomial_control': False}
+    systemsize = input_dict['num_segments'] * input_dict['transcription_order']
 
     qoi = DymosInterceptorGlue(systemsize, input_dict)
     dummy_vec = np.zeros(systemsize)
@@ -343,5 +349,5 @@ if __name__ == '__main__':
     # grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-1)
     # print('grad_tf = \n', grad_tf)
 
-    grad_tf = qoi.eval_QoIGradient_central(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-2)
+    grad_tf = qoi.eval_QoIGradient_central(np.zeros(systemsize), np.zeros(systemsize), fd_pert=float(sys.argv[1])) # fd_pert=1.e-4)
     print('grad_tf = \n', grad_tf)
