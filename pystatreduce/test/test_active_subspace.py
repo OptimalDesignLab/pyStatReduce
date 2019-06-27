@@ -10,7 +10,7 @@ from pystatreduce.dimension_reduction import DimensionReduction
 from pystatreduce.active_subspace import ActiveSubspace
 from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 import pystatreduce.examples as examples
-import pystatreduce.optimize.OAS_ScanEagle.oas_scaneagle_opt as scaneagle_opt
+# import pystatreduce.optimize.OAS_ScanEagle.oas_scaneagle_opt as scaneagle_opt
 
 class ActiveSubspaceTest(unittest.TestCase):
 
@@ -119,12 +119,12 @@ class ActiveSubspaceTest(unittest.TestCase):
 
         mu_j_active = sc_obj_active.mean(of=['Hadamard'])
         var_j_active = sc_obj_active.variance(of=['Hadamard'])
-        print('\nmu_j_analytical = ', mu_j_analytical)
-        print('mu_j = ', mu_j_active['Hadamard'])
-        print('err mean = ', abs(mu_j_analytical - mu_j_active['Hadamard']))
-        print('var_j_analytical = ', var_j_analytical)
-        print('var_j = ', var_j_active['Hadamard'])
-        print('err var = ', abs(var_j_analytical - var_j_active['Hadamard']))
+        # print('\nmu_j_analytical = ', mu_j_analytical)
+        # print('mu_j = ', mu_j_active['Hadamard'])
+        # print('err mean = ', abs(mu_j_analytical - mu_j_active['Hadamard']))
+        # print('var_j_analytical = ', var_j_analytical)
+        # print('var_j = ', var_j_active['Hadamard'])
+        # print('err var = ', abs(var_j_analytical - var_j_active['Hadamard']))
 
     """
     def util_func(arb):
