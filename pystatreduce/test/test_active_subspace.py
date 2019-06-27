@@ -85,6 +85,47 @@ class ActiveSubspaceTest(unittest.TestCase):
             arr2 = active_subspace_svd.iso_eigenvecs[:,i]
             if np.allclose(arr1, arr2) == False:
                 np.testing.assert_almost_equal(arr1, -arr2)
+
+    def test_hadamard_accuracy(self):
+        systemsize = 4
+        eigen_decayrate = 2.0
+
+        # Create Hadmard Quadratic object
+        QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
+
+        mu = np.zeros(systemsize)
+        std_dev = np.eye(systemsize)
+        jdist = cp.MvNormal(mu, std_dev)
+
+        active_subspace = ActiveSubspace(QoI, n_dominant_dimensions=4,
+                                             n_monte_carlo_samples=10000,
+                                             use_svd=True, read_rv_samples=False,
+                                             write_rv_samples=False)
+        active_subspace.getDominantDirections(QoI, jdist)
+
+        mu_j_analytical = QoI.eval_analytical_QoI_mean(mu, cp.Cov(jdist))
+        var_j_analytical = QoI.eval_analytical_QoI_variance(mu, cp.Cov(jdist))
+
+        # Create reduced collocation object
+        QoI_dict = {'Hadamard' : {'QoI_func' : QoI.eval_QoI,
+                                  'output_dimensions' : 1,
+                                  },
+                    }
+        sc_obj_active = StochasticCollocation2(jdist, 4, 'MvNormal', QoI_dict,
+                                        include_derivs=False,
+                                        reduced_collocation=True,
+                                        dominant_dir=active_subspace.dominant_dir)
+        sc_obj_active.evaluateQoIs(jdist)
+
+        mu_j_active = sc_obj_active.mean(of=['Hadamard'])
+        var_j_active = sc_obj_active.variance(of=['Hadamard'])
+        print('\nmu_j_analytical = ', mu_j_analytical)
+        print('mu_j = ', mu_j_active['Hadamard'])
+        print('err mean = ', abs(mu_j_analytical - mu_j_active['Hadamard']))
+        print('var_j_analytical = ', var_j_analytical)
+        print('var_j = ', var_j_active['Hadamard'])
+        print('err var = ', abs(var_j_analytical - var_j_active['Hadamard']))
+
     """
     def util_func(arb):
 

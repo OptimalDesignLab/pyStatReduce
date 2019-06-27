@@ -81,7 +81,6 @@ class UQScanEagleOpt(object):
 
         mu, std_dev = self.get_input_rv_statistics(rv_dict)
         self.jdist = cp.MvNormal(mu, std_dev)
-        # self.jdist = cp.MvNormal(mu, np.zeros([len(mu), len(mu)]))
         self.QoI = examples.oas_scaneagle2.OASScanEagleWrapper2(self.uq_systemsize,
                                                                 dv_dict)
         self.QoI.p['oas_scaneagle.wing.thickness_cp'] = design_point['thickness_cp']
@@ -91,6 +90,7 @@ class UQScanEagleOpt(object):
         self.QoI.p.final_setup()
 
         # Figure out which dimension reduction technique to use
+        start_time = time.time()
         if active_subspace == False:
             self.dominant_space = DimensionReduction(n_arnoldi_sample=self.uq_systemsize+1,
                                                      exact_Hessian=False,
@@ -99,7 +99,10 @@ class UQScanEagleOpt(object):
         else:
             self.dominant_space = ActiveSubspace(self.QoI,
                                                  n_dominant_dimensions=max_eigenmodes,
-                                                 n_monte_carlo_samples=n_as_samples)
+                                                 n_monte_carlo_samples=n_as_samples,
+                                                 read_rv_samples=False,
+                                                 use_svd=True,
+                                                 use_iso_transformation=True)
             self.dominant_space.getDominantDirections(self.QoI, self.jdist)
             # Reset the design point
             self.QoI.p['oas_scaneagle.wing.thickness_cp'] = design_point['thickness_cp']
@@ -109,6 +112,8 @@ class UQScanEagleOpt(object):
             self.QoI.p.final_setup()
             # Reset the random variables
             self.QoI.update_rv(mu)
+        time_elapsed = time.time() - start_time
+        print('time_elapsed =', time_elapsed)
 
         dfuelburn_dict = {'dv' : {'dQoI_func' : self.QoI.eval_ObjGradient_dv,
                                   'output_dimensions' : dv_dict['ndv'],

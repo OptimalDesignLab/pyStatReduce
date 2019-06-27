@@ -11,6 +11,7 @@ from pystatreduce.quantity_of_interest import QuantityOfInterest
 from pystatreduce.dimension_reduction import DimensionReduction
 from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 import pystatreduce.examples as examples
+import pystatreduce.utils as utils
 
 #pyoptsparse sepecific imports
 from scipy import sparse
@@ -26,15 +27,8 @@ from openaerostruct.geometry.utils import generate_mesh
 from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
-# Default values
-mean_Ma = 0.071
-mean_TSFC = 9.80665 * 8.6e-6
-mean_W0 = 10.0
-mean_E = 85.e9
-mean_G = 25.e9
-mean_mrho = 1600
-mean_R = 1800e3
-mean_load_factor = 1.0
+import pystatreduce.optimize.OAS_ScanEagle.check_scripts.optimal_vals_dict as optimal_vals_dict
+from pystatreduce.optimize.OAS_ScanEagle.mean_values import *
 
 # Total number of nodes to use in the spanwise (num_y) and
 # chordwise (num_x) directions. Vary these to change the level of fidelity.
@@ -49,15 +43,22 @@ mesh_dict = {'num_y' : num_y,
              'root_chord' : 0.3,
              }
 
-rv_dict = {'Mach_number' : mean_Ma,
-           'CT' : mean_TSFC,
-           'W0' : mean_W0,
-           'E' : mean_E, # surface RV
-           'G' : mean_G, # surface RV
-           'mrho' : mean_mrho, # surface RV
-           'R' : mean_R,
-           'load_factor' : mean_load_factor,
-            }
+# Declare the dictionary
+rv_dict = { 'Mach_number' : {'mean' : mean_Ma,
+                             'std_dev' : std_dev_Ma},
+            'CT' : {'mean' : mean_TSFC,
+                    'std_dev' : std_dev_TSFC},
+            'W0' : {'mean' : mean_W0,
+                    'std_dev' : std_dev_W0},
+            'R' : {'mean' : mean_R,
+                   'std_dev' : std_dev_R},
+            'load_factor' : {'mean' : mean_load_factor,
+                             'std_dev' : std_dev_load_factor},
+            'mrho' : {'mean' : mean_mrho,
+                     'std_dev' : std_dev_mrho},
+            'altitude' : {'mean' : mean_altitude,
+                          'std_dev' : std_dev_altitude},
+           }
 
 dv_dict = {'n_twist_cp' : 3,
            'n_thickness_cp' : 3,
@@ -70,14 +71,21 @@ dv_dict = {'n_twist_cp' : 3,
             }
 
 
-mu = np.array([mean_Ma, mean_TSFC, mean_W0, mean_E, mean_G, mean_mrho, mean_R, mean_load_factor])
-std_dev = np.diag([0.005, 0.00607/3600, 0.2, 5.e9, 1.e9, 50, 100e3, 0.02])
+mu, std_dev = utils.get_scaneagle_input_rv_statistics(rv_dict)
+
 uq_systemsize = len(mu)
 jdist = cp.MvNormal(mu, std_dev)
 QoI = examples.oas_scaneagle2.OASScanEagleWrapper2(uq_systemsize,
                                                         dv_dict)
-QoI.p['oas_scaneagle.wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5]) # This setup is according to the one in the scaneagle paper
-QoI.p['oas_scaneagle.wing.twist_cp'] = 2.5*np.ones(3)
+
+# Set the design variable
+dict_val = 'sc_init'
+design_point = optimal_vals_dict.sc_sol_dict[dict_val]
+
+QoI.p['oas_scaneagle.wing.thickness_cp'] = design_point['thickness_cp']
+QoI.p['oas_scaneagle.wing.twist_cp'] = design_point['twist_cp']
+QoI.p['oas_scaneagle.wing.sweep'] = design_point['sweep']
+QoI.p['oas_scaneagle.alpha'] = design_point['alpha']
 QoI.p.final_setup()
 
 QoI_dict = {'fuelburn' : {'QoI_func' : QoI.eval_QoI,
@@ -87,7 +95,7 @@ QoI_dict = {'fuelburn' : {'QoI_func' : QoI.eval_QoI,
 
 # Create the Monte Carlo object
 start_time1 = time.time()
-nsample = 1200
+nsample = int(sys.argv[1])
 mc_obj = MonteCarlo(nsample, jdist, QoI_dict) # tjdist: truncated normal distribution
 mc_obj.getSamples(jdist)                      #
 t1 = time.time()
@@ -96,18 +104,17 @@ mu_j_mc = mc_obj.mean(jdist, of=['fuelburn'])
 t2 = time.time()
 var_j_mc = mc_obj.variance(jdist, of=['fuelburn'])
 t3 = time.time()
-print("mean_mc = ", mu_j_mc['fuelburn'])
-print("var_mc = ", var_j_mc['fuelburn'])
+print('Monte Carlo samples = ', nsample)
+print("mean_mc = ", mu_j_mc['fuelburn'][0])
+print("var_mc = ", var_j_mc['fuelburn'][0])
 print()
 
-mean_sc_fuelburn = 5.269295151614887
-var_sc_fuelburn = 0.34932256
-
-err_mu = abs((mean_sc_fuelburn - mu_j_mc['fuelburn']) / mean_sc_fuelburn)
-err_var = abs((var_sc_fuelburn - var_j_mc['fuelburn']) / var_sc_fuelburn)
-
-print("err mu = ", err_mu)
-print("err var = ", err_var)
+# mean_sc_fuelburn = 5.269295151614887
+# var_sc_fuelburn = 0.34932256
+# err_mu = abs((mean_sc_fuelburn - mu_j_mc['fuelburn']) / mean_sc_fuelburn)
+# err_var = abs((var_sc_fuelburn - var_j_mc['fuelburn']) / var_sc_fuelburn)
+# print("err mu = ", err_mu)
+# print("err var = ", err_var)
 
 print('\n-------- Timing Results -------\n')
 prep_time_mc = t1 - start_time1

@@ -4,7 +4,7 @@
 # with 7 random variables. The random variables are Ma, TSFC, W0, E, G, mrho,
 # load_factor, range.
 # This file can be run as
-#               `python pyopt_uq_scaneagle_8rv.py`
+#               `python pyopt_uq_scaneagle.py`
 ################################################################################
 
 import sys
@@ -36,27 +36,7 @@ from openaerostruct.geometry.geometry_group import Geometry
 from openaerostruct.aerodynamics.aero_groups import AeroPoint
 
 import pystatreduce.optimize.OAS_ScanEagle.check_scripts.optimal_vals_dict as optimal_vals_dict
-
-# Default mean values
-mean_Ma = 0.08
-mean_TSFC = 9.80665 * 8.6e-6 * 3600
-mean_W0 = 10.0
-mean_E = 85.e9
-mean_G = 25.e9
-mean_mrho = 1600
-mean_R = 1800
-mean_load_factor = 1.0
-mean_altitude = 4.57
-# Default standard values
-std_dev_Ma = 0.005 # 0.015
-std_dev_TSFC = 0.00607 # /3600
-std_dev_W0 = 1
-std_dev_mrho = 50
-std_dev_R = 300 # 500
-std_dev_load_factor = 0.3
-std_dev_E = 5.e9
-std_dev_G = 1.e9
-std_dev_altitude = 0.1
+from pystatreduce.optimize.OAS_ScanEagle.mean_values import *
 
 def objfunc_uq(xdict):
     #
@@ -192,14 +172,14 @@ if __name__ == "__main__":
         print('input seed = ', dict_val)
         UQObj = scaneagle_opt.UQScanEagleOpt(rv_dict, design_point=sc_sol_dict[dict_val],
                                              rdo_factor=float(sys.argv[1]),
+                                             active_subspace=False,
                                              krylov_pert=float(sys.argv[2]),
                                              max_eigenmodes=int(sys.argv[3]))
 
-    # # Evaluate derivatives
-    # deriv = UQObj.QoI.eval_QoIGradient(cp.E(UQObj.jdist), np.zeros(UQObj.uq_systemsize))
     print()
     print("eigenvals = ", UQObj.dominant_space.iso_eigenvals)
     print('eigenvecs = \n', UQObj.dominant_space.iso_eigenvecs)
+    print('dominant_dir = \n', UQObj.dominant_space.dominant_dir)
     print('#-------------------------------------------------------------#')
 
     # Get some information on the total number of constraints

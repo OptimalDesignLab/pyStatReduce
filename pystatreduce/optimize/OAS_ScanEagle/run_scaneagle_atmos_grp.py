@@ -126,10 +126,11 @@ indep_var_comp.add_output('altitude', val=4.57, units='km')
 indep_var_comp.add_output('CT', val=9.80665 * 8.6e-6, units='1/s') # TSFC
 indep_var_comp.add_output('R', val=1800, units='km')
 indep_var_comp.add_output('W0', val=10.,  units='kg')
-indep_var_comp.add_output('load_factor', val=2.5) # 1.)
+indep_var_comp.add_output('load_factor', val=1.0)
 indep_var_comp.add_output('empty_cg', val=np.array([0.2, 0., 0.]), units='m')
 indep_var_comp.add_output('E', val=85.e9, units='N/m**2')
-indep_var_comp.add_output('G', val=25.e9, units='N/m**2')
+# indep_var_comp.add_output('G', val=25.e9, units='N/m**2')
+indep_var_comp.add_output('G', val=5.e9, units='N/m**2')
 indep_var_comp.add_output('mrho', val=1.6e3, units='kg/m**3')
 
 prob.model.add_subsystem('prob_vars',
@@ -261,7 +262,7 @@ print('thickness_intersects = \n', prob['AS_point_0.wing_perf.thickness_intersec
 print('CM = ', prob['AS_point_0.CM'][1])
 # print('wing weight = ', prob['wing.structural_weight'])
 print()
-print("twist_cp = ", prob['wing.twist_cp'])
+print("twist_cp = ", prob['wing.geometry.twist'])
 print("thickness = ", prob['wing.thickness'])
 print("sweep = ", prob['wing.sweep'])
 print("aoa = ", prob['alpha'])

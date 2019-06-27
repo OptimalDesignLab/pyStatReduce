@@ -16,8 +16,8 @@ max_mu_err = np.zeros([len(systemsize_arr), 3, n_e_sample])
 min_mu_err = np.zeros([len(systemsize_arr), 3, n_e_sample])
 errs = np.zeros([len(systemsize_arr), 3, 2, n_e_sample])
 
-for i in xrange(0, len(systemsize_arr)):
-    for j in xrange(0,3):
+for i in range(0, len(systemsize_arr)):
+    for j in range(0,3):
         dirname = ''.join(['./plot_data/mean_accuracy/', str(systemsize_arr[i]), '/'])
         fname1 = ''.join([dirname, 'avg_err_decay', str(eigen_decayrate_arr[j]), '.txt'])
         fname2 = ''.join([dirname, 'max_err_decay', str(eigen_decayrate_arr[j]), '.txt'])
@@ -50,7 +50,7 @@ i = 0 # Systemsize index. This needs
 j = 0  # Eigen decay rate index
 axes[j].set_yscale("log", nonposy='clip')
 axes[j].errorbar(n_eigenmodes_arr, avg_mu_err[i,j,:], yerr=errs[i,j,:,:], fmt='-o', capsize=6)
-axes[j].set_ylabel(r'approximation error, $\epsilon$')
+axes[j].set_ylabel(r'approximation error, $\epsilon_{mean}$')
 axes[j].set_xlabel('dominant directions')
 axes[j].text(0.5,1,r'$\lambda_i = \frac{1}{i^2}$', size=18, bbox=props, \
               transform=axes[j].transAxes, horizontalalignment='center', \
