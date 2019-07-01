@@ -170,3 +170,24 @@ def copy_qoi_dict(QoI_dict):
     assert new_dict is not QoI_dict
 
     return new_dict
+
+def central_fd(func, at, output_dimensions=1, fd_pert=1.e-6):
+    # func: Function handle that will be evaluated
+    # at: The value at which the function needs to be evaluated
+    # output_dimensions: dimension of the function `func` output. by default=1
+    if output_dimensions != 1:
+        raise NotImplementedError
+
+    input_size = at.size
+    temp_arr1 = copy.deepcopy(at)
+    temp_arr2 = copy.deepcopy(at)
+    dfdat = np.zeros(input_size)
+    for i in range(input_size):
+        temp_arr1[i] += fd_pert
+        temp_arr2[i] -= fd_pert
+        fval1 = func(temp_arr1)
+        fval2 = func(temp_arr2)
+        dfdat[i] = (fval1 - fval2) / (2*fd_pert)
+        temp_arr1[i] -= fd_pert
+        temp_arr2[i] += fd_pert
+    return dfdat
