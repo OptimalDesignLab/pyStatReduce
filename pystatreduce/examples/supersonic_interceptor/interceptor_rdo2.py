@@ -157,7 +157,8 @@ class DymosInterceptorGlue(QuantityOfInterest):
 class InterceptorWrapper(object):
     def __init__(self, num_segments=15, transcription_order=3,
                  transcription_type='LGR', solve_segments=False,
-                 ivc_pert=None, use_polynomial_control=True):
+                 ivc_pert=None, use_polynomial_control=True,
+                 read_coloring_file=True):
 
         self.num_segments = num_segments
         self.transcription_order = transcription_order
@@ -179,7 +180,10 @@ class InterceptorWrapper(object):
         self.p.driver.opt_settings['Linesearch tolerance'] = 0.1
         self.p.driver.opt_settings['Major step limit'] = 0.5
         self.p.driver.options['print_results'] = False
-        self.p.driver.use_fixed_coloring('/home/kinshuk/UserApps/pyStatReduce/pystatreduce/examples/supersonic_interceptor/coloring_files/total_coloring.pkl')
+        if read_coloring_file:
+            fname = os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/examples/supersonic_interceptor/coloring_files/total_coloring.pkl'
+            self.p.driver.use_fixed_coloring(fname)
+            # self.p.driver.use_fixed_coloring('/users/pandak/UserApps/pyStatReduce/pystatreduce/examples/supersonic_interceptor/coloring_files/total_coloring.pkl')
 
         # Add an indep_var_comp that will talk to external calls from pyStatReduce
         if ivc_pert is None:
@@ -349,5 +353,5 @@ if __name__ == '__main__':
     # grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-1)
     # print('grad_tf = \n', grad_tf)
 
-    grad_tf = qoi.eval_QoIGradient_central(np.zeros(systemsize), np.zeros(systemsize), fd_pert=float(sys.argv[1])) # fd_pert=1.e-4)
+    grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize))
     print('grad_tf = \n', grad_tf)
