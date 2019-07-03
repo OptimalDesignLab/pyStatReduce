@@ -86,7 +86,7 @@ nominal_altitude = np.array([[  100.        ],
 mu = np.zeros(systemsize)
 density_variation_obj = DensityVariations1976()
 std_dev_density = density_variation_obj.get_density_deviations(np.squeeze(nominal_altitude, axis=1))
-print('std_dev_density = ', std_dev_density)
+print('std_dev_density = ', repr(std_dev_density))
 jdist = cp.MvNormal(mu, np.diag(std_dev_density[:-1]))
 
 dymos_obj = DymosInterceptorGlue(systemsize, input_dict)

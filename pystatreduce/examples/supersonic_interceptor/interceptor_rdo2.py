@@ -47,38 +47,38 @@ class DymosInterceptorGlue(QuantityOfInterest):
                                                           transcription_type=transcription_type,
                                                           solve_segments=solve_segments,
                                                           use_polynomial_control=use_polynomial_control)
+        if 'write_files' in input_dict:
+            self.write_files = True
+            self.ctr1 = 0
+            self.target_directory = input_dict['target_output_directory']
+
+        if 'aggregate_solutions' in input_dict:
+            self.aggregate_solutions = True
+            self.ctr2 = 0
+            self.altitude_aggregate = np.zeros(transcription_order*num_segments + 1)
+            self.aoa_aggregate = np.zeros(transcription_order*num_segments)
+
 
     def eval_QoI(self, mu, xi):
         rv = mu + xi
         interceptor_obj = self.__createInterceptorObj(rv)
         interceptor_obj.p.run_driver()
 
+        if self.write_files:
+            fname = self.target_directory + '/sample_' + str(self.ctr1)
+            alt_schedule = interceptor_obj.p.get_val('traj.phase0.states:h')
+            aoa_schedule = interceptor_obj.p.get_val('traj.phase0.controls:alpha')
+            np.savez(fname, altitude=alt_schedule, alpha=aoa_schedule)
+            self.ctr1 += 1
+
+        if self.aggregate_solutions:
+            print('altitude_aggregate = ', interceptor_obj.p.get_val('traj.phase0.states:h'))
+            print('aoa_aggregate = ', interceptor_obj.p.get_val('traj.phase0.controls:alpha'))
+            self.altitude_aggregate[:] += np.squeeze(interceptor_obj.p.get_val('traj.phase0.states:h'), axis=1)
+            self.aoa_aggregate[:] += np.squeeze(interceptor_obj.p.get_val('traj.phase0.controls:alpha'), axis=1)
+            self.ctr2 += 1
+
         return interceptor_obj.p.get_val('traj.phase0.t_duration')[0]
-
-    """
-    def eval_QoIGradient_forward(self, mu, xi, fd_pert=1.e-6):
-        print('fd_pert = ', fd_pert)
-        rv = mu + xi
-        baseline_obj = self.__createInterceptorObj(rv)
-        baseline_obj.p.run_driver()
-        t_orig = baseline_obj.p.get_val('traj.phase0.t_duration')[0]
-        print('t_orig = ', t_orig)
-        dtf_drho = np.zeros(rv.size)
-
-        for i in range(rv.size):
-            print('\ni = ', i)
-            rv[i] += fd_pert
-            # print('rv = ', rv)
-            pert_obj = self.__createInterceptorObj(rv)
-            pert_obj.p.run_driver()
-            t_pert = pert_obj.p.get_val('traj.phase0.t_duration')[0]
-            print('t_pert = ', t_pert)
-            dtf_drho[i] = (t_pert - t_orig) / fd_pert
-            print('dtf_drho[i] = ', dtf_drho[i])
-            rv[i] -= fd_pert
-
-        return dtf_drho
-    """
 
     def eval_QoIGradient(self, mu, xi, fd_pert=1.e-2):
         def func(x):
@@ -364,8 +364,5 @@ if __name__ == '__main__':
     # grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-1)
     # print('grad_tf = \n', grad_tf)
 
-    # grad_tf = qoi.eval_QoIGradient_central(np.zeros(systemsize), np.zeros(systemsize), fd_pert=float(sys.argv[1])) # fd_pert=1.e-4)
-    # print('grad_tf = \n', grad_tf)
-
-    grad_tf2 = qoi.eval_QoIGradient2(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-2)
+    grad_tf2 = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-2)
     print('grad_tf2 = ', grad_tf2)
