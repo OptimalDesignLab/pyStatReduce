@@ -4,6 +4,7 @@
 
 from __future__ import division, print_function
 import os, sys, errno, copy
+import warnings
 
 # pyStatReduce specific imports
 import numpy as np
@@ -28,35 +29,38 @@ import dymos as dm
 from pystatreduce.examples.supersonic_interceptor.min_time_climb_ode import MinTimeClimbODE
 
 class DymosInterceptorGlue(QuantityOfInterest):
+    """
+    This is a part of the glue that connects the OpenMDAO dymos interface with
+    pyStatReduce. It creates dymos objects on the fly but does not store them.
+    In other words, whenever you need to get information about a trajectory, you
+    need to create a dymos object, run the optimization, and then collect the
+    necessary information. Therefore one must be careful while creating the
+    functions.
+    """
     def __init__(self, systemsize, input_dict, data_type=np.float):
         QuantityOfInterest.__init__(self, systemsize, data_type=data_type)
+
+        # Default attributes
         self.input_dict = input_dict
+        self._write_files = False
+        self._aggregate_solutions = False
+
         num_segments = input_dict['num_segments']
         transcription_order = input_dict['transcription_order']
         transcription_type = input_dict['transcription_type']
         solve_segments = input_dict['solve_segments']
         use_polynomial_control = input_dict['use_polynomial_control']
 
-        use_for_collocation = input_dict['use_for_collocation']
-        if use_for_collocation:
-            n_qoi_samples = input_dict['n_collocation_samples']
-            self.collocation_samples = {}
-            for i in range(n_qoi_samples):
-                self.collocation_samples[i] = InterceptorWrapper(num_segments=num_segments,
-                                                          transcription_order=transcription_order,
-                                                          transcription_type=transcription_type,
-                                                          solve_segments=solve_segments,
-                                                          use_polynomial_control=use_polynomial_control)
         if 'write_files' in input_dict:
-            self.write_files = True
-            self.ctr1 = 0
-            self.target_directory = input_dict['target_output_directory']
+            self._write_files = True
+            self._ctr1 = 0
+            self._target_directory = input_dict['target_output_directory']
 
         if 'aggregate_solutions' in input_dict:
-            self.aggregate_solutions = True
-            self.ctr2 = 0
-            self.altitude_aggregate = np.zeros(transcription_order*num_segments + 1)
-            self.aoa_aggregate = np.zeros(transcription_order*num_segments)
+            self._aggregate_solutions = True
+            self._ctr2 = 0
+            self.altitude_aggregate = {} # np.zeros(transcription_order*num_segments + 1)
+            self.aoa_aggregate = {} # np.zeros(transcription_order*num_segments)
 
 
     def eval_QoI(self, mu, xi):
@@ -64,23 +68,30 @@ class DymosInterceptorGlue(QuantityOfInterest):
         interceptor_obj = self.__createInterceptorObj(rv)
         interceptor_obj.p.run_driver()
 
-        if self.write_files:
-            fname = self.target_directory + '/sample_' + str(self.ctr1)
-            alt_schedule = interceptor_obj.p.get_val('traj.phase0.states:h')
-            aoa_schedule = interceptor_obj.p.get_val('traj.phase0.controls:alpha')
+        if self._write_files:
+            fname = self._target_directory + '/sample_' + str(self._ctr1)
+            alt_schedule = interceptor_obj.p.get_val('traj.phase0.timeseries.states:h')
+            aoa_schedule = interceptor_obj.p.get_val('traj.phase0.timeseries.controls:alpha')
             np.savez(fname, altitude=alt_schedule, alpha=aoa_schedule)
-            self.ctr1 += 1
+            self._ctr1 += 1
 
-        if self.aggregate_solutions:
-            print('altitude_aggregate = ', interceptor_obj.p.get_val('traj.phase0.states:h'))
-            print('aoa_aggregate = ', interceptor_obj.p.get_val('traj.phase0.controls:alpha'))
-            self.altitude_aggregate[:] += np.squeeze(interceptor_obj.p.get_val('traj.phase0.states:h'), axis=1)
-            self.aoa_aggregate[:] += np.squeeze(interceptor_obj.p.get_val('traj.phase0.controls:alpha'), axis=1)
-            self.ctr2 += 1
+        if self._aggregate_solutions:
+            # self.altitude_aggregate[:] += np.squeeze(interceptor_obj.p.get_val('traj.phase0.states:h'), axis=1)
+            # self.aoa_aggregate[:] += np.squeeze(interceptor_obj.p.get_val('traj.phase0.controls:alpha'), axis=1)
+
+            self.altitude_aggregate[self._ctr2] = np.squeeze(interceptor_obj.p.get_val('traj.phase0.timeseries.states:h'), axis=1)
+            self.aoa_aggregate[self._ctr2] = np.squeeze(interceptor_obj.p.get_val('traj.phase0.timeseries.controls:alpha'), axis=1)
+            # print('altitude_aggregate = ', self.altitude_aggregate)
+            # print('aoa_aggregate = ', self.aoa_aggregate)
+            self._ctr2 += 1
 
         return interceptor_obj.p.get_val('traj.phase0.t_duration')[0]
 
     def eval_QoIGradient(self, mu, xi, fd_pert=1.e-2):
+        # Check a few importhant things
+        if self.input_dict['write_files'] is True or self.input_dict['aggregate_solutions'] is True:
+            warnings.warn("WARNING: 'write_files' and/or 'aggregate_solutions' is turned on at every QoI solve using input_dict. Turn it off so as to prevent a possible overwrite of your saved data")
+
         def func(x):
             return self.eval_QoI(x, np.zeros(np.size(x)))
 
@@ -88,42 +99,52 @@ class DymosInterceptorGlue(QuantityOfInterest):
         dfdrv = utils.central_fd(func, rv, output_dimensions=1, fd_pert=fd_pert)
         return dfdrv
 
-    """
-    def eval_QoIGradient(self, mu, xi, fd_pert=1.e-2):
-        print('fd_pert = ', fd_pert)
-        rv = mu + xi
-        temp_arr1 = mu + xi # np.zeros(rv.size)
-        temp_arr2 = mu + xi
-        dt_fdrho = np.zeros(rv.size)
-        for i in range(rv.size):
-            temp_arr1[i] += fd_pert
-            temp_arr2[i] -= fd_pert
-            obj1 = self.__createInterceptorObj(temp_arr1)
-            obj2 = self.__createInterceptorObj(temp_arr2)
-            obj1.p.run_driver()
-            obj2.p.run_driver()
-            t_1 = obj1.p.get_val('traj.phase0.t_duration')[0]
-            t_2 = obj2.p.get_val('traj.phase0.t_duration')[0]
-            # print('t_1 = ', t_1)
-            # print('t_2 = ', t_2)
-            dt_fdrho[i] = (t_1 - t_2) / (2*fd_pert)
-            # print('dt_fdrho[i] = ', dt_fdrho[i])
-            temp_arr1[i] -= fd_pert
-            temp_arr2[i] += fd_pert
+    def compute_schedule_statistics(self):
+        num_segments = self.input_dict['num_segments']
+        transcription_order = self.input_dict['transcription_order']
+        # mean_altitude = self.altitude_aggregate / self._ctr1
+        # mean_alpha = self.aoa_aggregate / self._ctr1
+        # variance_alpha =
+        mean_altitude = np.zeros(self.altitude_aggregate[0].size) # np.zeros(transcription_order*num_segments + 1)
+        var_altitude = np.zeros(mean_altitude.size)
+        mean_alpha = np.zeros(self.aoa_aggregate[0].size)
+        var_alpha = np.zeros(mean_alpha.size)
 
-        return dt_fdrho
-    """
+        # Get the altitude statistics
+        for i in self.altitude_aggregate:
+            mean_altitude[:] += self.altitude_aggregate[i]
+        mean_altitude[:] = mean_altitude / self._ctr2
+        for i in self.altitude_aggregate:
+            var_altitude[:] += (self.altitude_aggregate[i] - mean_altitude) ** 2
+        var_altitude[:] = var_altitude / (self._ctr2 - 1)
 
-    def evaluateSCQoIs(self, QoI_dict, QoI_dict_key):
-        # Evaluates the QoI for stochastic collocation
-        target_dict = QoI_dict[QoI_dict_key]
-        for i in range(self.input_dict['n_collocation_samples']):
-            self.update_rv(q_val, i)
-            self.collocation_samples[i].p.run_driver()
-            target_dict['fval'][i] = self.collocation_samples[i].p.get_val('traj.phase0.t_duration')[0]
+        # Get the control statistics
+        for i in self.aoa_aggregate:
+            mean_alpha[:] += self.aoa_aggregate[i]
+        mean_alpha[:] = mean_alpha / self._ctr2
+        for i in self.aoa_aggregate:
+            var_alpha[:] += (self.aoa_aggregate[i] - mean_alpha) ** 2
+        var_alpha[:] = var_alpha / (self._ctr2 - 1)
 
-    def update_rv(self, rv_val, collocation_id):
-        expanded_rv = self.__setNodalEntries(rv_val)
+        return_dict = {'altitude': {'mean' : mean_altitude,
+                                    'variance' : var_altitude,},
+                       'alpha': {'mean': mean_alpha,
+                                 'variance': var_alpha,},
+                      }
+
+        return return_dict
+
+    def get_time_series(self):
+        """
+        Gets the time series for plotting results
+        """
+        transcription_order = self.input_dict['transcription_order']
+        num_segments = self.input_dict['num_segments']
+        rv = np.zeros(transcription_order*num_segments)
+        interceptor_obj = self.__createInterceptorObj(rv)
+        interceptor_obj.p.run_driver()
+        # Get the time series
+        return np.squeeze(interceptor_obj.p.get_val('traj.phase0.timeseries.time'), axis=1)
 
     def __createInterceptorObj(self, rv):
         # self.input_dict = input_dict
@@ -164,6 +185,11 @@ class DymosInterceptorGlue(QuantityOfInterest):
                 ctr += 1
 
         return output_arr
+
+    def update_rv(self, rv_val, collocation_id):
+        expanded_rv = self.__setNodalEntries(rv_val)
+
+#------------------------------------------------------------------------------#
 
 class InterceptorWrapper(object):
     def __init__(self, num_segments=15, transcription_order=3,
@@ -359,10 +385,14 @@ if __name__ == '__main__':
     dummy_vec = np.zeros(systemsize)
     # dummy_vec[2] = 1.e-6
     # t_f =   qoi.eval_QoI(dummy_vec, np.zeros(systemsize))
-    # print('t_f = ', t_f)
+    # print('time_series = \n', repr(qoi.))
 
     # grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-1)
     # print('grad_tf = \n', grad_tf)
 
-    grad_tf2 = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-2)
-    print('grad_tf2 = ', grad_tf2)
+    # grad_tf2 = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-2)
+    # print('grad_tf2 = ', grad_tf2)
+
+    # Get the time series
+    time_series = qoi.get_time_series()
+    print('time_series = \n', repr(time_series))

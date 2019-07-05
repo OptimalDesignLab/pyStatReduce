@@ -43,7 +43,18 @@ QoI = DymosInterceptorGlue(systemsize, input_dict)
 t_final = QoI.eval_QoI(np.zeros(systemsize), np.zeros(systemsize))
 
 # Read the file
-read_file_name = output_directory + '/sample_0.npz'
-npzfile = np.load(read_file_name)
-print('altitude0 = ', npzfile['altitude'])
-print('alpha0 = ', npzfile['alpha'])
+# read_file_name = output_directory + '/sample_0.npz'
+# npzfile = np.load(read_file_name)
+# print('altitude0 = ', npzfile['altitude'])
+# print('alpha0 = ', npzfile['alpha'])
+# npzfile.close()
+
+# Run it again
+t_final = QoI.eval_QoI(np.zeros(systemsize), np.zeros(systemsize))
+
+# Read the file
+# read_file_name = output_directory + '/sample_1.npz'
+# npzfile = np.load(read_file_name)
+# print('altitude0 = ', npzfile['altitude'])
+# print('alpha0 = ', npzfile['alpha'])
+# npzfile.close()
