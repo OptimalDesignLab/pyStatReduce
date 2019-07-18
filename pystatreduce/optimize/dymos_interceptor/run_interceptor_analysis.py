@@ -1,5 +1,6 @@
 import sys
 import time
+import os
 
 # pyStatReduce specific imports
 import numpy as np
@@ -86,7 +87,7 @@ nominal_altitude = np.array([[  100.        ],
 mu = np.zeros(systemsize)
 density_variation_obj = DensityVariations1976()
 std_dev_density = density_variation_obj.get_density_deviations(np.squeeze(nominal_altitude, axis=1))
-print('std_dev_density = ', repr(std_dev_density))
+# print('std_dev_density = ', repr(std_dev_density))
 jdist = cp.MvNormal(mu, np.diag(std_dev_density[:-1]))
 
 dymos_obj = DymosInterceptorGlue(systemsize, input_dict)
@@ -96,13 +97,16 @@ dymos_obj = DymosInterceptorGlue(systemsize, input_dict)
 
 # grad_tf = dymos_obj.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize))
 # print('grad_tf = ', grad_tf.size)
+# print('argument = ', int(sys.argv[1]))
 
-
-
-dominant_space = DimensionReduction(n_arnoldi_sample=20,
+dominant_space = DimensionReduction(n_arnoldi_sample=int(sys.argv[1]),
                                     exact_Hessian=False,
                                     sample_radius=1.e-1)
 dominant_space.getDominantDirections(dymos_obj, jdist, max_eigenmodes=10)
-#
+
 print('eigenvals = ', repr(dominant_space.iso_eigenvals))
 print('eigenvecs = \n', repr(dominant_space.iso_eigenvecs))
+
+# Save to file:
+fname = os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/eigenmodes/eigenmodes_' + sys.argv[1] + '_samples'
+np.savez(fname, eigenvals=dominant_space.iso_eigenvals, eigenvecs=dominant_space.iso_eigenvecs)

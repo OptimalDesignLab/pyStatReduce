@@ -10,6 +10,8 @@
 import numpy as np
 import cmath
 import chaospy as cp
+import time
+import sys
 
 from pystatreduce.new_stochastic_collocation import StochasticCollocation2
 from pystatreduce.stochastic_collocation import StochasticCollocation
@@ -38,18 +40,26 @@ std_dev =  np.array([0.1659134,  0.1659134, 0.16313925, 0.16080975, 0.14363596, 
  0.00804997, 0.00844582, 0.00942114, 0.01080109, 0.01121497, 0.01204432, 0.0128207 , 0.01295824, 0.01307331, 0.01359864, 0.01408001, 0.01646131, 0.02063841,
  0.02250183, 0.02650464, 0.02733539, 0.02550976, 0.01783919, 0.0125073 , 0.01226541])
 
+start_time = time.time()
 
-# 0.04*np.eye(systemsize) # 0.04* np.random.rand(systemsize)
 jdist = cp.MvNormal(mu, np.diag(std_dev[:-1]))
 
 QoI = DymosInterceptorGlue(systemsize, input_dict)
-
 
 QoI_dict = {'time_duration': {'QoI_func': QoI.eval_QoI,
                               'output_dimensions': 1,}
             }
 
-dominant_dir = eigen_info.eigenvecs_atmos_dev[:,0:6]
+# Read in the eigenmodes
+# arnoldi_sample_sizes = [20, 25, 30, 35, 40, 46]
+# fname = './eigenmodes/eigenmodes_' + str(arnoldi_sample_sizes[0] + '_samples.npz'
+fname = './eigenmodes/eigenmodes_' + sys.argv[1] + '_samples.npz'
+eigenmode = np.load(fname)
+eigenvecs = eigenmode['eigenvecs']
+n_dominant_dir = int(sys.argv[2]) # 11
+dominant_dir = eigenvecs[:,0:n_dominant_dir]
+
+# dominant_dir = eigen_info.eigenvecs_atmos_dev[:,0:6]
 
 # Create the stochastic collocation object
 sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict,
@@ -57,7 +67,16 @@ sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict,
                                   dominant_dir=dominant_dir,
                                   include_derivs=False)
 sc_obj.evaluateQoIs(jdist)
+evalutation_time = time.time() - start_time
+
 mu_j = sc_obj.mean(of=['time_duration'])
 var_j = sc_obj.variance(of=['time_duration'])
+
+final_time = time.time() - start_time
+
 print('mean time duration = ', mu_j['time_duration'])
 print('variance time_duration = ', var_j['time_duration'])
+
+# print the time elapsed
+print('evalutation_time = ', evalutation_time)
+print('total_time = ', final_time)

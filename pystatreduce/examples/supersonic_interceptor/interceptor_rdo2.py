@@ -89,8 +89,9 @@ class DymosInterceptorGlue(QuantityOfInterest):
 
     def eval_QoIGradient(self, mu, xi, fd_pert=1.e-2):
         # Check a few importhant things
-        if self.input_dict['write_files'] is True or self.input_dict['aggregate_solutions'] is True:
-            warnings.warn("WARNING: 'write_files' and/or 'aggregate_solutions' is turned on at every QoI solve using input_dict. Turn it off so as to prevent a possible overwrite of your saved data")
+        if 'write_files' in self.input_dict or 'aggregate_solutions' in self.input_dict:
+            if self.input_dict['write_files'] is True or self.input_dict['aggregate_solutions'] is True:
+                warnings.warn("WARNING: 'write_files' and/or 'aggregate_solutions' is turned on at every QoI solve using input_dict. Turn it off so as to prevent a possible overwrite of your saved data")
 
         def func(x):
             return self.eval_QoI(x, np.zeros(np.size(x)))

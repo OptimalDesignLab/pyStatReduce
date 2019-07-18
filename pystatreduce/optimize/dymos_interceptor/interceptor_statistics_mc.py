@@ -11,6 +11,7 @@ import numpy as np
 import cmath
 import chaospy as cp
 import time
+import sys
 
 from pystatreduce.new_stochastic_collocation import StochasticCollocation2
 from pystatreduce.monte_carlo import MonteCarlo
@@ -42,7 +43,6 @@ std_dev =  np.array([0.1659134,  0.1659134, 0.16313925, 0.16080975, 0.14363596, 
 
 start_time = time.time()
 
-# 0.04*np.eye(systemsize) # 0.04* np.random.rand(systemsize)
 jdist = cp.MvNormal(mu, np.diag(std_dev[:-1]))
 
 QoI = DymosInterceptorGlue(systemsize, input_dict)
@@ -52,19 +52,34 @@ QoI_dict = {'time_duration': {'QoI_func': QoI.eval_QoI,
                               'output_dimensions': 1,}
             }
 
-dominant_dir = eigen_info.eigenvecs_atmos_dev[:,0:6]
-
 initialization_time = time.time() - start_time
 
 # Create a Monte Carlo Object
-nsample = 2 # 5000
-mc_obj = MonteCarlo(nsample, jdist, QoI_dict, reduced_collocation=False,
-                    include_derivs=False)
-mc_obj.getSamples(jdist, include_derivs=False)
+use_reduced_collocation = True
+if use_reduced_collocation:
+    # Get the dominant directions
+    arnoldi_sample_sizes = [20, 25, 30, 35, 40, 46]
+    fname = './eigenmodes/eigenmodes_' + sys.argv[1] + '_samples.npz'
+    eigenmode = np.load(fname)
+    eigenvecs = eigenmode['eigenvecs']
+    n_dominant_dir = int(sys.argv[2]) # 11
+    dominant_dir = eigenvecs[:,0:n_dominant_dir]
+
+    nsample = 1000
+    mc_obj = MonteCarlo(nsample, jdist, QoI_dict, reduced_collocation=True,
+                        include_derivs=False, dominant_dir=dominant_dir)
+    mc_obj.getSamples(jdist, include_derivs=False)
+else:
+    nsample = 5000
+    mc_obj = MonteCarlo(nsample, jdist, QoI_dict, reduced_collocation=False,
+                        include_derivs=False)
+    mc_obj.getSamples(jdist, include_derivs=False)
 
 
 mu_j = mc_obj.mean(jdist, of=['time_duration'])
 var_j = mc_obj.variance(jdist, of=['time_duration'])
+
+# Print everything
 print()
 print('mean time duration = ', mu_j['time_duration'])
 print('variance time_duration = ', var_j['time_duration'])
