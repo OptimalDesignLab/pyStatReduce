@@ -71,6 +71,23 @@ negative_dev_alt = mean_altitude - 2*std_dev_altitude
 positive_dev_alpha = mean_alpha + 2*std_dev_alpha
 negative_dev_alpha = mean_alpha - 2*std_dev_alpha
 
+# Plot only the altitude history
+fname = 'altitude_history_mc.png'
+matplotlib.rcParams['mathtext.fontset'] = 'cm'
+fig = plt.figure('altitude', figsize=(7,7))
+ax = plt.axes()
+ax.fill_between(time_series, positive_dev_alt, negative_dev_alt)
+p1 = ax.plot(time_series, mean_altitude, color='k', label='mean')
+p2 = ax.plot(time_series, positive_dev_alt, '--', color='g', label='2 standard deviations')
+p3 = ax.plot(time_series, negative_dev_alt, '--', color='g')
+ax.set_xlabel('Time (s)')
+ax.set_ylabel('Altitude (m)')
+ax.legend()
+plt.tight_layout()
+# plt.show()
+plt.savefig(fname, format='png')
+
+"""
 # Subplot will show the altitude first followed by the angle of attack
 fname = 'trajectory_schedule_mc.pdf'
 matplotlib.rcParams['mathtext.fontset'] = 'cm'
@@ -88,8 +105,6 @@ axes[1].set_ylabel(r'angle of attack $(\alpha)$')
 axes[1].fill_between(time_series, positive_dev_alpha, negative_dev_alpha)
 axes[1].legend()
 plt.tight_layout()
-# plt.show()
-plt.savefig(fname, format='pdf')
-
-# fig = plt.figure("gradients", figsize=(13,6))
-# ax = plt.axes()
+plt.show()
+# plt.savefig(fname, format='pdf')
+"""

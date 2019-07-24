@@ -377,8 +377,6 @@ if __name__ == '__main__':
                   'transcription_order' : 3,
                   'transcription_type': 'LGR',
                   'solve_segments': False,
-                  'use_for_collocation' : False,
-                  'n_collocation_samples': 20,
                   'use_polynomial_control': False}
     systemsize = input_dict['num_segments'] * input_dict['transcription_order']
 
