@@ -34,7 +34,7 @@ class MonteCarlo(object):
                 self.iso_jdist = cp.Normal()
                 self.iso_samples = self.iso_jdist.sample(self.num_samples)
                 int_mat = np.matmul(sqrt_Sigma, dominant_dir)
-                print(np.outer(int_mat, self.iso_samples))
+                # print(np.outer(int_mat, self.iso_samples))
                 self.samples = np.add(np.outer(int_mat, self.iso_samples).T, mu).T
 
 

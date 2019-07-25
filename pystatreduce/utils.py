@@ -191,3 +191,26 @@ def central_fd(func, at, output_dimensions=1, fd_pert=1.e-6):
         temp_arr1[i] -= fd_pert
         temp_arr2[i] += fd_pert
     return dfdat
+
+def check_std_dev_violation(input_samples, mu, std_dev, scale=1.0):
+    """
+    Checks if entries in a given array exceed their respective scaled standard
+    deviation bounds.
+    """
+    assert std_dev.ndim == 1, 'The standard deviation MUST be a vector.' 
+    upper_bound = mu + scale * std_dev
+    lower_bound = mu - scale * std_dev
+    ctr = 0
+    idx_list = []
+    n_samples = input_samples.shape[1]
+    for i in range(n_samples):
+        sample = input_samples[:,i]
+        if all(sample > lower_bound) == False or all(sample < upper_bound) == False:
+            idx_list.append(i)
+
+    new_samples = np.delete(input_samples, idx_list, axis=1)
+    print('upper_bound = ', upper_bound)
+    print('lower_bound = ', lower_bound)
+    print('sample0 = ', new_samples[:,0])
+
+    return new_samples

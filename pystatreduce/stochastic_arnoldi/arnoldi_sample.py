@@ -48,7 +48,7 @@ class ArnoldiSampling(object):
             #                 sqrt_Sigma)
             gdata0[:,i+1] = np.dot(QoI.eval_QoIGradient(rv_mean, x_val - rv_mean),
                             sqrt_Sigma)
-            print('gdata0[:,i+1] = \n', gdata0[:,i+1])
+            # print('gdata0[:,i+1] = \n', gdata0[:,i+1])
 
             # Find the new basis vector and orthogonalize it against the old ones
             Z[:,i+1] = (gdata0[:,i+1] - gdata0[:,0])/self.alpha

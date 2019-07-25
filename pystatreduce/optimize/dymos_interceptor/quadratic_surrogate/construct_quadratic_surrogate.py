@@ -51,8 +51,6 @@ if generate_data:
     # We need to get at least n_surrogate_samples to construct the quadratic surrogate problem
     n_surrogate_samples = int(0.5 * (systemsize + 1) * (systemsize + 2))
     surrogate_samples = jdist.sample(n_surrogate_samples, rule='R')
-    # print('n_surrogate_samples = ', n_surrogate_samples)
-    # print('surrogate_samples shape', surrogate_samples.shape)
 
     # Evaluate the the function at those points
     QoI = DymosInterceptorGlue(systemsize, input_dict)
