@@ -155,8 +155,6 @@ class DymosInterceptorGlue(QuantityOfInterest):
         solve_segments = self.input_dict['solve_segments']
         use_polynomial_control = self.input_dict['use_polynomial_control']
 
-        # expanded_arr = self.__getExpandedArray(rv)
-        # print('expanded_arr = \n', expanded_arr)
         interceptor_obj = InterceptorWrapper(num_segments=num_segments,
                                              transcription_order=transcription_order,
                                              transcription_type=transcription_type,
@@ -165,30 +163,26 @@ class DymosInterceptorGlue(QuantityOfInterest):
                                              ivc_pert=np.expand_dims(rv, axis=0))
         return interceptor_obj
 
-    def __getExpandedArray(self, input_array):
-        num_segments = self.input_dict['num_segments']
-        transcription_order = self.input_dict['transcription_order']
-        n_nodes = (transcription_order+1)*num_segments
-        output_arr = np.zeros(n_nodes)
-        ctr = 0
-        segment_id = 0
-        i = 0
-        while i < n_nodes:
-            if i is (segment_id+1)*(transcription_order+1) -1 and i != (n_nodes-1):
-                output_arr[i] = input_array[ctr]
-                output_arr[i+1] = input_array[ctr]
-                i += 2
-                ctr += 1
-                segment_id += 1
-            else:
-                output_arr[i] = input_array[ctr]
-                i += 1
-                ctr += 1
-
-        return output_arr
-
-    def update_rv(self, rv_val, collocation_id):
-        expanded_rv = self.__setNodalEntries(rv_val)
+    # def __getExpandedArray(self, input_array):
+    #     num_segments = self.input_dict['num_segments']
+    #     transcription_order = self.input_dict['transcription_order']
+    #     n_nodes = (transcription_order+1)*num_segments
+    #     output_arr = np.zeros(n_nodes)
+    #     ctr = 0
+    #     segment_id = 0
+    #     i = 0
+    #     while i < n_nodes:
+    #         if i is (segment_id+1)*(transcription_order+1) -1 and i != (n_nodes-1):
+    #             output_arr[i] = input_array[ctr]
+    #             output_arr[i+1] = input_array[ctr]
+    #             i += 2
+    #             ctr += 1
+    #             segment_id += 1
+    #         else:
+    #             output_arr[i] = input_array[ctr]
+    #             i += 1
+    #             ctr += 1
+    #     return output_arr
 
 #------------------------------------------------------------------------------#
 
