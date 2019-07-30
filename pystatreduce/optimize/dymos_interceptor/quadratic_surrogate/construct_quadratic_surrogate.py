@@ -6,11 +6,9 @@
 ################################################################################
 
 import numpy as np
-import cmath
 import chaospy as cp
-import time
-import sys
-import os
+import time, sys, os
+from scipy import stats
 
 from smt.surrogate_models import QP # Surrogate Modeling
 
@@ -34,23 +32,25 @@ input_dict = {'num_segments': 15,
 systemsize = input_dict['num_segments'] * input_dict['transcription_order']
 
 mu = np.zeros(systemsize)
-std_dev =  np.array([0.1659134,  0.1659134, 0.16313925, 0.16080975, 0.14363596, 0.09014088, 0.06906912, 0.03601839, 0.0153984 , 0.01194864, 0.00705978, 0.0073889 , 0.00891946,
+deviations =  np.array([0.1659134,  0.1659134, 0.16313925, 0.16080975, 0.14363596, 0.09014088, 0.06906912, 0.03601839, 0.0153984 , 0.01194864, 0.00705978, 0.0073889 , 0.00891946,
  0.01195811, 0.01263033, 0.01180144, 0.00912247, 0.00641914, 0.00624566, 0.00636504, 0.0064624 , 0.00639544, 0.0062501 , 0.00636687, 0.00650337, 0.00699955,
  0.00804997, 0.00844582, 0.00942114, 0.01080109, 0.01121497, 0.01204432, 0.0128207 , 0.01295824, 0.01307331, 0.01359864, 0.01408001, 0.01646131, 0.02063841,
  0.02250183, 0.02650464, 0.02733539, 0.02550976, 0.01783919, 0.0125073 , 0.01226541])
 
 start_time = time.time() # Timing
+std_dev = deviations[:-1]
+jdist = cp.MvNormal(mu, np.diag(std_dev))
 
-jdist = cp.MvNormal(mu, np.diag(std_dev[:-1]))
-
+perturbation = 1e-4
 default_fpath = os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/quadratic_surrogate/'
-default_fname = default_fpath + 'surrogate_samples_pseudo_random'
+default_fname = default_fpath + 'surrogate_samples_pseudo_random_' + str(perturbation)
 
 generate_data = True
 if generate_data:
     # We need to get at least n_surrogate_samples to construct the quadratic surrogate problem
     n_surrogate_samples = int(0.5 * (systemsize + 1) * (systemsize + 2))
-    surrogate_samples = jdist.sample(n_surrogate_samples, rule='R')
+    perturbation_vec = stats.truncnorm.rvs(-1,1, loc=0., scale=perturbation, size=n_surrogate_samples*systemsize)
+    surrogate_samples = np.reshape(perturbation_vec, (systemsize, n_surrogate_samples)) # samples[:,0:n_surrogate_samples]
 
     # Evaluate the the function at those points
     QoI = DymosInterceptorGlue(systemsize, input_dict)

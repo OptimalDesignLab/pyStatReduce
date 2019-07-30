@@ -197,7 +197,7 @@ def check_std_dev_violation(input_samples, mu, std_dev, scale=1.0):
     Checks if entries in a given array exceed their respective scaled standard
     deviation bounds.
     """
-    assert std_dev.ndim == 1, 'The standard deviation MUST be a vector.' 
+    assert std_dev.ndim == 1, 'The standard deviation MUST be a vector.'
     upper_bound = mu + scale * std_dev
     lower_bound = mu - scale * std_dev
     ctr = 0
@@ -209,8 +209,5 @@ def check_std_dev_violation(input_samples, mu, std_dev, scale=1.0):
             idx_list.append(i)
 
     new_samples = np.delete(input_samples, idx_list, axis=1)
-    print('upper_bound = ', upper_bound)
-    print('lower_bound = ', lower_bound)
-    print('sample0 = ', new_samples[:,0])
 
     return new_samples

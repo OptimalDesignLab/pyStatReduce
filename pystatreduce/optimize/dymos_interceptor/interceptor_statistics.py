@@ -10,8 +10,7 @@
 import numpy as np
 import cmath
 import chaospy as cp
-import time
-import sys
+import time, sys, os
 
 from pystatreduce.new_stochastic_collocation import StochasticCollocation2
 from pystatreduce.stochastic_collocation import StochasticCollocation
@@ -21,6 +20,7 @@ import pystatreduce.examples as examples
 from pystatreduce.examples.supersonic_interceptor.interceptor_rdo2 import DymosInterceptorGlue
 import pystatreduce.utils as utils
 import pystatreduce.optimize.dymos_interceptor.eigen_information as eigen_info
+from pystatreduce.optimize.dymos_interceptor.quadratic_surrogate.interceptor_surrogate_qoi import InterceptorSurrogateQoI
 
 np.set_printoptions(precision=16)
 
@@ -35,14 +35,14 @@ input_dict = {'num_segments': 15,
 systemsize = input_dict['num_segments'] * input_dict['transcription_order']
 
 mu = np.zeros(systemsize)
-std_dev =  np.array([0.1659134,  0.1659134, 0.16313925, 0.16080975, 0.14363596, 0.09014088, 0.06906912, 0.03601839, 0.0153984 , 0.01194864, 0.00705978, 0.0073889 , 0.00891946,
+deviations =  np.array([0.1659134,  0.1659134, 0.16313925, 0.16080975, 0.14363596, 0.09014088, 0.06906912, 0.03601839, 0.0153984 , 0.01194864, 0.00705978, 0.0073889 , 0.00891946,
  0.01195811, 0.01263033, 0.01180144, 0.00912247, 0.00641914, 0.00624566, 0.00636504, 0.0064624 , 0.00639544, 0.0062501 , 0.00636687, 0.00650337, 0.00699955,
  0.00804997, 0.00844582, 0.00942114, 0.01080109, 0.01121497, 0.01204432, 0.0128207 , 0.01295824, 0.01307331, 0.01359864, 0.01408001, 0.01646131, 0.02063841,
  0.02250183, 0.02650464, 0.02733539, 0.02550976, 0.01783919, 0.0125073 , 0.01226541])
 
 start_time = time.time()
 
-jdist = cp.MvNormal(mu, np.diag(std_dev[:-1]))
+jdist = cp.MvNormal(mu, np.diag(deviations[:-1]))
 
 QoI = DymosInterceptorGlue(systemsize, input_dict)
 
@@ -50,16 +50,36 @@ QoI_dict = {'time_duration': {'QoI_func': QoI.eval_QoI,
                               'output_dimensions': 1,}
             }
 
-# Read in the eigenmodes
-# arnoldi_sample_sizes = [20, 25, 30, 35, 40, 46]
-# fname = './eigenmodes/eigenmodes_' + str(arnoldi_sample_sizes[0] + '_samples.npz'
-fname = './eigenmodes/eigenmodes_' + sys.argv[1] + '_samples.npz'
-eigenmode = np.load(fname)
-eigenvecs = eigenmode['eigenvecs']
-n_dominant_dir = int(sys.argv[2]) # 11
-dominant_dir = eigenvecs[:,0:n_dominant_dir]
+read_eigenmodes = False
+if read_eigenmodes:
+    # Read in the eigenmodes
+    # arnoldi_sample_sizes = [20, 25, 30, 35, 40, 46]
+    # fname = './eigenmodes/eigenmodes_' + str(arnoldi_sample_sizes[0] + '_samples.npz'
+    fname = './eigenmodes/eigenmodes_' + sys.argv[1] + '_samples.npz'
+    eigenmode = np.load(fname)
+    eigenvecs = eigenmode['eigenvecs']
+    n_dominant_dir = int(sys.argv[2]) # 11
+    dominant_dir = eigenvecs[:,0:n_dominant_dir]
 
-# dominant_dir = eigen_info.eigenvecs_atmos_dev[:,0:6]
+use_surrogate_eigenmodes = True
+if use_surrogate_eigenmodes:
+    fname = 'surrogate_samples_pseudo_random.npz' # 'surrogate_samples_pseudo_random_0.1.npz'
+    surrogate_input_dict = {'surrogate info full path' : os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/quadratic_surrogate/' + fname,
+                            'surrogate_type' : 'kriging', # 'quadratic',
+                            'kriging_theta' : 1.e-4,
+                            'correlation function' : 'squar_exp',
+                           }
+    surrogate_QoI = InterceptorSurrogateQoI(systemsize, surrogate_input_dict)
+    # Get the dominant directions
+    dominant_space = DimensionReduction(n_arnoldi_sample=systemsize+1,
+                                        exact_Hessian=False,
+                                        sample_radius=1.e-1)
+    dominant_space.getDominantDirections(surrogate_QoI, jdist, max_eigenmodes=10)
+    n_dominant_dir = 6
+    dominant_dir = dominant_space.iso_eigenvecs[:,0:n_dominant_dir]
+    # print('iso_eigenvals = \n', dominant_space.iso_eigenvals[0:6])
+    # print('dominant_space.dominant_dir.shape = ', dominant_space.dominant_dir.shape)
+
 
 # Create the stochastic collocation object
 sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict,
