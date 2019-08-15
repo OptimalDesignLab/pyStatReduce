@@ -55,7 +55,7 @@ QoI_dict = {'time_duration': {'QoI_func': QoI.eval_QoI,
 initialization_time = time.time() - start_time
 
 # Create a Monte Carlo Object
-use_reduced_collocation = True
+use_reduced_collocation = False
 if use_reduced_collocation:
     # Get the dominant directions
     arnoldi_sample_sizes = [20, 25, 30, 35, 40, 46]
@@ -70,7 +70,7 @@ if use_reduced_collocation:
                         include_derivs=False, dominant_dir=dominant_dir)
     mc_obj.getSamples(jdist, include_derivs=False)
 else:
-    nsample = 5000
+    nsample = 10000 # 5000
     mc_obj = MonteCarlo(nsample, jdist, QoI_dict, reduced_collocation=False,
                         include_derivs=False)
     mc_obj.getSamples(jdist, include_derivs=False)

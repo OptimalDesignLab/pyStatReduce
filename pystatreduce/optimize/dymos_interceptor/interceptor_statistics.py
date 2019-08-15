@@ -55,7 +55,7 @@ if read_eigenmodes:
     # Read in the eigenmodes
     # arnoldi_sample_sizes = [20, 25, 30, 35, 40, 46]
     # fname = './eigenmodes/eigenmodes_' + str(arnoldi_sample_sizes[0] + '_samples.npz'
-    fname = './eigenmodes/eigenmodes_' + sys.argv[1] + '_samples.npz'
+    fname = './eigenmodes/eigenmodes_' + sys.argv[1] + '_samples_1e_2.npz'
     eigenmode = np.load(fname)
     eigenvecs = eigenmode['eigenvecs']
     n_dominant_dir = int(sys.argv[2]) # 11
@@ -65,7 +65,7 @@ use_surrogate_eigenmodes = True
 if use_surrogate_eigenmodes:
     fname = 'surrogate_samples_pseudo_random.npz' # 'surrogate_samples_pseudo_random_0.1.npz'
     surrogate_input_dict = {'surrogate info full path' : os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/quadratic_surrogate/' + fname,
-                            'surrogate_type' : 'kriging', # 'quadratic',
+                            'surrogate_type' : 'quadratic', # 'kriging',
                             'kriging_theta' : 1.e-4,
                             'correlation function' : 'squar_exp',
                            }

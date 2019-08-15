@@ -1,3 +1,12 @@
+################################################################################
+# run_interceptor_analysis.py
+#
+# This file contains the script for evaluating the mean and standard deviation
+# for time duration for the supersonic interceptor trajectory analysis using
+# reduced stochastic collocation and active subspace method.
+#
+################################################################################
+
 import sys
 import time
 import os
@@ -92,21 +101,27 @@ jdist = cp.MvNormal(mu, np.diag(std_dev_density[:-1]))
 
 dymos_obj = DymosInterceptorGlue(systemsize, input_dict)
 
-# t_f = dymos_obj.eval_QoI(np.zeros(systemsize), np.zeros(systemsize))
-# print('t_f = ', t_f)
+use_dominant_spaces = True
+use_active_subspace = False
+if use_dominant_spaces == True:
+    dominant_space = DimensionReduction(n_arnoldi_sample=int(sys.argv[1]),
+                                        exact_Hessian=False,
+                                        sample_radius=1.e-2)
+    dominant_space.getDominantDirections(dymos_obj, jdist, max_eigenmodes=10)
 
-# grad_tf = dymos_obj.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize))
-# print('grad_tf = ', grad_tf.size)
-# print('argument = ', int(sys.argv[1]))
+    print('eigenvals = ', repr(dominant_space.iso_eigenvals))
+    print('eigenvecs = \n', repr(dominant_space.iso_eigenvecs))
 
-dominant_space = DimensionReduction(n_arnoldi_sample=int(sys.argv[1]),
-                                    exact_Hessian=False,
-                                    sample_radius=1.e-1)
-dominant_space.getDominantDirections(dymos_obj, jdist, max_eigenmodes=10)
-
-print('eigenvals = ', repr(dominant_space.iso_eigenvals))
-print('eigenvecs = \n', repr(dominant_space.iso_eigenvecs))
-
-# Save to file:
-fname = os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/eigenmodes/eigenmodes_' + sys.argv[1] + '_samples'
-np.savez(fname, eigenvals=dominant_space.iso_eigenvals, eigenvecs=dominant_space.iso_eigenvecs)
+    # Save to file:
+    fname = os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/eigenmodes/eigenmodes_' + sys.argv[1] + '_samples_1e_2'
+    np.savez(fname, eigenvals=dominant_space.iso_eigenvals, eigenvecs=dominant_space.iso_eigenvecs)
+elif use_active_subspace == True:
+    dominant_space = ActiveSubspace(dymos_obj,
+                                    n_dominant_dimensions=20,
+                                    n_monte_carlo_samples=1000,
+                                    read_rv_samples=False,
+                                    use_svd=True,
+                                    use_iso_transformation=True)
+    dominant_space.getDominantDirections(dymos_obj, jdist)
+    fname = os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/eigenmodes/eigenmodes_1000_samples_active_subspace'
+    np.savez(fname, eigenvals=dominant_space.iso_eigenvals, eigenvecs=dominant_space.iso_eigenvecs)
