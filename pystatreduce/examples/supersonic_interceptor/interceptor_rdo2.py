@@ -137,7 +137,8 @@ class DymosInterceptorGlue(QuantityOfInterest):
 
     def get_time_series(self):
         """
-        Gets the time series for plotting results
+        Gets the time series of altitude, angle of atttack, and the time for
+        plotting results.
         """
         transcription_order = self.input_dict['transcription_order']
         num_segments = self.input_dict['num_segments']
@@ -145,7 +146,16 @@ class DymosInterceptorGlue(QuantityOfInterest):
         interceptor_obj = self.__createInterceptorObj(rv)
         interceptor_obj.p.run_driver()
         # Get the time series
-        return np.squeeze(interceptor_obj.p.get_val('traj.phase0.timeseries.time'), axis=1)
+        aoa_series = np.squeeze(interceptor_obj.p.get_val('traj.phase0.timeseries.controls:alpha'), axis=1)
+        alt_series = np.squeeze(interceptor_obj.p.get_val('traj.phase0.timeseries.states:h'), axis=1)
+        time_series = np.squeeze(interceptor_obj.p.get_val('traj.phase0.timeseries.time'), axis=1)
+
+        return_dict = { 'aoa' : aoa_series,
+                        'altitude' : alt_series,
+                        'time' : time_series,
+                       }
+        # return np.squeeze(interceptor_obj.p.get_val('traj.phase0.timeseries.time'), axis=1)
+        return return_dict
 
     def __createInterceptorObj(self, rv):
         # self.input_dict = input_dict
@@ -371,14 +381,17 @@ if __name__ == '__main__':
                   'transcription_order' : 3,
                   'transcription_type': 'LGR',
                   'solve_segments': False,
-                  'use_polynomial_control': False}
+                  'use_polynomial_control': False,
+                  'aggregate_solutions' : True}
     systemsize = input_dict['num_segments'] * input_dict['transcription_order']
 
     qoi = DymosInterceptorGlue(systemsize, input_dict)
-    dummy_vec = np.zeros(systemsize)
-    # dummy_vec[2] = 1.e-6
+
+    # dummy_vec = np.zeros(systemsize)
     # t_f =   qoi.eval_QoI(dummy_vec, np.zeros(systemsize))
-    # print('time_series = \n', repr(qoi.))
+    # print('altitude_history = \n', repr(qoi.altitude_aggregate[0]))
+    # print('\naoa history = \n', repr(qoi.aoa_aggregate[0]))
+
 
     # grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-1)
     # print('grad_tf = \n', grad_tf)
@@ -387,5 +400,7 @@ if __name__ == '__main__':
     # print('grad_tf2 = ', grad_tf2)
 
     # Get the time series
-    time_series = qoi.get_time_series()
-    print('time_series = \n', repr(time_series))
+    series_dict = qoi.get_time_series()
+    print('altitude = \n', repr(series_dict['altitude']))
+    print('aoa = \n', repr(series_dict['aoa']))
+    print('time = \n', repr(series_dict['time']))

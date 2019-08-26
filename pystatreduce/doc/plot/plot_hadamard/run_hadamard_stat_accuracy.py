@@ -19,7 +19,7 @@ def run_hadamard(systemsize, eigen_decayrate, std_dev, n_eigenmodes):
 
 
     # Initialize chaospy distribution
-    x = np.random.randn(QoI.systemsize)
+    x = np.random.rand(QoI.systemsize)
     jdist = cp.MvNormal(x, np.diag(std_dev))
 
     threshold_factor = 0.5
@@ -60,7 +60,7 @@ def run_hadamard(systemsize, eigen_decayrate, std_dev, n_eigenmodes):
     return relative_error_mu, relative_err_var
 
 
-systemsize_arr = [16, 32, 64, 128, 256]
+systemsize_arr = [16, 64, 256] # [16, 32, 64, 128, 256]
 eigen_decayrate_arr = [2.0, 1.0, 0.5]
 n_eigenmodes_arr = range(1,11)
 n_stddev_samples = 10
@@ -76,7 +76,7 @@ avg_var_err = np.zeros(n_e_sample)
 max_var_err = np.zeros(n_e_sample)
 min_var_err = np.zeros(n_e_sample)
 
-eigen_decayrate_arr_idx = 2
+eigen_decayrate_arr_idx = 1
 
 for i in systemsize_arr:
     for j in range(0, n_e_sample):
@@ -129,5 +129,3 @@ for i in systemsize_arr:
     np.savetxt(fname5, avg_var_err, delimiter=',')
     np.savetxt(fname6, max_var_err, delimiter=',')
     np.savetxt(fname7, min_var_err, delimiter=',')
-
-    break

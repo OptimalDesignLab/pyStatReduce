@@ -65,13 +65,14 @@ use_surrogate_eigenmodes = True
 if use_surrogate_eigenmodes:
     fname = 'surrogate_samples_pseudo_random.npz' # 'surrogate_samples_pseudo_random_0.1.npz'
     surrogate_input_dict = {'surrogate info full path' : os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/quadratic_surrogate/' + fname,
-                            'surrogate_type' : 'quadratic', # 'kriging',
+                            'surrogate_type' : 'kriging',
                             'kriging_theta' : 1.e-4,
                             'correlation function' : 'squar_exp',
                            }
     surrogate_QoI = InterceptorSurrogateQoI(systemsize, surrogate_input_dict)
     # Get the dominant directions
-    dominant_space = DimensionReduction(n_arnoldi_sample=systemsize+1,
+    n_arnoldi_sample = 10
+    dominant_space = DimensionReduction(n_arnoldi_sample=n_arnoldi_sample, # systemsize+1,
                                         exact_Hessian=False,
                                         sample_radius=1.e-1)
     dominant_space.getDominantDirections(surrogate_QoI, jdist, max_eigenmodes=10)
@@ -81,12 +82,25 @@ if use_surrogate_eigenmodes:
     # print('dominant_space.dominant_dir.shape = ', dominant_space.dominant_dir.shape)
 
 
-# Create the stochastic collocation object
-sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict,
-                                  reduced_collocation=True,
-                                  dominant_dir=dominant_dir,
-                                  include_derivs=False)
-sc_obj.evaluateQoIs(jdist)
+use_surrogate_qoi_obj = False
+if use_surrogate_qoi_obj:
+    surrogate_QoI_dict = {'time_duration': {'QoI_func': surrogate_QoI.eval_QoI,
+                                  'output_dimensions': 1,}
+                }
+    # Create the stochastic collocation object
+    sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', surrogate_QoI_dict,
+                                      reduced_collocation=True,
+                                      dominant_dir=dominant_dir,
+                                      include_derivs=False)
+    sc_obj.evaluateQoIs(jdist)
+
+else:
+    # Create the stochastic collocation object
+    sc_obj = StochasticCollocation2(jdist, 2, 'MvNormal', QoI_dict,
+                                      reduced_collocation=True,
+                                      dominant_dir=dominant_dir,
+                                      include_derivs=False)
+    sc_obj.evaluateQoIs(jdist)
 evalutation_time = time.time() - start_time
 
 mu_j = sc_obj.mean(of=['time_duration'])
@@ -94,8 +108,13 @@ var_j = sc_obj.variance(of=['time_duration'])
 
 final_time = time.time() - start_time
 
+print('surrogate type = ', surrogate_input_dict['surrogate_type'])
+print('surrogate_sample = ', fname)
+print('kriging_theta = ', surrogate_input_dict['kriging_theta'])
+print('\nn_arnoldi_sample = ', n_arnoldi_sample)
 print('mean time duration = ', mu_j['time_duration'])
 print('variance time_duration = ', var_j['time_duration'])
+print('standard deviation time_duration = ', np.sqrt(var_j['time_duration']))
 
 # print the time elapsed
 print('evalutation_time = ', evalutation_time)

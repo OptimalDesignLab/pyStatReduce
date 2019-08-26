@@ -38,7 +38,7 @@ class ArnoldiSampling(object):
             raise NotImplementedError
 
         for i in range(0, m):
-            print("i = ", i)
+            # print("i = ", i)
             # Find new sample point and data; Compute function and gradient values
             xdata_i[:] = xdata0 + self.alpha * Z[:,i]
 
