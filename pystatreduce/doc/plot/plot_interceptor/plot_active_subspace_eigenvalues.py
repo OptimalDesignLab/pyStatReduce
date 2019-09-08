@@ -10,6 +10,7 @@ import numpy as np
 from mpl_toolkits import mplot3d
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 eigenvals = np.array([25.459885555433928 , 20.5587126040947   ,  5.452218716756889 ,  3.53772505687236  ,  2.2535152219659462,  1.5671907743868985,
         0.3478431228269759,  0.2125105821708078,  0.1352951903477063,  0.0528137827295139,  0.0389375552678914,  0.0248665921597519,
@@ -19,10 +20,14 @@ eigenvals = np.array([25.459885555433928 , 20.5587126040947   ,  5.4522187167568
 idx = range(1, eigenvals.size+1)
 fname = 'interceptor_kriging_active_eigenvals.pdf'
 fig = plt.figure('eigenvalues', figsize=(7,4))
+gca_var = fig.gca()
 ax = plt.axes()
 s = ax.scatter(idx, eigenvals)
 ax.set_xlabel('eigenvalue index')
 ax.set_ylabel('eigenvalue')
+gca_var.xaxis.set_major_locator(MaxNLocator(integer=True))
+plt.yscale('log')
+plt.ylim(1.e-3, 1.e2)
 plt.tight_layout()
 # plt.show()
 plt.savefig(fname, format='pdf')

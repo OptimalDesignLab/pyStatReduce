@@ -38,7 +38,12 @@ class DimensionReduction(object):
         # Decide between using arnoldi-iteration or exact Hessian
         if kwargs['exact_Hessian'] == False:
             self.use_exact_Hessian = False
-            self.min_eigen_accuracy = 1.e-3
+
+            if 'min_eigen_accuracy' in kwargs:
+                self.min_eigen_accuracy = kwargs.get('min_eigen_accuracy')
+            else:
+                self.min_eigen_accuracy = 1.e-3
+
             if 'n_arnoldi_sample' in kwargs:
                 self.num_sample = kwargs.get('n_arnoldi_sample')
             else:
@@ -152,7 +157,7 @@ class DimensionReduction(object):
                     ctr += 1
                 else:
                     break
-
+            # print('error_estimate = ', error_estimate)
             # Compute the accumulated energy
             # acc_energy = np.sum(np.square(self.iso_eigenvals[0:ctr]))
 

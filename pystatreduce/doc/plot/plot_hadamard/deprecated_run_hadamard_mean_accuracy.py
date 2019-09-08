@@ -39,12 +39,15 @@ def run_hadamard(systemsize, eigen_decayrate, std_dev, n_eigenmodes):
     threshold_factor = 0.5
     dominant_space = DimensionReduction(threshold_factor=threshold_factor,
                                         exact_Hessian=False,
-                                        n_arnoldi_sample=71)
+                                        n_arnoldi_sample=71,
+                                        min_eigen_accuracy=1.e-2)
     dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=n_eigenmodes)
-    if systemsize == 64:
-        print('x = \n', repr(x))
-        print('std_dev = \n', repr(std_dev))
-        print("dominant_indices = ", dominant_space.dominant_indices)
+
+    # if systemsize == 64:
+        # print('x = \n', repr(x))
+        # print('std_dev = \n', repr(std_dev))
+        # print('iso_eigenvals = ', dominant_space.iso_eigenvals)
+        # print("dominant_indices = ", dominant_space.dominant_indices)
 
     # Collocate
     # collocation = StochasticCollocation(n_collocation_pts, "Normal")

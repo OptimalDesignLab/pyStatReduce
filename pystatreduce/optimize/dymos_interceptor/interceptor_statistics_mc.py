@@ -70,6 +70,7 @@ if use_reduced_collocation:
                         include_derivs=False, dominant_dir=dominant_dir)
     mc_obj.getSamples(jdist, include_derivs=False)
 else:
+    print('Using Full Monte Carlo')
     nsample = 10000 # 5000
     mc_obj = MonteCarlo(nsample, jdist, QoI_dict, reduced_collocation=False,
                         include_derivs=False)
@@ -81,6 +82,10 @@ var_j = mc_obj.variance(jdist, of=['time_duration'])
 
 # Print everything
 print()
+if use_reduced_collocation:
+    print("Using Monte Carlo method along dominant directions.")
+else:
+    print('Using Full Monte Carlo.')
 print('mean time duration = ', mu_j['time_duration'])
 print('variance time_duration = ', var_j['time_duration'])
 print()

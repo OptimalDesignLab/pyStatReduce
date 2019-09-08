@@ -1,3 +1,12 @@
+################################################################################
+#
+# run_hadamard_stat_accuracy.py
+#
+# This file is a run script to generate the data which is eventually plotted
+# using a different script. The data pertains to the accuracy of the mean and
+# variance computed using reduced collocation for the Hadamard quadratic.
+#
+################################################################################
 import os
 import sys
 import errno
@@ -12,7 +21,7 @@ from pystatreduce.dimension_reduction import DimensionReduction
 import pystatreduce.examples as examples
 
 def run_hadamard(systemsize, eigen_decayrate, std_dev, n_eigenmodes):
-    n_collocation_pts = 3
+    n_collocation_pts = 2
 
     # Create Hadmard Quadratic object
     QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
@@ -25,7 +34,8 @@ def run_hadamard(systemsize, eigen_decayrate, std_dev, n_eigenmodes):
     threshold_factor = 0.5
     dominant_space = DimensionReduction(threshold_factor=threshold_factor,
                                         exact_Hessian=False,
-                                        n_arnoldi_sample=71)
+                                        n_arnoldi_sample=71,
+                                        min_eigen_accuracy=1.e-2)
     dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=n_eigenmodes)
     # print "dominant_indices = ", dominant_space.dominant_indices
 
@@ -45,19 +55,22 @@ def run_hadamard(systemsize, eigen_decayrate, std_dev, n_eigenmodes):
     # mu_j = collocation.normal.reduced_mean(QoI, jdist, dominant_space)
     mu_j = sc_obj.mean(of=['Hadamard'])
     var_j = sc_obj.variance(of=['Hadamard'])
+    std_dev_j = np.sqrt(var_j['Hadamard'])
     # print "mu_j = ", mu_j
 
     # Evaluate the analytical value of the Hadamard Quadratic
     covariance = cp.Cov(jdist)
     mu_analytic = QoI.eval_analytical_QoI_mean(x, covariance)
     var_analytic = QoI.eval_analytical_QoI_variance(x, covariance)
+    std_dev_analytic = np.sqrt(var_analytic)
     # print "mu_analytic = ", mu_analytic
 
     relative_error_mu = np.linalg.norm((mu_j['Hadamard'] - mu_analytic) / mu_analytic)
     relative_err_var = np.linalg.norm((var_j['Hadamard'] - var_analytic) / var_analytic)
+    relative_err_std_dev = np.linalg.norm((std_dev_j - std_dev_analytic) / std_dev_analytic)
     # print "relative_error = ", relative_error
 
-    return relative_error_mu, relative_err_var
+    return relative_error_mu, relative_err_var, relative_err_std_dev
 
 
 systemsize_arr = [16, 64, 256] # [16, 32, 64, 128, 256]
@@ -76,17 +89,23 @@ avg_var_err = np.zeros(n_e_sample)
 max_var_err = np.zeros(n_e_sample)
 min_var_err = np.zeros(n_e_sample)
 
-eigen_decayrate_arr_idx = 1
+err_std_dev_arr = np.zeros([n_e_sample, n_stddev_samples])
+avg_std_dev_err = np.zeros(n_e_sample)
+max_std_dev_err = np.zeros(n_e_sample)
+min_std_dev_err = np.zeros(n_e_sample)
+
+eigen_decayrate_arr_idx = 2
+print('eigen decayrate = ', eigen_decayrate_arr[eigen_decayrate_arr_idx])
 
 for i in systemsize_arr:
     for j in range(0, n_e_sample):
         print("systemsize = ", i, ", n_eigenmodes_arr[j] = ", n_eigenmodes_arr[j])
         for k in range(0, n_stddev_samples):
-            std_dev = abs(np.random.randn(i))
+            std_dev = abs(np.random.rand(i))
             # print "systemsize = ", i, ", n_eigenmodes_arr[j] = ", n_eigenmodes_arr[j], "std_dev.size = ", std_dev.size
             # if i == 256:
             #     print("    k = ", k)
-            err_mu_arr[j,k], err_var_arr[j,k] = run_hadamard(i, eigen_decayrate_arr[eigen_decayrate_arr_idx], std_dev,
+            err_mu_arr[j,k], err_var_arr[j,k], err_std_dev_arr[j,k] = run_hadamard(i, eigen_decayrate_arr[eigen_decayrate_arr_idx], std_dev,
                                            n_eigenmodes_arr[j])
 
         avg_mu_err[j] = np.mean(err_mu_arr[j,:])
@@ -97,8 +116,13 @@ for i in systemsize_arr:
         max_var_err[j] = np.max(err_var_arr[j,:])
         min_var_err[j] = np.min(err_var_arr[j,:])
 
+        avg_std_dev_err[j] = np.mean(err_std_dev_arr[j,:])
+        max_std_dev_err[j] = np.max(err_std_dev_arr[j,:])
+        min_std_dev_err[j] = np.min(err_std_dev_arr[j,:])
+
     dirname_mu = ''.join(['./plot_data/mean_accuracy/', str(i), '/'])
     dirname_var = ''.join(['./plot_data/variance_accuracy/', str(i), '/'])
+    dirname_std_dev = ''.join(['./plot_data/std_dev_accuracy/', str(i), '/'])
     # Create the directory if it doesn't exist
     if not os.path.isdir(dirname_mu):
         try:
@@ -118,14 +142,22 @@ for i in systemsize_arr:
     fname2 = ''.join([dirname_mu, 'max_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
     fname3 = ''.join([dirname_mu, 'min_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
 
-    fname5 = ''.join([dirname_var, 'avg_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
-    fname6 = ''.join([dirname_var, 'max_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
-    fname7 = ''.join([dirname_var, 'min_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
+    fname4 = ''.join([dirname_var, 'avg_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
+    fname5 = ''.join([dirname_var, 'max_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
+    fname6 = ''.join([dirname_var, 'min_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
 
-    np.savetxt(fname1, avg_mu_err, delimiter=',')
-    np.savetxt(fname2, max_mu_err, delimiter=',')
-    np.savetxt(fname3, min_mu_err, delimiter=',')
+    fname7 = ''.join([dirname_std_dev, 'avg_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
+    fname8 = ''.join([dirname_std_dev, 'max_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
+    fname9 = ''.join([dirname_std_dev, 'min_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
 
-    np.savetxt(fname5, avg_var_err, delimiter=',')
-    np.savetxt(fname6, max_var_err, delimiter=',')
-    np.savetxt(fname7, min_var_err, delimiter=',')
+    # np.savetxt(fname1, avg_mu_err, delimiter=',')
+    # np.savetxt(fname2, max_mu_err, delimiter=',')
+    # np.savetxt(fname3, min_mu_err, delimiter=',')
+
+    np.savetxt(fname4, avg_var_err, delimiter=',')
+    np.savetxt(fname5, max_var_err, delimiter=',')
+    np.savetxt(fname6, min_var_err, delimiter=',')
+
+    np.savetxt(fname7, avg_std_dev_err, delimiter=',')
+    np.savetxt(fname8, max_std_dev_err, delimiter=',')
+    np.savetxt(fname9, min_std_dev_err, delimiter=',')

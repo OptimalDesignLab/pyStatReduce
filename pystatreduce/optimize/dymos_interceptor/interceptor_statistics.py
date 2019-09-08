@@ -50,18 +50,7 @@ QoI_dict = {'time_duration': {'QoI_func': QoI.eval_QoI,
                               'output_dimensions': 1,}
             }
 
-read_eigenmodes = False
-if read_eigenmodes:
-    # Read in the eigenmodes
-    # arnoldi_sample_sizes = [20, 25, 30, 35, 40, 46]
-    # fname = './eigenmodes/eigenmodes_' + str(arnoldi_sample_sizes[0] + '_samples.npz'
-    fname = './eigenmodes/eigenmodes_' + sys.argv[1] + '_samples_1e_2.npz'
-    eigenmode = np.load(fname)
-    eigenvecs = eigenmode['eigenvecs']
-    n_dominant_dir = int(sys.argv[2]) # 11
-    dominant_dir = eigenvecs[:,0:n_dominant_dir]
-
-use_surrogate_eigenmodes = True
+use_surrogate_eigenmodes = False
 if use_surrogate_eigenmodes:
     fname = 'surrogate_samples_pseudo_random.npz' # 'surrogate_samples_pseudo_random_0.1.npz'
     surrogate_input_dict = {'surrogate info full path' : os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/quadratic_surrogate/' + fname,
@@ -80,18 +69,26 @@ if use_surrogate_eigenmodes:
     dominant_dir = dominant_space.iso_eigenvecs[:,0:n_dominant_dir]
     # print('iso_eigenvals = \n', dominant_space.iso_eigenvals[0:6])
     # print('dominant_space.dominant_dir.shape = ', dominant_space.dominant_dir.shape)
-
+else:
+    # Read in the eigenmodes
+    # arnoldi_sample_sizes = [20, 25, 30, 35, 40, 46]
+    fname = './eigenmodes/eigenmodes_' + sys.argv[1] + '_samples.npz'
+    # fname = './eigenmodes/eigenmodes_' + sys.argv[1] + '_samples_1e_1.npz'
+    eigenmode = np.load(fname)
+    eigenvecs = eigenmode['eigenvecs']
+    n_dominant_dir = int(sys.argv[2]) # 11
+    dominant_dir = eigenvecs[:,0:n_dominant_dir]
 
 use_surrogate_qoi_obj = False
 if use_surrogate_qoi_obj:
     surrogate_QoI_dict = {'time_duration': {'QoI_func': surrogate_QoI.eval_QoI,
-                                  'output_dimensions': 1,}
-                }
+                                            'output_dimensions': 1,}
+                         }
     # Create the stochastic collocation object
     sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', surrogate_QoI_dict,
-                                      reduced_collocation=True,
-                                      dominant_dir=dominant_dir,
-                                      include_derivs=False)
+                                    reduced_collocation=True,
+                                    dominant_dir=dominant_dir,
+                                    include_derivs=False)
     sc_obj.evaluateQoIs(jdist)
 
 else:
@@ -101,6 +98,7 @@ else:
                                       dominant_dir=dominant_dir,
                                       include_derivs=False)
     sc_obj.evaluateQoIs(jdist)
+
 evalutation_time = time.time() - start_time
 
 mu_j = sc_obj.mean(of=['time_duration'])
@@ -108,10 +106,13 @@ var_j = sc_obj.variance(of=['time_duration'])
 
 final_time = time.time() - start_time
 
-print('surrogate type = ', surrogate_input_dict['surrogate_type'])
-print('surrogate_sample = ', fname)
-print('kriging_theta = ', surrogate_input_dict['kriging_theta'])
-print('\nn_arnoldi_sample = ', n_arnoldi_sample)
+if use_surrogate_eigenmodes == True:
+    print('surrogate type = ', surrogate_input_dict['surrogate_type'])
+    print('surrogate_sample = ', fname)
+    print('kriging_theta = ', surrogate_input_dict['kriging_theta'])
+    print('\nn_arnoldi_sample = ', n_arnoldi_sample)
+else:
+    print('\nn_arnoldi_sample = ', sys.argv[1])
 print('mean time duration = ', mu_j['time_duration'])
 print('variance time_duration = ', var_j['time_duration'])
 print('standard deviation time_duration = ', np.sqrt(var_j['time_duration']))
