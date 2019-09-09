@@ -87,7 +87,7 @@ class DymosInterceptorGlue(QuantityOfInterest):
 
         return interceptor_obj.p.get_val('traj.phase0.t_duration')[0]
 
-    def eval_QoIGradient(self, mu, xi, fd_pert=1.e-2):
+    def eval_QoIGradient(self, mu, xi, fd_pert=1.e-2, use_forward_difference=False):
         # Check a few importhant things
         if 'write_files' in self.input_dict or 'aggregate_solutions' in self.input_dict:
             if self.input_dict['write_files'] is True or self.input_dict['aggregate_solutions'] is True:
@@ -96,8 +96,12 @@ class DymosInterceptorGlue(QuantityOfInterest):
         def func(x):
             return self.eval_QoI(x, np.zeros(np.size(x)))
 
-        rv = mu + xi
-        dfdrv = utils.central_fd(func, rv, output_dimensions=1, fd_pert=fd_pert)
+        if use_forward_difference == True:
+            dfdrv = self._eval_QoIGradient_forward(mu, xi, fd_pert=fd_pert)
+        else:
+            rv = mu + xi
+            dfdrv = utils.central_fd(func, rv, output_dimensions=1, fd_pert=fd_pert)
+
         return dfdrv
 
     def compute_schedule_statistics(self):
@@ -177,6 +181,25 @@ class DymosInterceptorGlue(QuantityOfInterest):
         # at this point have repeated values across different time segments.
         return schedule_dict
 
+    def _eval_QoIGradient_forward(self, mu, xi, fd_pert=1.e-6):
+        print('fd_pert = ', fd_pert)
+        rv = mu + xi
+        baseline_obj = self.__createInterceptorObj(rv)
+        baseline_obj.p.run_driver()
+        t_orig = baseline_obj.p.get_val('traj.phase0.t_duration')[0]
+        print('t_orig = ', t_orig)
+        dtf_drho = np.zeros(rv.size)
+        for i in range(rv.size):
+            print('\ni = ', i)
+            rv[i] += fd_pert
+            pert_obj = self.__createInterceptorObj(rv)
+            pert_obj.p.run_driver()
+            t_pert = pert_obj.p.get_val('traj.phase0.t_duration')[0]
+            # print('t_pert = ', t_pert)
+            dtf_drho[i] = (t_pert - t_orig) / fd_pert
+            # print('dtf_drho[i] = ', dtf_drho[i])
+            rv[i] -= fd_pert
+        return dtf_drho
 
     def __createInterceptorObj(self, rv):
         # self.input_dict = input_dict
@@ -416,6 +439,7 @@ if __name__ == '__main__':
         dummy_vec = np.zeros(systemsize)
         t_f =   qoi.eval_QoI(dummy_vec, np.zeros(systemsize))
         end_time = time.time()
+        print('qoi evaluation time = ', end_time-start_time)
         # print('altitude_history = \n', repr(qoi.altitude_aggregate[0]))
         # print('\naoa history = \n', repr(qoi.aoa_aggregate[0]))
 
@@ -426,10 +450,19 @@ if __name__ == '__main__':
         # print('grad_tf = \n', grad_tf)
         grad_end_time = time.time()
 
-        print('qoi evaluation time = ', end_time-start_time)
         print('qoi gradient evaluation time = ', grad_end_time - grad_start_time)
 
-    get_nominal_density = True
+    eval_forward_gradient = True
+    if eval_forward_gradient:
+        grad_start_time = time.time()
+        grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize),
+                                       fd_pert=1.e-6, use_forward_difference=True)
+        print('grad_tf = \n', grad_tf)
+        grad_end_time = time.time()
+
+        print('qoi gradient evaluation time = ', grad_end_time - grad_start_time)
+
+    get_nominal_density = False
     if get_nominal_density:
         density_dict = qoi.get_nominal_density(units='kg/m**3')
         print('nominal density = \n', repr(density_dict['density']))
