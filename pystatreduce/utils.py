@@ -90,9 +90,10 @@ def compute_subspace_angles(S1, S2):
 
     # NaN prevention check
     indices = np.where(s > 1) # Get the indices where the violation exisits
-    for i in indices: # Loop over these indices to fix the violation
-        if s[i] - 1 < 1.e-13: # This violation limit is pulled out of thin air!
-            s[i] = 1.0
+    for entry in indices: # Loop over these indices to fix the violation
+        for i in entry:
+            if s[i] - 1 < 1.e-13: # This violation limit is pulled out of thin air!
+                s[i] = 1.0
 
     s_radians = np.arccos(s)
 
