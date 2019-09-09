@@ -157,6 +157,27 @@ class DymosInterceptorGlue(QuantityOfInterest):
         # return np.squeeze(interceptor_obj.p.get_val('traj.phase0.timeseries.time'), axis=1)
         return return_dict
 
+    def get_nominal_density(self, units='kg/m**3'):
+        """
+        Gets the nominal density values at the different quadrature points for
+        the supersonic interceptor problem
+        """
+        transcription_order = self.input_dict['transcription_order']
+        num_segments = self.input_dict['num_segments']
+        rv = np.zeros(transcription_order*num_segments)
+        interceptor_obj = self.__createInterceptorObj(rv)
+        interceptor_obj.p.run_driver()
+        # print(interceptor_obj.p.get_val('traj.phase0.rhs_all.atmos.rho'))
+        rho_arr = interceptor_obj.p.get_val('traj.phase0.rhs_all.atmos.rho', units=units)
+        alt_arr = interceptor_obj.p.get_val('traj.phases.phase0.rhs_all.atmos.density.h', units='m')
+        schedule_dict = {'altitude' : alt_arr,
+                         'density'  : rho_arr,
+                         }
+        # We need to also supply altitude because the density values extracted
+        # at this point have repeated values across different time segments.
+        return schedule_dict
+
+
     def __createInterceptorObj(self, rv):
         # self.input_dict = input_dict
         num_segments = self.input_dict['num_segments']
@@ -376,31 +397,48 @@ class InterceptorWrapper(object):
             self.p['traj.phase0.t_duration'] = 346.13171325
 
 if __name__ == '__main__':
-
+    import time
     input_dict = {'num_segments': 15,
                   'transcription_order' : 3,
                   'transcription_type': 'LGR',
                   'solve_segments': False,
                   'use_polynomial_control': False,
-                  'aggregate_solutions' : True}
+                  # 'aggregate_solutions' : False,
+                  # 'write_files': False
+                  }
     systemsize = input_dict['num_segments'] * input_dict['transcription_order']
 
     qoi = DymosInterceptorGlue(systemsize, input_dict)
 
-    # dummy_vec = np.zeros(systemsize)
-    # t_f =   qoi.eval_QoI(dummy_vec, np.zeros(systemsize))
-    # print('altitude_history = \n', repr(qoi.altitude_aggregate[0]))
-    # print('\naoa history = \n', repr(qoi.aoa_aggregate[0]))
+    eval_QoI = False
+    if eval_QoI:
+        start_time = time.time()
+        dummy_vec = np.zeros(systemsize)
+        t_f =   qoi.eval_QoI(dummy_vec, np.zeros(systemsize))
+        end_time = time.time()
+        # print('altitude_history = \n', repr(qoi.altitude_aggregate[0]))
+        # print('\naoa history = \n', repr(qoi.aoa_aggregate[0]))
 
+    eval_QoI_gradient = False
+    if eval_QoI_gradient:
+        grad_start_time = time.time()
+        grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize))
+        # print('grad_tf = \n', grad_tf)
+        grad_end_time = time.time()
 
-    # grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-1)
-    # print('grad_tf = \n', grad_tf)
+        print('qoi evaluation time = ', end_time-start_time)
+        print('qoi gradient evaluation time = ', grad_end_time - grad_start_time)
 
-    # grad_tf2 = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize), fd_pert=1.e-2)
-    # print('grad_tf2 = ', grad_tf2)
+    get_nominal_density = True
+    if get_nominal_density:
+        density_dict = qoi.get_nominal_density(units='kg/m**3')
+        print('nominal density = \n', repr(density_dict['density']))
+        print('nominal_altitude = \n', repr(density_dict['altitude']))
 
-    # Get the time series
-    series_dict = qoi.get_time_series()
-    print('altitude = \n', repr(series_dict['altitude']))
-    print('aoa = \n', repr(series_dict['aoa']))
-    print('time = \n', repr(series_dict['time']))
+    get_time_series = False
+    if get_time_series:
+        # Get the time series
+        series_dict = qoi.get_time_series()
+        print('altitude = \n', repr(series_dict['altitude']))
+        print('aoa = \n', repr(series_dict['aoa']))
+        print('time = \n', repr(series_dict['time']))

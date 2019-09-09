@@ -104,17 +104,26 @@ dymos_obj = DymosInterceptorGlue(systemsize, input_dict)
 use_dominant_spaces = True
 use_active_subspace = False
 if use_dominant_spaces == True:
+    start_time = time.time()
+    sample_radius = 1.e-1
     dominant_space = DimensionReduction(n_arnoldi_sample=int(sys.argv[1]),
                                         exact_Hessian=False,
-                                        sample_radius=1.e-2)
-    dominant_space.getDominantDirections(dymos_obj, jdist, max_eigenmodes=10)
-
+                                        sample_radius=sample_radius)
+    dominant_space.getDominantDirections(dymos_obj, jdist, max_eigenmodes=11)
+    # end_time = time.time()
+    time_elapsed = time.time() - start_time
     print('eigenvals = ', repr(dominant_space.iso_eigenvals))
-    print('eigenvecs = \n', repr(dominant_space.iso_eigenvecs))
+    # print('eigenvecs = \n', repr(dominant_space.iso_eigenvecs))
+    print('time elapsed = ', time_elapsed)
 
     # Save to file:
-    fname = os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/eigenmodes/eigenmodes_' + sys.argv[1] + '_samples_1e_2'
-    np.savez(fname, eigenvals=dominant_space.iso_eigenvals, eigenvecs=dominant_space.iso_eigenvecs)
+    if sample_radius == 1.e-1:
+        fname = fname = os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/eigenmodes/eigenmodes_' + sys.argv[1] + '_samples'
+    elif sample_radius == 1.e-2:
+        fname = os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/eigenmodes/eigenmodes_' + sys.argv[1] + '_samples_1e_2'
+    else:
+        raise NotImplementedError
+    # np.savez(fname, eigenvals=dominant_space.iso_eigenvals, eigenvecs=dominant_space.iso_eigenvecs)
 elif use_active_subspace == True:
     dominant_space = ActiveSubspace(dymos_obj,
                                     n_dominant_dimensions=20,

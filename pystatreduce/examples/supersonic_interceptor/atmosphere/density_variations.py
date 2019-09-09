@@ -3,7 +3,7 @@ from scipy.interpolate import Akima1DInterpolator as Akima
 
 class DensityVariations1976(object):
     def __init__(self):
-        # All this stuff is in metric units
+        # All this stuff is in metric SI units
         altitiude = np.array([0.0, 4000, 8000, 10000, 16666.67, 20000, 26666.67])
         nominal_density = np.array([1.225, 0.819129, 0.525168, 0.412707, 0.148913, 0.0880349, 0.0303264])
         percent_departure = np.array([20.0, 6.0, 2.0, 6.0, 26.0, 20, 14])
