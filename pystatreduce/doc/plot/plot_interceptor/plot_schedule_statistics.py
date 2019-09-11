@@ -142,19 +142,20 @@ if __name__ == '__main__':
 
 
     # Subplot will show the altitude first followed by the angle of attack
+    matplotlib.rcParams.update({'font.size': 18})
     fname = 'trajectory_schedule_mc.pdf'
     matplotlib.rcParams['mathtext.fontset'] = 'cm'
     fig, axes = plt.subplots(nrows=2, figsize=(13,10))
     axes[0].fill_between(non_dimensional_time_series, positive_dev_alt, negative_dev_alt)
     p1 = axes[0].plot(non_dimensional_time_series, mean_altitude, color='k', label='mean')
-    p2 = axes[0].plot(non_dimensional_time_series, positive_dev_alt, '--', color='g', label='2 standard deviations')
+    p2 = axes[0].plot(non_dimensional_time_series, positive_dev_alt, '--', color='g', label='$2\sigma$')
     p3 = axes[0].plot(non_dimensional_time_series, negative_dev_alt, '--', color='g')
-    axes[0].set_ylabel('altitude (m)')
+    axes[0].set_ylabel(r'altitude $(m)$')
     axes[0].legend()
     axes[0].set_xticks(np.arange(1.1, step=0.1))
     plt.tight_layout()
     p4 = axes[1].plot(non_dimensional_time_series, mean_alpha, color='k', label='mean')
-    p5 = axes[1].plot(non_dimensional_time_series, positive_dev_alpha, '--', color='g', label='2 standard deviations')
+    p5 = axes[1].plot(non_dimensional_time_series, positive_dev_alpha, '--', color='g', label='$2\sigma$')
     p6 = axes[1].plot(non_dimensional_time_series, negative_dev_alpha, '--', color='g')
     axes[1].set_ylabel(r'angle of attack, $\alpha$ $(^{\circ})$')
     axes[1].fill_between(non_dimensional_time_series, positive_dev_alpha, negative_dev_alpha)

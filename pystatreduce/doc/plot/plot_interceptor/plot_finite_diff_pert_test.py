@@ -35,10 +35,11 @@ input_dict = {'num_segments': 15,
 
 systemsize = input_dict['num_segments'] * input_dict['transcription_order']
 
-perturbation_arr = [1.e-1, 1.e-2, 1.e-3, 1.e-4, 1.e-5, 1.e-6]
+perturbation_arr = [1.e-1, 1.e-2, 1.e-3, 1.e-4, 1.e-5]
 
 generate_data = False
 read_data = True
+use_forward_difference = True
 if generate_data == True:
     mu = np.zeros(systemsize)
     density_variations =  np.array([0.1659134,  0.1659134, 0.16313925, 0.16080975, 0.14363596, 0.09014088, 0.06906912, 0.03601839, 0.0153984 , 0.01194864, 0.00705978, 0.0073889 , 0.00891946,
@@ -51,38 +52,72 @@ if generate_data == True:
 
     QoI = DymosInterceptorGlue(systemsize, input_dict)
     grad_dict = {} # dictionary in which gradients are stored
+
     for i in perturbation_arr:
         index_name = 'grad_' + str(i)
-        grad_dict[index_name] = QoI.eval_QoIGradient(mu, np.zeros(systemsize), fd_pert=i)
+        if use_forward_difference == False:
+            # Central difference is used
+            grad_dict[index_name] = QoI.eval_QoIGradient(mu, np.zeros(systemsize), fd_pert=i)
+            pickle_fname = "gradients_dict_central.pickle"
+        else:
+            # Forward difference is used
+            grad_dict[index_name] = QoI.eval_QoIGradient(mu, np.zeros(systemsize), fd_pert=i, use_forward_difference=True)
+            pickle_fname = "gradients_dict_forward.pickle"
         print('index_name = ', index_name)
         print(grad_dict[index_name])
 
     # Save the file
-    pickle_out = open("gradients_dict.pickle", "wb")
+    pickle_out = open(pickle_fname, "wb")
     pickle.dump(grad_dict, pickle_out)
     pickle_out.close()
 
 if read_data == True or 'grad_dict' not in locals():
-    pickle_in = open("gradients_dict.pickle", "rb")
+    if use_forward_difference == False:
+        pickle_fname = "gradients_dict_central.pickle"
+        plot_fname = "gradient_scatter_central.pdf"
+        line_plot_fname = "gradient_line_central.pdf"
+    else:
+        pickle_fname = "gradients_dict_forward.pickle"
+        plot_fname = "gradient_scatter_forward.pdf"
+        line_plot_fname = "gradient_line_forward.pdf"
+
+    pickle_in = open(pickle_fname, "rb")
     grad_dict = pickle.load(pickle_in)
 
 print(grad_dict)
 
 grad_ind = range(1,systemsize+1)
-fname = "gradient_scatter.pdf"
-fig = plt.figure("gradients", figsize=(13,6))
-ax = plt.axes()
-sp1 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[0])], '^', mfc='none', label='1.e-1', lw=2)
-sp2 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[1])], 'o', mfc='none', label='1.e-2', lw=2)
-sp3 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[2])], 'v', mfc='none', label='1.e-3', ms=12, lw=2)
-sp4 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[3])], 'D', mfc='none', label='1.e-4', ms=10, lw=2)
-# sp5 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[4])], '>', label='1.e-5', ms=12, lw=2)
-# sp6 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[5])], '<', label='1.e-6', ms=12, lw=2)
-ax.set_xlabel('Gradient Index')
-ax.set_ylabel('Gradient Value')
-plt.xticks(np.arange(45, step=5))
-ax.legend()
-plt.grid(True)
-plt.tight_layout()
-plt.show()
-# plt.savefig(fname, format='pdf')
+# fname = "gradient_scatter.pdf"
+matplotlib.rcParams.update({'font.size': 18})
+plot_scatter = False
+if plot_scatter:
+    fig = plt.figure("gradients", figsize=(13,6))
+    ax = plt.axes()
+    sp1 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[0])], '^', mfc='none', label='1.e-1', ms=12, lw=2)
+    sp2 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[1])], 'o', mfc='none', label='1.e-2', ms=12, lw=2)
+    sp3 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[2])], 'v', mfc='none', label='1.e-3', ms=12, lw=2)
+    sp4 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[3])], 'D', mfc='none', label='1.e-4', ms=12, lw=2)
+    sp5 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[4])], '>', label='1.e-5', ms=12, lw=2)
+    # sp6 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[5])], '<', label='1.e-6', ms=12, lw=2)
+    ax.set_xlabel('Gradient Index')
+    ax.set_ylabel('Gradient Value')
+    plt.xticks(np.arange(45, step=5))
+    ax.legend()
+    # plt.grid(True)
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig(plot_fname, format='pdf')
+else:
+    fig = plt.figure("gradients", figsize=(13,6))
+    ax = plt.axes()
+    p1 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[0])], '-' , label='1.e-1', lw=2)
+    p2 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[1])], '--' , label='1.e-2', lw=2)
+    p3 = ax.plot(grad_ind, grad_dict['grad_' + str(perturbation_arr[2])], ':' , label='1.e-3', lw=2)
+    ax.set_xlabel('Gradient Index')
+    ax.set_ylabel('Gradient Value')
+    plt.xticks(np.arange(45, step=5))
+    ax.legend()
+    # plt.grid(True)
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig(line_plot_fname, format='pdf')
