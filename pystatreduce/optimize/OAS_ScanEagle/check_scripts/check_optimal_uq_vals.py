@@ -128,8 +128,8 @@ if __name__ == "__main__":
     print('\n#-----------------------------------------------------------#')
 
     # Full collocation
-    use_stochastic_collocation = True
-    use_monte_carlo = False
+    use_stochastic_collocation = False
+    use_monte_carlo = True
     if use_stochastic_collocation:
         colloc_obj = StochasticCollocation2(UQObj.jdist, 3, 'MvNormal', UQObj.QoI_dict,
                                         include_derivs=False)
@@ -138,7 +138,7 @@ if __name__ == "__main__":
                                             # dominant_dir=custom_eigenvec[:,0:int(sys.argv[1])])
                                             dominant_dir=UQObj.dominant_space.dominant_dir)
     elif use_monte_carlo:
-        nsample = 3
+        nsample = 100
         colloc_obj = MonteCarlo(nsample, UQObj.jdist, UQObj.QoI_dict, include_derivs=False)
         red_colloc_obj = MonteCarlo(nsample, UQObj.jdist, UQObj.QoI_dict,
                                     reduced_collocation=True,
@@ -149,12 +149,14 @@ if __name__ == "__main__":
     # print('reg_grad = \n', reg_grad)
     # print('iso_grad = \n', iso_grad)
 
-    key_name = 'act_init_7rv_2_2_lf1'
+    key_name = 'sc_init' # 'act_init_7rv_2_2_lf1'
     print('key_name = ', key_name)
     start_time = time.time()
-    mu_j_full, var_j_full = eval_uq_fuelburn(sc_sol_dict[key_name], colloc_obj)
-    time_elapsed = time.time() - start_time
-    # mu_j_full, var_j_full = eval_objective_and_constraint(sc_sol_dict[key_name], colloc_obj)
+
+
+    # mu_j_full, var_j_full = eval_uq_fuelburn(sc_sol_dict[key_name], colloc_obj)
+    # time_elapsed = time.time() - start_time
+    mu_j_full, var_j_full = eval_objective_and_constraint(sc_sol_dict[key_name], colloc_obj)
 
     mu_mc_mil = 4.681601386475621
     var_mc_mil = 3.812870581168059
@@ -168,12 +170,13 @@ if __name__ == "__main__":
     # print('err_mu = ', err_mu)
     # print('err_var = ', err_var)
     # print('time_elapsed = ', time_elapsed)
-    # print('robust fburn = ', mu_j_full['fuelburn'][0] + 2 * np.sqrt(var_j_full['fuelburn'][0]))
-    # print('mu_j KS = ', mu_j_full['constraints'][0])
-    # print('var_j KS = ', var_j_full['con_failure'][0])
-    # print('robust KS = ', mu_j_full['constraints'][0] + 2 * np.sqrt(var_j_full['con_failure'][0]))
-    # print('mu_j_lift = ', mu_j_full['constraints'][n_thickness_intersects+1])
-    # print('mu_j CM = ', mu_j_full['constraints'][-2]) # [n_thickness_intersects+2:n_thickness_intersects+2+n_CM])
+    print('robust fburn = ', mu_j_full['fuelburn'][0] + 2 * np.sqrt(var_j_full['fuelburn'][0]))
+    print('mu_j KS = ', mu_j_full['constraints'][0])
+    print('var_j KS = ', var_j_full['con_failure'][0])
+    print('robust KS = ', mu_j_full['constraints'][0] + 2 * np.sqrt(var_j_full['con_failure'][0]))
+    print('mu_j_lift = ', mu_j_full['constraints'][n_thickness_intersects+1])
+    print('mu_j CM = ', mu_j_full['constraints'][-2]) # [n_thickness_intersects+2:n_thickness_intersects+2+n_CM])
+
     """
     mu_j_i, var_j_i = eval_objective_and_constraint(sc_sol_dict[key_name], red_colloc_obj)
     print('Reduced')

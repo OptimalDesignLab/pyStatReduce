@@ -167,7 +167,7 @@ if __name__ == "__main__":
         n_constraints = 1 + n_thickness_intersects  + 1 + n_CM + 3
 
         # Create the Monte Carlo object based on the dominant directions
-        nsample = 1000
+        nsample = 100 # 1000
         mc_obj = MonteCarlo(nsample, UQObj.jdist, UQObj.QoI_dict, include_derivs=True)
         mc_obj.getSamples(UQObj.jdist, include_derivs=True)
 
@@ -211,7 +211,7 @@ if __name__ == "__main__":
         n_constraints = 1 + n_thickness_intersects  + 1 + n_CM + 3
 
         # Create the Monte Carlo object based on the dominant directions
-        nsample = 1000
+        nsample = 100 # 1000
         mc_obj = MonteCarlo(nsample, UQObj.jdist, UQObj.QoI_dict,
                             reduced_collocation=True,
                             dominant_dir=UQObj.dominant_space.dominant_dir,
@@ -270,6 +270,6 @@ if __name__ == "__main__":
     print('var fuelburn = ', var_j['fuelburn'])
     print('mu_j KS = ', mu_j['constraints'][0])
     print('var_j KS = ', var_j['con_failure'][0])
-    print('robust KS = ', mu_j['constraints'][0] + 2 * np.sqrt(var_j_i['con_failure'][0]))
+    print('robust KS = ', mu_j['constraints'][0] + 2 * np.sqrt(var_j['con_failure'][0]))
     print('mu_j_lift = ', mu_j['constraints'][n_thickness_intersects+1])
     print('mu_j CM = ', mu_j['constraints'][-2])

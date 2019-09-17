@@ -48,9 +48,13 @@ default_fname = default_fpath + 'surrogate_samples_pseudo_random_' + str(perturb
 generate_data = True
 if generate_data:
     # We need to get at least n_surrogate_samples to construct the quadratic surrogate problem
-    n_surrogate_samples = int(0.5 * (systemsize + 1) * (systemsize + 2))
-    perturbation_vec = stats.truncnorm.rvs(-1,1, loc=0., scale=perturbation, size=n_surrogate_samples*systemsize)
-    surrogate_samples = np.reshape(perturbation_vec, (systemsize, n_surrogate_samples)) # samples[:,0:n_surrogate_samples]
+    n_surrogate_samples = 2000 # int(0.5 * (systemsize + 1) * (systemsize + 2))
+    use_joint_distribution = True
+    if use_joint_distribution:
+        surrogate_samples = jdist.sample(n_surrogate_samples, rule='R')
+    else:
+        perturbation_vec = stats.truncnorm.rvs(-1,1, loc=0., scale=perturbation, size=n_surrogate_samples*systemsize)
+        surrogate_samples = np.reshape(perturbation_vec, (systemsize, n_surrogate_samples)) # samples[:,0:n_surrogate_samples]
 
     # Evaluate the the function at those points
     QoI = DymosInterceptorGlue(systemsize, input_dict)
@@ -60,7 +64,7 @@ if generate_data:
 
     write_files = True
     if write_files:
-        fname = default_fname
+        fname = default_fpath + 'surrogate_samples_pseudo_random_' + str(n_surrogate_samples)
         np.savez(fname, input_samples=surrogate_samples, fvals=fval_arr)
 
 # If data doesn't need to be generated, use the existing data or read in the values
@@ -71,7 +75,7 @@ if read_data == True or 'fval_arr' not in locals() or 'surrogate_samples' not in
     surrogate_samples = surrogate_info['input_samples']
     fval_arr = surrogate_info['fvals']
 
-
+"""
 # Now that we have either read the inputs or outputs, or run it from scratch,
 # lets construct the surrogate
 sm = QP() # Surrogate model object
@@ -80,3 +84,4 @@ sm.train()
 
 df_bar = sm.predict_derivatives(np.expand_dims(std_dev[:-1], axis=0), 1)
 print('df_bar at 1 std dev: ', df_bar)
+"""
