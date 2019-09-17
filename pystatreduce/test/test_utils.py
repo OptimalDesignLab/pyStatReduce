@@ -24,6 +24,13 @@ class TestUtils(unittest.TestCase):
         err = abs(val - true_val)
         self.assertTrue((err < 1.e-14).all())
 
+        S3 = np.array([1,3,5])
+        S4 = np.array([2,4,6])
+        val2 = utils.compute_subspace_angles(S3, S1)
+        true_val2 = np.array([0.11088375048225246])
+
+
+
     def test_central_difference(self):
         systemsize=3
         QoI = examples.Paraboloid3D(systemsize)

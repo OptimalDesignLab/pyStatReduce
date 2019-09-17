@@ -72,12 +72,28 @@ def compute_subspace_angles(S1, S2):
     This implementation is based on Algorithm 12.4.3 on page 604 in the book
     Matrix Computations by Gene H. Golub and Charles F. Van Loan.
     """
-    assert S1.shape == S2.shape
+    # Check the if the input arrays are 1D or 2D
+    if S1.ndim == 1:
+        # mat1 = np.reshape(S1, (1,S1.size))
+        mat1 = np.reshape(S1, (S1.size, 1))
+    elif S1.ndim == 2:
+        mat1 = S1
+    else:
+        raise ValueError('The function is intended only to handle 1D and 2D numpy arrays')
+    if S2.ndim == 1:
+        # mat2 = np.reshape(S2, (1,S2.size))
+        mat2 = np.reshape(S2, (S2.size, 1))
+    elif S2.ndim == 2:
+        mat2 = S2
+    else:
+        raise ValueError('The function is intended only to handle 1D and 2D numpy arrays')
+
+
     # Do a QR Factorization of S1 and S2
-    Q1, R1 = np.linalg.qr(S1)
+    Q1, R1 = np.linalg.qr(mat1)
     # print('S1 = \n', S1)
     # print('Q1 = \n', Q1)
-    Q2, R2 = np.linalg.qr(S2)
+    Q2, R2 = np.linalg.qr(mat2)
     # print('S1 = \n', S2)
     # print('Q2 = \n', Q2)
     intmat = np.matmul(Q1.T, Q2)
