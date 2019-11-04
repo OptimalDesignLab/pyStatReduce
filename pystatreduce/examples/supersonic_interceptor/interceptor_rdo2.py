@@ -433,7 +433,7 @@ if __name__ == '__main__':
 
     qoi = DymosInterceptorGlue(systemsize, input_dict)
 
-    eval_QoI = False
+    eval_QoI = True
     if eval_QoI:
         start_time = time.time()
         dummy_vec = np.zeros(systemsize)
@@ -452,7 +452,7 @@ if __name__ == '__main__':
 
         print('qoi gradient evaluation time = ', grad_end_time - grad_start_time)
 
-    eval_forward_gradient = True
+    eval_forward_gradient = False
     if eval_forward_gradient:
         grad_start_time = time.time()
         grad_tf = qoi.eval_QoIGradient(np.zeros(systemsize), np.zeros(systemsize),

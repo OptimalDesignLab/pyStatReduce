@@ -21,7 +21,7 @@ from pystatreduce.dimension_reduction import DimensionReduction
 import pystatreduce.examples as examples
 
 def run_hadamard(systemsize, eigen_decayrate, std_dev, n_eigenmodes):
-    n_collocation_pts = 2
+    n_collocation_pts = 3
 
     # Create Hadmard Quadratic object
     QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
@@ -31,12 +31,20 @@ def run_hadamard(systemsize, eigen_decayrate, std_dev, n_eigenmodes):
     x = np.random.rand(QoI.systemsize)
     jdist = cp.MvNormal(x, np.diag(std_dev))
 
-    threshold_factor = 0.5
-    dominant_space = DimensionReduction(threshold_factor=threshold_factor,
-                                        exact_Hessian=False,
-                                        n_arnoldi_sample=71,
-                                        min_eigen_accuracy=1.e-2)
-    dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=n_eigenmodes)
+    threshold_factor = 1.0
+    use_exact_Hessian = False
+    if use_exact_Hessian:
+        dominant_space = DimensionReduction(threshold_factor=threshold_factor,
+                                            exact_Hessian=True)
+        dominant_space.getDominantDirections(QoI, jdist)
+        dominant_dir = dominant_space.iso_eigenvecs[:,0:n_eigenmodes]
+    else:
+        dominant_space = DimensionReduction(threshold_factor=threshold_factor,
+                                            exact_Hessian=False,
+                                            n_arnoldi_sample=71,
+                                            min_eigen_accuracy=1.e-2)
+        dominant_space.getDominantDirections(QoI, jdist, max_eigenmodes=n_eigenmodes)
+        dominant_dir = dominant_space.dominant_dir
     # print "dominant_indices = ", dominant_space.dominant_indices
 
     # Create stochastic collocation object
@@ -48,7 +56,7 @@ def run_hadamard(systemsize, eigen_decayrate, std_dev, n_eigenmodes):
     sc_obj = StochasticCollocation2(jdist, n_collocation_pts, 'MvNormal',
                                     QoI_dict, include_derivs=False,
                                     reduced_collocation=True,
-                                    dominant_dir=dominant_space.dominant_dir)
+                                    dominant_dir=dominant_dir)
     sc_obj.evaluateQoIs(jdist)
 
     # Collocate
@@ -94,7 +102,7 @@ avg_std_dev_err = np.zeros(n_e_sample)
 max_std_dev_err = np.zeros(n_e_sample)
 min_std_dev_err = np.zeros(n_e_sample)
 
-eigen_decayrate_arr_idx = 2
+eigen_decayrate_arr_idx = 0
 print('eigen decayrate = ', eigen_decayrate_arr[eigen_decayrate_arr_idx])
 
 for i in systemsize_arr:
@@ -150,13 +158,20 @@ for i in systemsize_arr:
     fname8 = ''.join([dirname_std_dev, 'max_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
     fname9 = ''.join([dirname_std_dev, 'min_err_decay', str(eigen_decayrate_arr[eigen_decayrate_arr_idx]), '.txt'])
 
-    # np.savetxt(fname1, avg_mu_err, delimiter=',')
-    # np.savetxt(fname2, max_mu_err, delimiter=',')
-    # np.savetxt(fname3, min_mu_err, delimiter=',')
+    np.savetxt(fname1, avg_mu_err, delimiter=',')
+    np.savetxt(fname2, max_mu_err, delimiter=',')
+    np.savetxt(fname3, min_mu_err, delimiter=',')
 
-    np.savetxt(fname4, avg_var_err, delimiter=',')
-    np.savetxt(fname5, max_var_err, delimiter=',')
-    np.savetxt(fname6, min_var_err, delimiter=',')
+    # np.savetxt(fname4, avg_var_err, delimiter=',')
+    # np.savetxt(fname5, max_var_err, delimiter=',')
+    # np.savetxt(fname6, min_var_err, delimiter=',')
+
+    # print('avg_mu_err = ', avg_mu_err)
+    # print('max_mu_err = ', max_mu_err)
+    # print('min_mu_err = ', min_mu_err, '\n')
+    # print('avg_var_err = ', avg_var_err)
+    # print('max_var_err = ', max_var_err)
+    # print('min_var_err = ', min_var_err)
 
     np.savetxt(fname7, avg_std_dev_err, delimiter=',')
     np.savetxt(fname8, max_std_dev_err, delimiter=',')

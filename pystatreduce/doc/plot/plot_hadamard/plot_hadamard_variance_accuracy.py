@@ -47,7 +47,7 @@ plt.setp(axes, xticks=[0,1,2,3,4,5,6,7,8,9,10])
 # plt.setp(axes, yticks=[1.e-4, 1.e-2, 1.0])
 props = dict(boxstyle='round', facecolor='white')
 
-i = 0 # Systemsize index. This needs
+i = 2 # Systemsize index. This needs
 j = 0  # Eigen decay rate index
 axes[j].set_yscale("log", nonposy='clip')
 axes[j].errorbar(n_eigenmodes_arr, avg_var_err[i,j,:], yerr=errs[i,j,:,:], fmt='-o', capsize=6)
@@ -58,8 +58,8 @@ axes[j].text(0.5,1,r'$\lambda_i = \frac{1}{i^2}$', size=18, bbox=props, \
               verticalalignment='center')
 axes[j].yaxis.grid(which='major', linestyle=':')
 axes[j].minorticks_off()
-axes[j].set_yticks([1.e-4, 1.e-2, 1.0])
-axes[j].set_ylim(1.e-4, 10)
+axes[j].set_yticks([1.e-7, 1.e-4, 1.e-1])
+axes[j].set_ylim(1.e-7, 1)
 
 j = 1  # Eigen decay rate index
 axes[j].set_yscale("log", nonposy='clip')
@@ -69,7 +69,7 @@ axes[j].text(0.5,1,r'$\lambda_i = \frac{1}{i}$', size=18, bbox=props, \
               transform=axes[j].transAxes, horizontalalignment='center', \
               verticalalignment='center')
 axes[j].minorticks_off()
-axes[j].set_yticks([1.e-4, 1.e-2, 1.0])
+axes[j].set_yticks([1.e-7, 1.e-4, 1.e-1])
 axes[j].yaxis.grid(which='major', linestyle=':')
 
 j = 2  # Eigen decay rate index
@@ -80,10 +80,10 @@ axes[j].text(0.5,1,r'$\lambda_i = \frac{1}{\sqrt{i}}$', size=18, bbox=props, \
               transform=axes[j].transAxes, horizontalalignment='center', \
               verticalalignment='center')
 axes[j].minorticks_off()
-axes[j].set_yticks([1.e-4, 1.e-2, 1.0])
+axes[j].set_yticks([1.e-7, 1.e-4, 1.e-1])
 axes[j].yaxis.grid(which='major', linestyle=':')
 
 plt.tight_layout()
-plt.show()
-# plotname = ''.join(['./plot_data/variance_accuracy/variance_approximation_error_bar_systemsize', str(systemsize_arr[i]), '.pdf'])
-# f.savefig(plotname, format='pdf')
+# plt.show()
+plotname = ''.join(['./plot_data/variance_accuracy/variance_approximation_error_bar_systemsize', str(systemsize_arr[i]), '.pdf'])
+f.savefig(plotname, format='pdf')

@@ -1,5 +1,5 @@
 ################################################################################
-# run_finite_diff_pert_test.py
+# plot_finite_diff_pert_test.py
 #
 # The following file exists to run and plot the finite difference gradients that
 # are generated using the different central difference perturbations considered.

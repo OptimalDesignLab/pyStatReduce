@@ -21,6 +21,8 @@ from pystatreduce.optimize.dymos_interceptor.quadratic_surrogate.interceptor_sur
 
 systemsize = 45
 
+start_time = time.time()
+
 # Create the distribution
 mu = np.zeros(systemsize)
 density_deviations =  np.array([0.1659134,  0.1659134, 0.16313925, 0.16080975, 0.14363596, 0.09014088, 0.06906912, 0.03601839, 0.0153984 , 0.01194864, 0.00705978, 0.0073889 , 0.00891946,
@@ -33,7 +35,7 @@ jdist = cp.MvNormal(mu, np.diag(density_deviations[:-1]))
 fname = 'surrogate_samples_pseudo_random.npz'
 surrogate_input_dict = {'surrogate info full path' : os.environ['HOME'] + '/UserApps/pyStatReduce/pystatreduce/optimize/dymos_interceptor/quadratic_surrogate/' + fname,
                         'surrogate_type' : 'kriging',
-                        'kriging_theta' : 1.e-6,
+                        'kriging_theta' : 1.e-4,
                         'correlation function' : 'squar_exp',
                        }
 surrogate_QoI = InterceptorSurrogateQoI(systemsize, surrogate_input_dict)
@@ -42,10 +44,10 @@ use_dominant_directions = False
 use_active_subspace = True
 if use_dominant_directions:
     # Get the dominant directions
-    dominant_space = DimensionReduction(n_arnoldi_sample=systemsize+1,
+    dominant_space = DimensionReduction(n_arnoldi_sample= 30, # systemsize+1,
                                         exact_Hessian=False,
                                         sample_radius=1.e-1)
-    dominant_space.getDominantDirections(surrogate_QoI, jdist, max_eigenmodes=10)
+    dominant_space.getDominantDirections(surrogate_QoI, jdist, max_eigenmodes=9)
     dominant_dir = dominant_space.dominant_dir # dominant_space.iso_eigenvecs[:,0:n_dominant_dir]
 elif use_active_subspace:
     active_subspace = ActiveSubspace(surrogate_QoI,
@@ -71,6 +73,8 @@ sc_obj.evaluateQoIs(jdist)
 mu_j = sc_obj.mean(of=['time_duration'])
 var_j = sc_obj.variance(of=['time_duration'])
 
+end_time = time.time()
+
 # Monte Carlo, 10,000 samples result
 mu_t_f = 323.898894360652
 sigma_t_f = 5.56030668305056
@@ -83,9 +87,12 @@ print('surrogate_sample = ', fname)
 print('kriging_theta = ', surrogate_input_dict['kriging_theta'])
 print('use_dominant_directions = ', use_dominant_directions)
 print('use_active_subspace = ', use_active_subspace)
+print('propagation_subspace_shape = ', dominant_dir.shape)
 
 print('\nmean time duration = ', mu_j['time_duration'])
 print('err mu = ', err_mu)
 # print('variance time_duration = ', var_j['time_duration'])
 print('standard deviation time_duration = ', np.sqrt(var_j['time_duration']))
 print('err_sigma = ', err_sigma)
+
+print('time_elapsed = ', end_time - start_time)

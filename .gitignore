@@ -9,3 +9,8 @@ fout*
 errout*
 *.db
 *.json
+*.npz
+SNOPT_print.out
+SNOPT_summary.out
+.*.swp
+nohup.out

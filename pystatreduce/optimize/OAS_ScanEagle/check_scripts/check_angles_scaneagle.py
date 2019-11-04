@@ -149,12 +149,12 @@ print('CM eigenvecs =\n', dominant_space_CM.iso_eigenvecs)
 # orig_evecs_CM = np.copy(dominant_space_CM.iso_eigenvecs)
 
 # We now compare the angles w.r.t the objective functions
-# angles_KSfail = utils.compute_subspace_angles(dominant_dir_obj[:,0], dominant_dir_KS_fail)
+angles_KSfail = utils.compute_subspace_angles(dominant_dir_obj[:,0], dominant_dir_KS_fail)
 angles_liftcon = utils.compute_subspace_angles(dominant_dir_obj, dominant_dir_L_equal_w)
 angles_CM = utils.compute_subspace_angles(dominant_dir_obj, dominant_dir_CM)
 
 # Print thes angles
 print()
-# print('angles_KSfail = ', angles_KSfail)
+print('angles_KSfail = ', angles_KSfail)
 print('angles_liftcon = ', angles_liftcon)
 print('angles_CM = ', angles_CM)

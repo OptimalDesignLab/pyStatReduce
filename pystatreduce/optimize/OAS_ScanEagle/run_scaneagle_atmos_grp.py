@@ -233,7 +233,7 @@ prob.model.add_objective('AS_point_0.fuelburn', scaler=.1)
 # Set up the problem
 prob.setup(check=True)
 
-# prob.run_model()
+prob.run_model()
 
 # deriv = prob.compute_totals(of=['AS_point_0.wing_perf.failure'],
 #                             wrt=['Mach_number', 'CT', 'W0', 'R', 'load_factor', 'mrho', 'altitude'])
@@ -250,11 +250,14 @@ prob.setup(check=True)
 
 # print('fburn = ', prob['AS_point_0.fuelburn'])
 # Actually run the optimization problem
-prob.run_driver()
+# prob.run_driver()
 
 time_elapsed = time.time() - start_time
 print('time_elapsed = ', time_elapsed)
 
+print(prob['v'])
+
+"""
 print("fval = ", prob['AS_point_0.fuelburn'][0])
 print('failure = ', prob['AS_point_0.wing_perf.failure'][0])
 print('lift con = ', prob['AS_point_0.L_equals_W'][0])
@@ -266,3 +269,4 @@ print("twist_cp = ", prob['wing.geometry.twist'])
 print("thickness = ", prob['wing.thickness'])
 print("sweep = ", prob['wing.sweep'])
 print("aoa = ", prob['alpha'])
+"""

@@ -48,7 +48,7 @@ default_fname = default_fpath + 'surrogate_samples_pseudo_random_' + str(perturb
 generate_data = True
 if generate_data:
     # We need to get at least n_surrogate_samples to construct the quadratic surrogate problem
-    n_surrogate_samples = 2000 # int(0.5 * (systemsize + 1) * (systemsize + 2))
+    n_surrogate_samples = 5000 # int(0.5 * (systemsize + 1) * (systemsize + 2))
     use_joint_distribution = True
     if use_joint_distribution:
         surrogate_samples = jdist.sample(n_surrogate_samples, rule='R')
