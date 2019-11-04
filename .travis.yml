@@ -26,11 +26,13 @@ before_install:
   - export PATH=/home/travis/miniconda/bin:$PATH;
 
 install:
-  - conda install --yes numpy scipy nose sphinx swig pip;
+  - pip install numpy
+  - pip install scipy==1.1.0
+  - conda install --yes nose sphinx swig pip;
   - pip install --upgrade pip;
   - pip install mpi4py
   - pip install numdifftools
-  - pip install chaospy
+  - pip install chaospy==2.3.5
 
   # Install pyoptsparse
   - git clone https://github.com/OpenMDAO/pyoptsparse.git;
@@ -69,10 +71,14 @@ script:
   - python ./pystatreduce/test/test_hadamard_quadratic.py
   - python ./pystatreduce/test/test_dimension_reduction.py
   - python ./pystatreduce/test/test_arnoldi_sampling.py
-  - python ./pystatreduce/test/test_scaneagle_john.py
+
+  - python ./pystatreduce/test/test_stochastic_collocation3.py
+  - python ./pystatreduce/test/test_angles.py
+  - python ./pystatreduce/test/test_active_subspace.py
 
   # Tests with MDOLab examples
-  - python ./pystatreduce/test/test_openaerostruct_examples.py
+  # - python ./pystatreduce/test/test_openaerostruct_examples.py
+  # - python ./pystatreduce/test/test_scaneagle_john.py
 
 notifications:
   email:

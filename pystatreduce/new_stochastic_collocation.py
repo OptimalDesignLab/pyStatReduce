@@ -2,7 +2,7 @@
 import copy
 import numpy as np
 import chaospy as cp
-import pystatreduce.utils
+import pystatreduce.utils as utils
 
 class StochasticCollocation2(object):
     """
@@ -15,7 +15,7 @@ class StochasticCollocation2(object):
         assert quadrature_degree > 0, "Need at least 1 collocation point for \
                                         uncertainty propagation"
         self.n_rv = cp.E(jdist).size
-        self.QoI_dict = copy.copy(QoI_dict)
+        self.QoI_dict = utils.copy_qoi_dict(QoI_dict) # copy.copy(QoI_dict) # We don't
         self.distribution_type = distribution_type
         self.data_type = data_type
 
@@ -199,7 +199,10 @@ class StochasticCollocation2(object):
                 dstd_dev_val[i] = {}
                 for j in wrt:
                     if j in self.QoI_dict[i]['deriv_dict']:
-                        dstd_dev_val[i][j] = 0.5 * dvar[i][j] / np.sqrt(var[i])
+                        if abs(var[i]) > 10 * np.finfo(self.data_type).eps:
+                            dstd_dev_val[i][j] = 0.5 * dvar[i][j] / np.sqrt(var[i])
+                        else:
+                            dstd_dev_val[i][j] = np.zeros(dvar[i][j].shape, dtype=self.data_type)
         return dstd_dev_val
 
     def __compute_quad(self, sqrt_Sigma, ref_collocation_pts, ref_collocation_w,

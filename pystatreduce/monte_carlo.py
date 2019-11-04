@@ -1,6 +1,7 @@
 # File that contains the class for Monte-Carlo methods
 import numpy as np
 import chaospy as cp
+import pystatreduce.utils as utils
 
 class MonteCarlo(object):
     """
@@ -8,12 +9,35 @@ class MonteCarlo(object):
     user must create an object of this class in order to propagate uncertainty
     using monte carlo.
     """
-    def __init__(self, nsamples, jdist, QoI_dict, include_derivs=False, data_type=np.float):
+    def __init__(self, nsamples, jdist, QoI_dict, include_derivs=False,
+                 reduced_collocation=False, dominant_dir=None, data_type=np.float):
         assert nsamples > 0, "Number of MonteCarlo samples must be greater than 0"
         self.num_samples = nsamples
         self.data_type = data_type # To enable complex variables
-        self.QoI_dict = QoI_dict
-        self.samples = jdist.sample(self.num_samples)
+        self.QoI_dict = utils.copy_qoi_dict(QoI_dict)
+
+        if reduced_collocation == False:
+            self.samples = jdist.sample(self.num_samples)
+        else:
+            # !!! This implementation is only for normal distribution !!!
+            # Get the number of dominant directions
+            ndims = dominant_dir.shape[1]
+            mu = cp.E(jdist)
+            covariance = cp.Cov(jdist)
+            sqrt_Sigma = np.sqrt(covariance) # This assumes the random variables are independent
+            if ndims > 1:
+                self.iso_jdist = cp.MvNormal(np.zeros(ndims), np.eye(ndims))
+                self.iso_samples = self.iso_jdist.sample(self.num_samples)
+                int_mat = np.matmul(sqrt_Sigma, dominant_dir)
+                self.samples = np.add(np.einsum('ij,jk', int_mat, self.iso_samples).T, mu).T
+            else:
+                self.iso_jdist = cp.Normal()
+                self.iso_samples = self.iso_jdist.sample(self.num_samples)
+                int_mat = np.matmul(sqrt_Sigma, dominant_dir)
+                # print(np.outer(int_mat, self.iso_samples))
+                self.samples = np.add(np.outer(int_mat, self.iso_samples).T, mu).T
+
+
         for i in self.QoI_dict:
             self.QoI_dict[i]['fvals'] = np.zeros([self.num_samples,
                                         self.QoI_dict[i]['output_dimensions']],
@@ -22,10 +46,11 @@ class MonteCarlo(object):
             for i in self.QoI_dict:
                 for j in self.QoI_dict[i]['deriv_dict']:
                     self.QoI_dict[i]['deriv_dict'][j]['fvals'] =  np.zeros([self.num_samples,
+                                                self.QoI_dict[i]['output_dimensions'],
                                                 self.QoI_dict[i]['deriv_dict'][j]['output_dimensions']],
                                                 dtype=self.data_type)
 
-    def getSamples(self, jdist, include_deriv_funcs=False):
+    def getSamples(self, jdist, include_derivs=False):
         n_rv = cp.E(jdist).shape
         pert = np.zeros(n_rv, dtype=self.data_type)
         # Get the all the function values for the given set of samples
@@ -34,9 +59,12 @@ class MonteCarlo(object):
             for j in self.QoI_dict:
                 QoI_func = self.QoI_dict[j]['QoI_func']
                 self.QoI_dict[j]['fvals'][i,:] = QoI_func(self.samples[:,i], pert)
-                if include_deriv_funcs == True:
+                if include_derivs == True:
                     for k in self.QoI_dict[j]['deriv_dict']:
                         dQoI_func = self.QoI_dict[j]['deriv_dict'][k]['dQoI_func']
+                        # print('\n j = ', j)
+                        # print('self.num_samples = ', self.num_samples)
+                        # print('dQoI = ', dQoI_func(self.samples[:,i], pert))
                         self.QoI_dict[j]['deriv_dict'][k]['fvals'][i,:] = dQoI_func(self.samples[:,i], pert)
         # for i in self.QoI_dict:
         #     QoI_func = self.QoI_dict[i]['QoI_func']
@@ -78,10 +106,24 @@ class MonteCarlo(object):
                     if j in self.QoI_dict[i]['deriv_dict']:
                         dmu_j = np.mean(self.QoI_dict[i]['deriv_dict'][j]['fvals'], 0)
                         # Finally, do the loop for the product
-                        dval_j = np.zeros(self.QoI_dict[i]['deriv_dict'][j]['output_dimensions'], dtype=self.data_type)
+                        dval_j = np.zeros([self.QoI_dict[i]['output_dimensions'],
+                                           self.QoI_dict[i]['deriv_dict'][j]['output_dimensions']],
+                                           dtype=self.data_type)
                         for k in range(0, self.num_samples):
                             dval_j[:] += self.QoI_dict[i]['fvals'][k,:] *\
                                          self.QoI_dict[i]['deriv_dict'][j]['fvals'][k,:]
                         dvariance_val[i][j] = (dval_j - self.num_samples*mu_j*dmu_j) * 2 / (self.num_samples-1)
 
         return dvariance_val
+
+    def dStdDev(self, jdist, of=None, wrt=None):
+        dstd_dev_val = {}
+        var = self.variance(jdist, of=of)
+        dvar = self.dvariance(jdist, of=of, wrt=wrt)
+        for i in of:
+            if i in self.QoI_dict:
+                dstd_dev_val[i] = {}
+                for j in wrt:
+                    if j in self.QoI_dict[i]['deriv_dict']:
+                        dstd_dev_val[i][j] = 0.5 * dvar[i][j] / np.sqrt(var[i])
+        return dstd_dev_val

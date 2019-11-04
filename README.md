@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/OptimalDesignLab/pyStatReduce.svg?branch=omdao_workshop)](https://travis-ci.com/OptimalDesignLab/pyStatReduce)
+[![Build Status](https://travis-ci.com/OptimalDesignLab/pyStatReduce.svg?branch=multiple_qoi)](https://travis-ci.com/OptimalDesignLab/pyStatReduce)
 
 # pyStatReduce
 
@@ -11,7 +11,7 @@ Besides `Numpy` and `SciPy`, this package depends on another python package
 called `chaospy`, which can be installed using
 
 ```
-pip install chaospy
+pip install chaospy==2.3.5
 ```
 
 The documentation of `chaospy` can be found at the following link

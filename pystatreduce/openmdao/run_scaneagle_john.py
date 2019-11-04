@@ -244,28 +244,41 @@ prob.setup()
 #-----------------------VALUE PLUGIN TEST---------------------------------------
 prob['wing.twist_cp'] = 2.5*np.ones(3) # np.array([2.60830137, 10., 5.])
 prob['wing.thickness_cp'] = 1.e-3 * np.array([5.5, 5.5, 5.5]) # np.array([0.001, 0.001, 0.001])
-# prob['wing.sweep'] = 18.73 # [18.89098985]
-# prob['alpha'] = 5.54 # [2.19244059]
+prob['wing.sweep'] = 20. # [18.89098985]
+prob['alpha'] = 5. # [2.19244059]
 
-prob['Mach_number'] = 7.10002694e-02
-prob['CT'] = 8.43371667e-05
-prob['W0'] = 1.00000000e+01
-prob['E'] = 8.50499992e+10
-prob['G'] = 2.50000005e+10
-prob['mrho'] = 1.60000012e+03
+# prob['Mach_number'] = 0.071
+# prob['CT'] = 9.80665 * 8.6e-6
+# prob['W0'] = 10.
+# prob['E'] = 85.e9
+# prob['G'] = 2.50000005e+10
+# prob['mrho'] = 1.60000012e+03
 
 prob.run_model()
 prob.run_model()
+print("fuel burn = ", prob['AS_point_0.fuelburn'][0])
+print('KS = ', prob['AS_point_0.wing_perf.failure'][0])
+print('lift_con = ', prob['AS_point_0.L_equals_W'][0])
+print('CM constraint = ', prob['AS_point_0.CM'][1])
 deriv_arr = np.zeros(6)
 deriv = prob.compute_totals(of=['AS_point_0.fuelburn'],
-                    wrt=['Mach_number', 'CT', 'W0', 'E', 'G', 'mrho'])
-deriv_arr[0] = deriv['AS_point_0.fuelburn', 'Mach_number']
-deriv_arr[1] = deriv['AS_point_0.fuelburn', 'CT']
-deriv_arr[2] = deriv['AS_point_0.fuelburn', 'W0']
-deriv_arr[3] = deriv['AS_point_0.fuelburn', 'E']
-deriv_arr[4] = deriv['AS_point_0.fuelburn', 'G']
-deriv_arr[5] = deriv['AS_point_0.fuelburn', 'mrho']
-print('deriv_arr = ', deriv_arr)
+                    wrt=['Mach_number', 'CT', 'W0', 'E', 'G', 'mrho', 'R', 'load_factor'])
+print()
+print(deriv['AS_point_0.fuelburn', 'Mach_number'][0])
+print(deriv['AS_point_0.fuelburn', 'CT'][0])
+print(deriv['AS_point_0.fuelburn', 'W0'][0])
+print(deriv['AS_point_0.fuelburn', 'E'][0,0])
+print(deriv['AS_point_0.fuelburn', 'G'][0,0])
+print(deriv['AS_point_0.fuelburn', 'mrho'][0])
+print(deriv['AS_point_0.fuelburn', 'R'][0])
+print(deriv['AS_point_0.fuelburn', 'load_factor'][0])
+# deriv_arr[0] = deriv['AS_point_0.fuelburn', 'Mach_number']
+# deriv_arr[1] = deriv['AS_point_0.fuelburn', 'CT']
+# deriv_arr[2] = deriv['AS_point_0.fuelburn', 'W0']
+# deriv_arr[3] = deriv['AS_point_0.fuelburn', 'E']
+# deriv_arr[4] = deriv['AS_point_0.fuelburn', 'G']
+# deriv_arr[5] = deriv['AS_point_0.fuelburn', 'mrho']
+# print('deriv_arr = ', deriv_arr)
 
 #------------------------SETUP BUG REPRODUCTION---------------------------------
 # new_Ma = 0.071 + 0.005

@@ -68,11 +68,11 @@ class NewStochasticCollocationTest(unittest.TestCase):
         QoI1 = examples.Paraboloid2D(systemsize, (theta,))
         QoI2 = examples.PolyRVDV()
         QoI_dict = {'paraboloid2' : {'QoI_func' : QoI1.eval_QoI,
-                                    'output_dimensions' : 1,
+                                     'output_dimensions' : 1,
                                     },
                     'PolyRVDV' : {'QoI_func' : QoI2.eval_QoI,
-                                              'output_dimensions' : 1,
-                                              }
+                                  'output_dimensions' : 1,
+                                  }
                     }
         sc_obj = StochasticCollocation2(jdist, 3, 'MvNormal', QoI_dict)
         sc_obj.evaluateQoIs(jdist)
