@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 ctr = 0
 def objfunc(xdict):
     dv = xdict['radii']
-    global ctr
-    if ctr == 0:
-        print('\ndv = ', dv)
-        ctr += 1
+    # global ctr
+    # if ctr == 0:
+    #     print('\ndv = ', dv)
+    #     ctr += 1
     obj_val = spar_solver_obj.eval_obj(dv)
     ineq_constr_val = spar_solver_obj.eval_ineq_cnstr(dv)
 
@@ -50,7 +50,6 @@ if __name__ == '__main__':
 
     # Get the initial design variables
     baseline_design = spar_solver_obj.init_design()
-    print('baseline_design = ', baseline_design)
 
     # Initialize Optimizer object
     optProb = pyoptsparse.Optimization('wing_spar_opt', objfunc)
@@ -63,30 +62,83 @@ if __name__ == '__main__':
     optProb.addConGroup('ineq_constr_val', spar_solver_obj.num_nonlin_ineq, lower=0.)
     optProb.addConGroup('thickness_con', (spar_solver_obj.nelem+1), lower=0.0025)
     optProb.addObj('obj')
-    opt = pyoptsparse.SNOPT(options = {'Major feasibility tolerance' : 1e-9,
+    opt = pyoptsparse.SNOPT(options = {'Major feasibility tolerance' : 1e-10,
                                        'Verify level' : 0})
     sol = opt(optProb, sens=sens)
 
     # print(sol)
     # print(repr(sol.__dict__.keys()))
-    # print(repr(sol.xStar))
+    print('optinal value = ', sol.fStar)
+    print('\n', repr(sol.xStar))
 
     # Get the optimal design variables
     optimal_dv = sol.xStar['radii']
     r_inner = optimal_dv[0:(nElem+1)]
     r_outer = r_inner + optimal_dv[(nElem+1):]
     length_discretization = np.linspace(0, spar_solver_obj.length, nElem+1)
-    # print('spar_solver_obj.length = ', spar_solver_obj.length)
-    # print('length_discretization = \n', length_discretization)
+
     # Plot
-    fname = "spar_radii.pdf"
-    plt.rc('text', usetex=True)
-    matplotlib.rcParams['mathtext.fontset'] = 'cm'
-    fig = plt.figure("radius_distribution", figsize=(6,6))
-    ax = plt.axes()
-    ax.plot(length_discretization, r_inner)
-    ax.plot(length_discretization, r_outer)
-    ax.set_xlabel('half wingspan')
-    ax.set_ylabel('radii')
-    plt.tight_layout()
-    plt.show()
+    plotfigure = False
+    if plotfigure:
+        fname = "spar_radii.pdf"
+        plt.rc('text', usetex=True)
+        matplotlib.rcParams['mathtext.fontset'] = 'cm'
+        fig = plt.figure("radius_distribution", figsize=(6,6))
+        ax = plt.axes()
+        ax.plot(length_discretization, r_inner)
+        ax.plot(length_discretization, r_inner, 'o')
+        ax.plot(length_discretization, r_outer)
+        ax.plot(length_discretization, r_outer, 'o')
+        ax.set_xlabel('half wingspan')
+        ax.set_ylabel('radii')
+        plt.tight_layout()
+        plt.show()
+
+    # MATLAB
+    mat_r_in = np.array([0.0463800846549072,
+                         0.0469501235894234,
+                         0.0474534139190887,
+                         0.0438990886775874,
+                         0.0400102875021209,
+                         0.0362403463368939,
+                         0.0325930574074570,
+                         0.0290725894960047,
+                         0.0256835545249442,
+                         0.0224311116491194,
+                         0.0193212660309266,
+                         0.0163624611569126,
+                         0.0135756058993421,
+                         0.0110582955427300,
+                         0.0100000000000000,
+                         0.0100000000000000,
+                         0.0100000000000000,
+                         0.0100000000000000,
+                         0.0100000000000000,
+                         0.0100000000000000,
+                         0.0100000000000000])
+    mat_r_out = np.array([0.0500000000000000,
+                          0.0500000000000000,
+                          0.0500000000000000,
+                          0.0463990886775874,
+                          0.0425102875021209,
+                          0.0387403463368939,
+                          0.0350930574074570,
+                          0.0315725894960047,
+                          0.0281835545249442,
+                          0.0249311116491194,
+                          0.0218212660309266,
+                          0.0188624611569126,
+                          0.0160756058993421,
+                          0.0135582955427300,
+                          0.0125000000000000,
+                          0.0125000000000000,
+                          0.0125000000000000,
+                          0.0125000000000000,
+                          0.0125000000000000,
+                          0.0125000000000000,
+                          0.0125000000000000])
+    mat_thickness = mat_r_out - mat_r_in
+    matlab_dv = np.concatenate((mat_r_in, mat_thickness), axis=0)
+    fStar_matlab = spar_solver_obj.eval_obj(matlab_dv)
+    print('fStar_matlab = ', fStar_matlab)
+    print('fStar_snopt = ', sol.fStar)

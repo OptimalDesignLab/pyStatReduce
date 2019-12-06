@@ -21,7 +21,7 @@ from pystatreduce.dimension_reduction import DimensionReduction
 import pystatreduce.examples as examples
 
 def run_hadamard(systemsize, eigen_decayrate, std_dev, n_eigenmodes):
-    n_collocation_pts = 3
+    n_collocation_pts = 2
 
     # Create Hadmard Quadratic object
     QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
@@ -173,6 +173,6 @@ for i in systemsize_arr:
     # print('max_var_err = ', max_var_err)
     # print('min_var_err = ', min_var_err)
 
-    np.savetxt(fname7, avg_std_dev_err, delimiter=',')
-    np.savetxt(fname8, max_std_dev_err, delimiter=',')
-    np.savetxt(fname9, min_std_dev_err, delimiter=',')
+    # np.savetxt(fname7, avg_std_dev_err, delimiter=',')
+    # np.savetxt(fname8, max_std_dev_err, delimiter=',')
+    # np.savetxt(fname9, min_std_dev_err, delimiter=',')

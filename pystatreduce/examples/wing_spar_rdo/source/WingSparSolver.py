@@ -52,17 +52,17 @@ class SparSolver(object):
         #cineq[:] = np.minimum(0.0, cineq)
         return obj #+ 0.5*np.dot(cineq, cineq)
 
-    def eval_eq_cnstr(self, at_design, at_state):
-        """
-        Temp: debugging
-        """
-        print("eval_eq_cnstr")
-        ceq = np.zeros(self.num_eq)
-        ceq[0:(self.nelem+1)] = at_design[0:(self.nelem+1)] - self.lb
-        ceq[(self.nelem+1):2*(self.nelem+1)] = at_design[(self.nelem+1):] - self.minthick
-        ceq[:] *= 100.0
-        print('ceq = ',ceq[:])
-        return ceq
+    # def eval_eq_cnstr(self, at_design, at_state):
+    #     """
+    #     Temp: debugging
+    #     """
+    #     print("eval_eq_cnstr")
+    #     ceq = np.zeros(self.num_eq)
+    #     ceq[0:(self.nelem+1)] = at_design[0:(self.nelem+1)] - self.lb
+    #     ceq[(self.nelem+1):2*(self.nelem+1)] = at_design[(self.nelem+1):] - self.minthick
+    #     ceq[:] *= 100.0
+    #     print('ceq = ',ceq[:])
+    #     return ceq
 
     def eval_ineq_cnstr(self, at_design, at_state=None):
         """
@@ -80,7 +80,7 @@ class SparSolver(object):
             cineq[0:(self.nelem+1)] = ws.wingspar.stressconstraints(at_design, self.xi, self.length,
                                                                     self.force, self.yield_stress)
 
-        cineq[(self.nelem+1):2*(self.nelem+1)] = at_design[0:(self.nelem+1)] - self.lb
+        cineq[(self.nelem+1):2*(self.nelem+1)] = at_design[0:(self.nelem+1)] - self.lb[0:(self.nelem+1)]
         cineq[2*(self.nelem+1):3*(self.nelem+1)] = at_design[(self.nelem+1):] - self.minthick
         cineq[3*(self.nelem+1):4*(self.nelem+1)] = self.up - (at_design[(self.nelem+1):] +
                                                               at_design[0:(self.nelem+1)])
@@ -88,14 +88,6 @@ class SparSolver(object):
         cineq[(self.nelem+1):] *= 10.0
         # print('cineq = ',cineq[:])
         return cineq
-
-    def eval_ineq_linear_cnstr(self, at_design, at_state=None):
-        """
-        Evaluate the linear inequality constraints
-        """
-        self.A = np.zeros([self.num_lin_ineq, self.num_design])
-
-        return np.dot(self.A, at_design)
 
     def factor_linear_system(self, at_design, at_state):
         """
@@ -113,17 +105,17 @@ class SparSolver(object):
         """
         return None
 
-    def multiply_dCEQdX_T(self, at_design, at_state, in_vec):
-        """
-        For debugging
-        """
-        print("multiply_dEQdX_T")
-        out_vec = np.zeros(self.num_design)
-        print("at_design = ",at_design[:])
-        print("in_vec = ",in_vec[:])
-        out_vec[0:(self.nelem+1)] += in_vec[0:(self.nelem+1)]*100.0
-        out_vec[(self.nelem+1):] += in_vec[(self.nelem+1):2*(self.nelem+1)]*100.0
-        return out_vec
+    # def multiply_dCEQdX_T(self, at_design, at_state, in_vec):
+    #     """
+    #     For debugging
+    #     """
+    #     print("multiply_dEQdX_T")
+    #     out_vec = np.zeros(self.num_design)
+    #     print("at_design = ",at_design[:])
+    #     print("in_vec = ",in_vec[:])
+    #     out_vec[0:(self.nelem+1)] += in_vec[0:(self.nelem+1)]*100.0
+    #     out_vec[(self.nelem+1):] += in_vec[(self.nelem+1):2*(self.nelem+1)]*100.0
+    #     return out_vec
 
     def multiply_dCINdX_T(self, at_design, at_state, in_vec):
         """

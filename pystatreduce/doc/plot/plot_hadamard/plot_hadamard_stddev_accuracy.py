@@ -68,8 +68,8 @@ axes[j].text(0.5,1,r'$\lambda_i = \frac{1}{i^2}$', size=18, bbox=props, \
               verticalalignment='center')
 axes[j].yaxis.grid(which='major', linestyle=':')
 axes[j].minorticks_off()
-# axes[j].set_yticks([1.e-4, 1.e-2, 1.0])
-axes[j].set_ylim(1.e-5, 1)
+axes[j].set_yticks([1.e-7, 1.e-4, 1.e-1])
+axes[j].set_ylim(1.e-7, 1)
 
 j = 1  # Eigen decay rate index
 axes[j].set_yscale("log", nonposy='clip')
@@ -79,7 +79,7 @@ axes[j].text(0.5,1,r'$\lambda_i = \frac{1}{i}$', size=18, bbox=props, \
               transform=axes[j].transAxes, horizontalalignment='center', \
               verticalalignment='center')
 axes[j].minorticks_off()
-# axes[j].set_yticks([1.e-4, 1.e-2, 1.0])
+axes[j].set_yticks([1.e-7, 1.e-4, 1.e-1])
 axes[j].yaxis.grid(which='major', linestyle=':')
 
 j = 2  # Eigen decay rate index
@@ -90,7 +90,7 @@ axes[j].text(0.5,1,r'$\lambda_i = \frac{1}{\sqrt{i}}$', size=18, bbox=props, \
               transform=axes[j].transAxes, horizontalalignment='center', \
               verticalalignment='center')
 axes[j].minorticks_off()
-# axes[j].set_yticks([1.e-4, 1.e-2, 1.0])
+axes[j].set_yticks([1.e-7, 1.e-4, 1.e-1])
 axes[j].yaxis.grid(which='major', linestyle=':')
 
 plt.tight_layout()

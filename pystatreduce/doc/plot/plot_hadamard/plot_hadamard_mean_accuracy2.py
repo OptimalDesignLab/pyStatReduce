@@ -12,7 +12,7 @@ from mpl_toolkits import mplot3d
 import matplotlib
 import matplotlib.pyplot as plt
 
-systemsize_arr = [16] # [16, 32, 64, 128, 256]
+systemsize_arr = [16, 64, 256]
 eigen_decayrate_arr = [2.0, 1.0, 0.5]
 n_eigenmodes_arr = range(1,11)
 n_stddev_samples = 10
@@ -53,9 +53,10 @@ f, axes = plt.subplots(1,3, sharey=True , figsize=(10,4))
 plt.setp(axes, xticks=[0,1,2,3,4,5,6,7,8,9,10])
 props = dict(boxstyle='round', facecolor='white')
 
-i = 0 # Systemsize index. This needs
+i = 2 # Systemsize index. This needs
 j = 0  # Eigen decay rate index
 axes[j].set_yscale("log", nonposy='clip')
+print(errs[i,j,:,:])
 axes[j].errorbar(n_eigenmodes_arr, avg_mu_err[i,j,:], yerr=errs[i,j,:,:], fmt='-o', capsize=6)
 axes[j].set_ylabel(r'approximation error, $\epsilon_{mean}$')
 axes[j].set_xlabel('dominant directions')
