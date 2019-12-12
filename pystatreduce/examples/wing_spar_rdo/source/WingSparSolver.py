@@ -46,29 +46,12 @@ class SparSolver(object):
         """
         obj = ws.wingspar.sparweight(at_design, self.length, self.rho)
 
-        #cineq = np.zeros(self.nelem+1)
-        #cineq[:] = ws.wingspar.stressconstraints(at_design, self.xi, self.length, self.E,
-        #                                         self.force, self.yield_stress)
-        #cineq[:] = np.minimum(0.0, cineq)
-        return obj #+ 0.5*np.dot(cineq, cineq)
-
-    # def eval_eq_cnstr(self, at_design, at_state):
-    #     """
-    #     Temp: debugging
-    #     """
-    #     print("eval_eq_cnstr")
-    #     ceq = np.zeros(self.num_eq)
-    #     ceq[0:(self.nelem+1)] = at_design[0:(self.nelem+1)] - self.lb
-    #     ceq[(self.nelem+1):2*(self.nelem+1)] = at_design[(self.nelem+1):] - self.minthick
-    #     ceq[:] *= 100.0
-    #     print('ceq = ',ceq[:])
-    #     return ceq
+        return obj
 
     def eval_ineq_cnstr(self, at_design, at_state=None):
         """
         Evaluate the stress constraints, bound constraints, and linear constraints
         """
-        # print("eval_ineq_cnstr")
 
         bounds_ok = True
         # for i in range(0,self.nelem):
@@ -86,7 +69,7 @@ class SparSolver(object):
                                                               at_design[0:(self.nelem+1)])
         cineq[0:(self.nelem+1)] *= 100.0
         cineq[(self.nelem+1):] *= 10.0
-        # print('cineq = ',cineq[:])
+
         return cineq
 
     def factor_linear_system(self, at_design, at_state):
@@ -104,18 +87,6 @@ class SparSolver(object):
         perform the constraint-Jacobian-vector product
         """
         return None
-
-    # def multiply_dCEQdX_T(self, at_design, at_state, in_vec):
-    #     """
-    #     For debugging
-    #     """
-    #     print("multiply_dEQdX_T")
-    #     out_vec = np.zeros(self.num_design)
-    #     print("at_design = ",at_design[:])
-    #     print("in_vec = ",in_vec[:])
-    #     out_vec[0:(self.nelem+1)] += in_vec[0:(self.nelem+1)]*100.0
-    #     out_vec[(self.nelem+1):] += in_vec[(self.nelem+1):2*(self.nelem+1)]*100.0
-    #     return out_vec
 
     def multiply_dCINdX_T(self, at_design, at_state, in_vec):
         """
@@ -151,14 +122,7 @@ class SparSolver(object):
         """
         out_vec = np.zeros(self.num_design)
         out_vec = ws.wingspar.sparweight_rev(at_design, self.length, self.rho)
-        # out_vec /= 10.0
-
-        # cineq = np.zeros(self.nelem+1)
-        # cineq[:] = ws.wingspar.stressconstraints(at_design, self.xi, self.length, self.E,
-        #                                       self.force, self.yield_stress)
-        # cineq[:] = np.minimum(0.0, cineq)
-        # out_vec += ws.wingspar.stressconstraints_rev(at_design, self.xi, self.length, self.E,
-        #                                              self.force, self.yield_stress, cineq)
+        
         return out_vec
 
     def eval_dCindX(self, at_design, at_state=None):
