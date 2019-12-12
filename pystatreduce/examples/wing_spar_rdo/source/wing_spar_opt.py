@@ -26,6 +26,7 @@ def objfunc(xdict):
     fail = False
     return funcs, fail
 
+"""
 def sens(xdict, funcs):
     dv = xdict['radii']
     dobj_dx = spar_solver_obj.eval_dFdX(dv)
@@ -41,6 +42,7 @@ def sens(xdict, funcs):
 
     fail = False
     return funcsSens, fail
+"""
 
 if __name__ == '__main__':
 
@@ -50,51 +52,7 @@ if __name__ == '__main__':
 
     # Get the initial design variables
     baseline_design = spar_solver_obj.init_design()
-
-    # Initialize Optimizer object
-    optProb = pyoptsparse.Optimization('wing_spar_opt', objfunc)
-    optProb.addVarGroup('radii', spar_solver_obj.num_design, 'c',
-                        value=baseline_design,
-                        lower=spar_solver_obj.lb, upper=spar_solver_obj.up)
-    ineq_con_ub = np.array([])
-    ineq_con_lb = np.array([])
-
-    optProb.addConGroup('ineq_constr_val', spar_solver_obj.num_nonlin_ineq, lower=0.)
-    optProb.addConGroup('thickness_con', (spar_solver_obj.nelem+1), lower=0.0025)
-    optProb.addObj('obj')
-    opt = pyoptsparse.SNOPT(options = {'Major feasibility tolerance' : 1e-10,
-                                       'Verify level' : 0})
-    sol = opt(optProb, sens=sens)
-
-    # print(sol)
-    # print(repr(sol.__dict__.keys()))
-    print('optinal value = ', sol.fStar)
-    print('\n', repr(sol.xStar))
-
-    # Get the optimal design variables
-    optimal_dv = sol.xStar['radii']
-    r_inner = optimal_dv[0:(nElem+1)]
-    r_outer = r_inner + optimal_dv[(nElem+1):]
-    length_discretization = np.linspace(0, spar_solver_obj.length, nElem+1)
-
-    # Plot
-    plotfigure = False
-    if plotfigure:
-        fname = "spar_radii.pdf"
-        plt.rc('text', usetex=True)
-        matplotlib.rcParams['mathtext.fontset'] = 'cm'
-        fig = plt.figure("radius_distribution", figsize=(6,6))
-        ax = plt.axes()
-        ax.plot(length_discretization, r_inner)
-        ax.plot(length_discretization, r_inner, 'o')
-        ax.plot(length_discretization, r_outer)
-        ax.plot(length_discretization, r_outer, 'o')
-        ax.set_xlabel('half wingspan')
-        ax.set_ylabel('radii')
-        plt.tight_layout()
-        plt.show()
-
-    # MATLAB
+    # MATLAB optimal design
     mat_r_in = np.array([0.0463800846549072,
                          0.0469501235894234,
                          0.0474534139190887,
@@ -139,6 +97,52 @@ if __name__ == '__main__':
                           0.0125000000000000])
     mat_thickness = mat_r_out - mat_r_in
     matlab_dv = np.concatenate((mat_r_in, mat_thickness), axis=0)
+
+    # Initialize Optimizer object
+    optProb = pyoptsparse.Optimization('wing_spar_opt', objfunc)
+    optProb.addVarGroup('radii', spar_solver_obj.num_design, 'c',
+                        value=baseline_design,
+                        # value = matlab_dv,
+                        lower=spar_solver_obj.lb, upper=spar_solver_obj.up)
+
+    optProb.addConGroup('ineq_constr_val', spar_solver_obj.num_nonlin_ineq, lower=0., scale=100.)
+    optProb.addConGroup('thickness_con', (spar_solver_obj.nelem+1), lower=0.0025)
+    optProb.addObj('obj')
+    opt = pyoptsparse.SNOPT(options = {'Major feasibility tolerance' : 1e-10,
+                                       'Verify level' : 0})
+    sol = opt(optProb)# , sens='FD')
+
+    # print(sol)
+    # print(repr(sol.__dict__.keys()))
+    # print('optinal value = ', sol.fStar)
+    # print('\n', repr(sol.xStar))
+
+    # Get the optimal design variables
+    optimal_dv = sol.xStar['radii']
+    r_inner = optimal_dv[0:(nElem+1)]
+    r_outer = r_inner + optimal_dv[(nElem+1):]
+    length_discretization = np.linspace(0, spar_solver_obj.length, nElem+1)
+
+    # Plot
+    plotfigure = True
+    if plotfigure:
+        fname = "spar_radii.pdf"
+        plt.rc('text', usetex=True)
+        matplotlib.rcParams['mathtext.fontset'] = 'cm'
+        fig = plt.figure("radius_distribution", figsize=(6,6))
+        ax = plt.axes()
+        ax.plot(length_discretization, r_inner)
+        ax.plot(length_discretization, r_inner, 'o')
+        ax.plot(length_discretization, r_outer)
+        ax.plot(length_discretization, r_outer, 'o')
+        ax.set_xlabel('half wingspan')
+        ax.set_ylabel('radii')
+        plt.tight_layout()
+        plt.show()
+
     fStar_matlab = spar_solver_obj.eval_obj(matlab_dv)
-    print('fStar_matlab = ', fStar_matlab)
-    print('fStar_snopt = ', sol.fStar)
+    # print('fStar_matlab = ', fStar_matlab)
+    # print('fStar_snopt = ', sol.fStar)
+
+    # print('r_inner = \n', repr(r_inner))
+    # print('r_outer = \n', repr(r_outer))
