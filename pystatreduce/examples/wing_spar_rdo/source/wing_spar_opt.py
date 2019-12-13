@@ -23,6 +23,10 @@ def objfunc(xdict):
     funcs['ineq_constr_val'] = ineq_constr_val
     funcs['thickness_con'] = dv[(spar_solver_obj.nelem+1):]
 
+    # Outer_radius_con
+    outer_rad_val = dv[0:(spar_solver_obj.nelem+1)] + dv[(spar_solver_obj.nelem+1):]
+    funcs['outer_radius_con'] = outer_rad_val
+
     fail = False
     return funcs, fail
 
@@ -107,12 +111,13 @@ if __name__ == '__main__':
 
     optProb.addConGroup('ineq_constr_val', spar_solver_obj.num_nonlin_ineq, lower=0., scale=100.)
     optProb.addConGroup('thickness_con', (spar_solver_obj.nelem+1), lower=0.0025)
+    optProb.addConGroup('outer_radius_con', (spar_solver_obj.nelem+1), upper=0.05)
     optProb.addObj('obj')
     opt = pyoptsparse.SNOPT(options = {'Major feasibility tolerance' : 1e-10,
                                        'Verify level' : 0})
     sol = opt(optProb)# , sens='FD')
 
-    # print(sol)
+    print(sol)
     # print(repr(sol.__dict__.keys()))
     # print('optinal value = ', sol.fStar)
     # print('\n', repr(sol.xStar))
