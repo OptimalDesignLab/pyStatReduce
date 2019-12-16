@@ -21,7 +21,7 @@ class SparSolver(object):
         self.num_design = 2*(nelem+1)
         self.num_state = 0 # Default within KONA is 0 and there are no keyword arguments either
         self.num_eq = 0
-        self.num_nonlin_ineq = 4*(nelem+1)
+        self.num_nonlin_ineq = nelem+1 # 4*(nelem+1)
         self.num_lin_ineq = nelem + 1
 
         ws.wingspar.initialize(nelem)
@@ -36,7 +36,7 @@ class SparSolver(object):
         lb_arr[0:self.nelem+1] = lb
         lb_arr[self.nelem+1:] = minthick
         self.lb = lb_arr
-        self.up = up
+        self.up = up #  - minthick
         self.minthick = minthick
         self.xi = np.zeros(0)
 
@@ -63,12 +63,12 @@ class SparSolver(object):
             cineq[0:(self.nelem+1)] = ws.wingspar.stressconstraints(at_design, self.xi, self.length,
                                                                     self.force, self.yield_stress)
 
-        cineq[(self.nelem+1):2*(self.nelem+1)] = at_design[0:(self.nelem+1)] - self.lb[0:(self.nelem+1)]
-        cineq[2*(self.nelem+1):3*(self.nelem+1)] = at_design[(self.nelem+1):] - self.minthick
-        cineq[3*(self.nelem+1):4*(self.nelem+1)] = self.up - (at_design[(self.nelem+1):] +
-                                                              at_design[0:(self.nelem+1)])
-        cineq[0:(self.nelem+1)] *= 100.0
-        cineq[(self.nelem+1):] *= 10.0
+        # cineq[(self.nelem+1):2*(self.nelem+1)] = at_design[0:(self.nelem+1)] - self.lb[0:(self.nelem+1)]
+        # cineq[2*(self.nelem+1):3*(self.nelem+1)] = at_design[(self.nelem+1):] - self.minthick
+        # cineq[3*(self.nelem+1):4*(self.nelem+1)] = self.up - (at_design[(self.nelem+1):] +
+        #                                                       at_design[0:(self.nelem+1)])
+        # cineq[0:(self.nelem+1)] *= 100.0
+        # cineq[(self.nelem+1):] *= 10.0
 
         return cineq
 
@@ -122,7 +122,7 @@ class SparSolver(object):
         """
         out_vec = np.zeros(self.num_design)
         out_vec = ws.wingspar.sparweight_rev(at_design, self.length, self.rho)
-        
+
         return out_vec
 
     def eval_dCindX(self, at_design, at_state=None):
