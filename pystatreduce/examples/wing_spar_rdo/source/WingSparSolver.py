@@ -1,7 +1,8 @@
 import numpy as np
 import numdifftools as nd
 # import pyublas
-import WingSpar as ws
+import pystatreduce.examples.wing_spar_rdo.source.WingSpar as ws
+# import WingSpar as ws
 # from kona.user import BaseVector, UserSolver
 
 np.set_printoptions(linewidth=200)
@@ -10,12 +11,7 @@ np.set_printoptions(linewidth=200)
 class SparSolver(object):
 
     def __init__(self, nelem, length=7.5, rho=1600.0, Young=70e9, Weight=0.5*500*9.8,
-                 yield_stress=600e6, lb=0.01, up=0.05, minthick=0.0025):
-        # super(SparSolver, self).__init__(
-        #     2*(nelem+1), num_eq=0, num_nonlin_ineq=4*(nelem+1))
-        # #super(SparSolver, self).__init__(
-        # #      2*(nelem+1), num_eq=2*(nelem+1), num_nonlin_ineq=0)
-        print("__init__")
+                 yield_stress=600e6, lb=0.01, up=0.05, minthick=0.0025, n_rv=4):
 
         # Add replacements for replacing UserSolver from KONA
         self.num_design = 2*(nelem+1)
@@ -23,6 +19,7 @@ class SparSolver(object):
         self.num_eq = 0
         self.num_nonlin_ineq = nelem+1 # 4*(nelem+1)
         self.num_lin_ineq = nelem + 1
+        self.n_rv = n_rv # Number of random variables in the superceeding analysis
 
         ws.wingspar.initialize(nelem)
         self.nelem = nelem
@@ -35,10 +32,10 @@ class SparSolver(object):
         lb_arr = np.zeros(self.num_design)
         lb_arr[0:self.nelem+1] = lb
         lb_arr[self.nelem+1:] = minthick
-        self.lb = lb_arr
-        self.up = up #  - minthick
+        self.lb = lb
+        self.up = up
         self.minthick = minthick
-        self.xi = np.zeros(0)
+        self.xi = np.zeros(n_rv) # random variables corrsponding to modes of perturbation
 
     def eval_obj(self, at_design, at_state=None):
         """
@@ -60,8 +57,10 @@ class SparSolver(object):
 
         cineq = np.zeros(self.num_nonlin_ineq)
         if bounds_ok:
+            # print('xi = \n', repr(self.xi))
             cineq[0:(self.nelem+1)] = ws.wingspar.stressconstraints(at_design, self.xi, self.length,
                                                                     self.force, self.yield_stress)
+            print('cineq = \n', repr(cineq))
 
         # cineq[(self.nelem+1):2*(self.nelem+1)] = at_design[0:(self.nelem+1)] - self.lb[0:(self.nelem+1)]
         # cineq[2*(self.nelem+1):3*(self.nelem+1)] = at_design[(self.nelem+1):] - self.minthick
@@ -71,6 +70,10 @@ class SparSolver(object):
         # cineq[(self.nelem+1):] *= 10.0
 
         return cineq
+
+    # def calc_pert_force(self, pert_arr):
+    #     pert_force = ws.wingspar.calcpertforce(self.force, pert_arr, self.length)
+    #     return pert_force
 
     def factor_linear_system(self, at_design, at_state):
         """
@@ -94,8 +97,7 @@ class SparSolver(object):
         """
         # print("multiply_dCINdX_T")
         out_vec = np.zeros(self.num_design)
-        # print("at_design = ",at_design[:])
-        # print("in_vec = ",in_vec[:])
+
 
         bounds_ok = True
         # for i in range(0,self.nelem):
@@ -105,15 +107,15 @@ class SparSolver(object):
         if bounds_ok:
             out_vec = ws.wingspar.stressconstraints_rev(at_design, self.xi, self.length,
                                                         self.force, self.yield_stress,
-                                                        in_vec[0:(self.nelem+1)])*100.0
+                                                        in_vec[0:(self.nelem+1)]) # *100.0
         # print("after stress constraints")
-        out_vec[0:(self.nelem+1)] += in_vec[(self.nelem+1):2*(self.nelem+1)]*10.0
-        # print('out_vec = ', out_vec)
-        # print('in_vec[2*(self.nelem+1):3*(self.nelem+1)]*10.0 = \n', in_vec[2*(self.nelem+1):3*(self.nelem+1)]*10.0)
-        # print('out_vec[(self.nelem+1):] = \n', out_vec[(self.nelem+1):])
-        out_vec[(self.nelem+1):] += in_vec[2*(self.nelem+1):3*(self.nelem+1)]*10.0
-        out_vec[0:(self.nelem+1)] -= in_vec[3*(self.nelem+1):4*(self.nelem+1)]*10.0
-        out_vec[(self.nelem+1):] -= in_vec[3*(self.nelem+1):4*(self.nelem+1)]*10.0
+        # out_vec[0:(self.nelem+1)] += in_vec[(self.nelem+1):2*(self.nelem+1)]*10.0
+        # # print('out_vec = ', out_vec)
+        # # print('in_vec[2*(self.nelem+1):3*(self.nelem+1)]*10.0 = \n', in_vec[2*(self.nelem+1):3*(self.nelem+1)]*10.0)
+        # # print('out_vec[(self.nelem+1):] = \n', out_vec[(self.nelem+1):])
+        # out_vec[(self.nelem+1):] += in_vec[2*(self.nelem+1):3*(self.nelem+1)]*10.0
+        # out_vec[0:(self.nelem+1)] -= in_vec[3*(self.nelem+1):4*(self.nelem+1)]*10.0
+        # out_vec[(self.nelem+1):] -= in_vec[3*(self.nelem+1):4*(self.nelem+1)]*10.0
         return out_vec
 
     def eval_dFdX(self, at_design, at_state=None):
@@ -153,7 +155,7 @@ if __name__ == '__main__':
     design_vars = spar_solver_obj.init_design()
     print('design_vars = \n', repr(design_vars))
 
-    """
+
     obj_val  = spar_solver_obj.eval_obj(design_vars)
     print('obj_val = ', obj_val)
     # eq_constr_val = spar_solver_obj.eval_eq_cnstr(design_vars, state_vars)
@@ -168,10 +170,10 @@ if __name__ == '__main__':
     seed_vec = np.zeros(ineq_constr_val.size)
     seed_vec[0] = 1.0
     grad_col1 = spar_solver_obj.multiply_dCINdX_T(design_vars, None, seed_vec)
-    print('grad_col1 = \n', grad_col1)
+    # print('grad_col1 = \n', grad_col1)
 
     dcin_dx = spar_solver_obj.eval_dCindX(design_vars)
-    print('\ndcin_dx = \n', np.round(dcin_dx, 2))
+    # print('\ndcin_dx = \n', np.round(dcin_dx, 2))
 
     # Verify the constraint derivatives against finite-difference
     def func(x):
@@ -186,4 +188,3 @@ if __name__ == '__main__':
             ctr += 1
 
     print('violations = ', ctr)
-    """

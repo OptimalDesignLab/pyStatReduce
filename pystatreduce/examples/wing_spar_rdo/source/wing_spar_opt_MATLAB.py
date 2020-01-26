@@ -62,7 +62,7 @@ if __name__ == '__main__':
                                        'Verify level' : 0})
     sol = opt(optProb)# , sens='FD')
 
-    # print(sol)
+    print(sol)
     # Get the optimal design variables
     optimal_dv = sol.xStar['radii']
     r_inner = optimal_dv[0:(nElem+1)]
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     length_discretization = np.linspace(0, spar_solver_obj.length, nElem+1)
 
     # Plot
-    plotfigure = True
+    plotfigure = False
     if plotfigure:
         fname = "spar_radii.pdf"
         plt.rc('text', usetex=True)

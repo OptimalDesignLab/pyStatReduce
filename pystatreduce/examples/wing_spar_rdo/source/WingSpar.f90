@@ -823,6 +823,7 @@ contains
         zmax(:) = x(1:n) + x(n+1:2*n)
         call CalcSecondMomentAnnulus(n, x(1:n), zmax, Iyy)
         call CalcPertForce(force, xi, L, pertforce)
+        print *, pertforce
         call CalcBeamMoment(n, L, pertforce, M)
         do i = 1,n
             ! cineq(i) = 1.0 - M(i)*zmax(i)/(yield*Iyy(i))

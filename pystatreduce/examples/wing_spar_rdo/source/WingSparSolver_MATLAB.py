@@ -1,7 +1,7 @@
 import numpy as np
 import numdifftools as nd
 # import pyublas
-import WingSpar as ws
+import pystatreduce.examples.wing_spar_rdo.source.WingSpar as ws
 # from kona.user import BaseVector, UserSolver
 
 np.set_printoptions(linewidth=200)
@@ -10,7 +10,8 @@ np.set_printoptions(linewidth=200)
 class SparSolver(object):
 
     def __init__(self, nelem, length=7.5, rho=1600.0, Young=70e9, Weight=0.5*500*9.8,
-                 yield_stress=600e6, lb=0.01, up=0.05, minthick=0.0025, data_type=np.float):
+                 yield_stress=600e6, lb=0.01, up=0.05, minthick=0.0025,
+                 n_rv=4, data_type=np.float):
 
         self.data_type = data_type # For complexifying code
 
@@ -20,6 +21,7 @@ class SparSolver(object):
         self.num_eq = 0
         self.num_nonlin_ineq = nelem+1 # 4*(nelem+1)
         self.num_lin_ineq = nelem + 1
+        self.n_rv = n_rv # Number of random variables in the superceeding analysis
         print('self.num_nonlin_ineq = ', self.num_nonlin_ineq)
 
         self.nelem = nelem
@@ -42,7 +44,7 @@ class SparSolver(object):
         self.lb = lb # lb_arr
         self.up = up
         self.minthick = minthick
-        self.xi = np.zeros(self.num_nonlin_ineq, dtype=self.data_type)
+        self.xi = np.zeros(n_rv, dtype=self.data_type)
 
     def eval_obj(self, at_design, at_state=None):
         """
@@ -69,7 +71,8 @@ class SparSolver(object):
         M = self.calcBeamMoment(pertforce)
         # print('M = \n', M)
 
-        cineq = (M * r_out)/self.yield_stress - Iyy
+        # cineq = (M * r_out)/self.yield_stress - Iyy
+        cineq = (M * r_out)/(self.yield_stress * Iyy) - 1.0
 
         return cineq
 
@@ -78,7 +81,7 @@ class SparSolver(object):
         return np.pi * (r_out**4 - r_in**4) / 4
 
     def calc_pert_force(self):
-        pertforce = np.zeros(self.xi.size, dtype=self.data_type)
+        pertforce = np.zeros(self.nelem+1, dtype=self.data_type)
         pertforce[:] = self.force
         y = np.linspace(0,self.length, self.num_nonlin_ineq, dtype=self.data_type)
         for i in range(0, self.xi.size):

@@ -27,26 +27,49 @@ def objfunc(xdict):
     outer_rad_val = dv[0:(spar_solver_obj.nelem+1)] + dv[(spar_solver_obj.nelem+1):]
     funcs['outer_radius_con'] = outer_rad_val
 
+    # Inner radius constraint
+    inner_rad_val = dv[0:(spar_solver_obj.nelem+1)]
+    funcs['inner_rad_con'] = inner_rad_val
+
     fail = False
     return funcs, fail
 
-"""
+
 def sens(xdict, funcs):
     dv = xdict['radii']
     dobj_dx = spar_solver_obj.eval_dFdX(dv)
     dineqcon_dx = spar_solver_obj.eval_dCindX(dv)
+
+    # Thickness constraints
     dthickness_con = np.zeros([(spar_solver_obj.nelem+1), dv.size])
     dthickness_con[:,(spar_solver_obj.nelem+1):] = np.eye((spar_solver_obj.nelem+1))
-    # print('dthickness_con = \n', dthickness_con)
+
+    # Outer radius constraint
+    douter_rad_val = np.zeros([(spar_solver_obj.nelem+1), dv.size])
+    douter_rad_val[0:(spar_solver_obj.nelem+1), 0:(spar_solver_obj.nelem+1)] = np.eye(spar_solver_obj.nelem+1)
+    douter_rad_val[0:(spar_solver_obj.nelem+1), (spar_solver_obj.nelem+1):] = np.eye(spar_solver_obj.nelem+1)
+
+    # inner radius constraint
+    dinner_rad_con = np.zeros([(spar_solver_obj.nelem+1), dv.size])
+    dinner_rad_con[0:(spar_solver_obj.nelem+1), 0:(spar_solver_obj.nelem+1)] = np.eye(spar_solver_obj.nelem+1)
+    # dinner_rad_con[0:(spar_solver_obj.nelem+1), (spar_solver_obj.nelem+1):] = np.eye(spar_solver_obj.nelem+1) # Deliberately wrong gradients
+
+    global ctr
+    if ctr == 0:
+        print('douter_rad_val = \n', douter_rad_val)
+        print('\ndinner_rad_con = \n', dinner_rad_con)
+        ctr += 1
 
     funcsSens = {}
     funcsSens['obj', 'radii'] = dobj_dx
     funcsSens['ineq_constr_val', 'radii'] = dineqcon_dx
     funcsSens['thickness_con', 'radii'] = dthickness_con
+    funcsSens['outer_radius_con', 'radii'] = douter_rad_val
+    funcsSens['inner_rad_con', 'radii'] = dinner_rad_con
 
     fail = False
     return funcsSens, fail
-"""
+
 
 if __name__ == '__main__':
 
@@ -107,20 +130,22 @@ if __name__ == '__main__':
     optProb.addVarGroup('radii', spar_solver_obj.num_design, 'c',
                         value=baseline_design,
                         # value = matlab_dv,
-                        lower=spar_solver_obj.lb, upper=spar_solver_obj.up)
+                        lower=-1.e10, upper=1.e10)
 
-    optProb.addConGroup('ineq_constr_val', spar_solver_obj.num_nonlin_ineq, lower=0., scale=100.)
+    optProb.addConGroup('ineq_constr_val', spar_solver_obj.num_nonlin_ineq, lower=0., scale=1.)
     optProb.addConGroup('thickness_con', (spar_solver_obj.nelem+1), lower=0.0025)
     optProb.addConGroup('outer_radius_con', (spar_solver_obj.nelem+1), upper=0.05)
+    optProb.addConGroup('inner_rad_con', (spar_solver_obj.nelem+1), lower=0.01)
     optProb.addObj('obj')
     opt = pyoptsparse.SNOPT(options = {'Major feasibility tolerance' : 1e-10,
+                                       'Major optimality tolerance' : 1.e-8,
                                        'Verify level' : 0})
-    sol = opt(optProb)# , sens='FD')
+    sol = opt(optProb, sens=sens)
 
-    print(sol)
+    # print(sol)
     # print(repr(sol.__dict__.keys()))
-    # print('optinal value = ', sol.fStar)
-    # print('\n', repr(sol.xStar))
+    print('optinal value = ', sol.fStar)
+    print('\n', repr(sol.xStar))
 
     # Get the optimal design variables
     optimal_dv = sol.xStar['radii']
@@ -129,7 +154,7 @@ if __name__ == '__main__':
     length_discretization = np.linspace(0, spar_solver_obj.length, nElem+1)
 
     # Plot
-    plotfigure = True
+    plotfigure = False
     if plotfigure:
         fname = "spar_radii.pdf"
         plt.rc('text', usetex=True)
