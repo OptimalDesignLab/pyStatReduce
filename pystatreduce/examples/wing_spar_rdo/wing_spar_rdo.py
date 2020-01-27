@@ -15,39 +15,39 @@ ctr = 0
 def objfunc(xdict):
     dv = xdict['radii']
 
-    uq_spar_solver_obj.update_design_variables(dv) # Update design variables
-
     # Compute the objective function
     obj_val = uq_spar_solver_obj.eval_obj(dv)
 
     # Compute the statistical metrics
+    uq_spar_solver_obj.update_design_variables(dv) # Update design variables
     sc_obj.evaluateQoIs(uq_spar_solver_obj.jdist)
     mu_j = sc_obj.mean(of=['stress_constraints'])
     var_j = sc_obj.variance(of=['stress_constraints'])
     std_dev_stress_con = np.sqrt(np.diagonal(var_j['stress_constraints']))
-    # print('mu_j = \n', mu_j['stress_constraints'])
-    # print('var_j = \n', np.diagonal(var_j['stress_constraints']))
+   
 
     # Put the values in dictionary
     funcs = {}
     funcs['obj'] = obj_val
-    funcs['thickness_con'] = dv[(uq_spar_solver_obj.nelem+1):]
+    funcs['thickness_con'] = dv[(uq_spar_solver_obj.nelem+1):] - dv[0:(uq_spar_solver_obj.nelem+1)]
 
     # Inequalty constraints
     funcs['uq_stress_con'] = mu_j['stress_constraints'] + 2*std_dev_stress_con
 
     # Outer_radius_con
-    outer_rad_val = dv[0:(uq_spar_solver_obj.nelem+1)] + dv[(uq_spar_solver_obj.nelem+1):]
+    outer_rad_val = dv[(uq_spar_solver_obj.nelem+1):] # dv[0:(uq_spar_solver_obj.nelem+1)] + dv[(uq_spar_solver_obj.nelem+1):]
     funcs['outer_radius_con'] = outer_rad_val
 
     # Inner radius constraint
     inner_rad_val = dv[0:(uq_spar_solver_obj.nelem+1)]
     funcs['inner_rad_con'] = inner_rad_val
 
-    # global ctr
-    # if ctr == 0:
-    #     print('uq_stress_con = \n', repr(funcs['uq_stress_con']))
-    #     ctr += 1
+    global ctr
+    if ctr < 1:
+        print('uq_stress_con = \n', repr(funcs['uq_stress_con']))
+        print('mu_j = \n', mu_j['stress_constraints'])
+        print('var_j = \n', np.diagonal(var_j['stress_constraints']))
+        ctr += 1
 
     fail = False
     return funcs, fail
@@ -100,5 +100,28 @@ if __name__ == '__main__':
 
     # print(sol)
     # print(repr(sol.__dict__.keys()))
-    print('optinal value = ', sol.fStar)
+    print('optimal value = ', sol.fStar)
     print('\n', repr(sol.xStar))
+
+    # Get the optimal design variables
+    optimal_dv = sol.xStar['radii']
+    r_inner = optimal_dv[0:(nelem+1)]
+    r_outer = optimal_dv[(nelem+1):]
+    length_discretization = np.linspace(0, uq_spar_solver_obj.det_spar_solver_obj.length, nelem+1)
+
+    # Plot
+    plotfigure = False
+    if plotfigure:
+        fname = "spar_radii.pdf"
+        plt.rc('text', usetex=True)
+        matplotlib.rcParams['mathtext.fontset'] = 'cm'
+        fig = plt.figure("radius_distribution", figsize=(6,6))
+        ax = plt.axes()
+        ax.plot(length_discretization, r_inner)
+        ax.plot(length_discretization, r_inner, 'o')
+        ax.plot(length_discretization, r_outer)
+        ax.plot(length_discretization, r_outer, 'o')
+        ax.set_xlabel('half wingspan')
+        ax.set_ylabel('radii')
+        plt.tight_layout()
+        plt.show()

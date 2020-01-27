@@ -50,7 +50,7 @@ class UQSparSolver(QuantityOfInterest):
 
     def update_design_variables(self, dv):
         # This function needs to be called before computing the stress constraints
-        self.dv[:] = dv[:]
+        self.dv[:] = dv
 
     def update_rvs(self, rv_arr):
         self.det_spar_solver_obj.xi[:] = rv_arr[:]
