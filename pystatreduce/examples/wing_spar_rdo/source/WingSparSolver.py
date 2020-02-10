@@ -57,10 +57,8 @@ class SparSolver(object):
 
         cineq = np.zeros(self.num_nonlin_ineq)
         if bounds_ok:
-            # print('xi = \n', repr(self.xi))
             cineq[0:(self.nelem+1)] = ws.wingspar.stressconstraints(at_design, self.xi, self.length,
                                                                     self.force, self.yield_stress)
-            print('cineq = \n', repr(cineq))
 
         # cineq[(self.nelem+1):2*(self.nelem+1)] = at_design[0:(self.nelem+1)] - self.lb[0:(self.nelem+1)]
         # cineq[2*(self.nelem+1):3*(self.nelem+1)] = at_design[(self.nelem+1):] - self.minthick
@@ -69,6 +67,12 @@ class SparSolver(object):
         # cineq[0:(self.nelem+1)] *= 100.0
         # cineq[(self.nelem+1):] *= 10.0
 
+        return cineq
+
+    def eval_ineq_cnstr_fe(self, at_design, at_state=None):
+        cineq = np.zeros(self.num_nonlin_ineq)
+        cineq[0:(self.nelem+1)] = ws.wingspar.stressconstraints_old(at_design, self.xi, self.length,
+                                                                    self.E, self.force, self.yield_stress)
         return cineq
 
     # def calc_pert_force(self, pert_arr):
@@ -162,6 +166,10 @@ if __name__ == '__main__':
     ineq_constr_val = spar_solver_obj.eval_ineq_cnstr(design_vars)
     print('ineq_con_val = \n', repr(ineq_constr_val))
 
+    ineq_cnstr_val2 = spar_solver_obj.eval_ineq_cnstr_fe(design_vars)
+    print("ineq_cnstr_val2 = ", ineq_cnstr_val2)
+
+    """
     # Evaluate objective function gradient
     dfdx = spar_solver_obj.eval_dFdX(design_vars)
     print('dfdx = ', dfdx)
@@ -188,3 +196,4 @@ if __name__ == '__main__':
             ctr += 1
 
     print('violations = ', ctr)
+    """
