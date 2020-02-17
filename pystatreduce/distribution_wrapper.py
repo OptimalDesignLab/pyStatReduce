@@ -121,6 +121,23 @@ class Distribution(object):
             # DAKOTA
             raise NotImplementedError
 
+    def DrawSamples(self, n_samples=1, sampling_strategy="default"):
+        if self.uq_package_name is "chaospy":
+            if sampling_strategy is "default":
+                return self.distribution.sample(n_samples, rule='R')
+            elif sampling_strategy is "latin-hypercube":
+                return self.distribution.sample(n_samples, rule='L')
+            else:
+                raise NotImplementedError
+        elif self.uq_package_name is "openturns":
+            if sampling_strategy is "default":
+                samples = self.distribution.getSample(n_samples)
+                if self.n_rv == 1:
+                    # Return a vector
+                    return np.array(samples)[:,0]
+                else:
+                    return np.array(samples)
+
     def check_distribution_validity(self, distribution):
         if distribution is not self.distribution:
             warnings.warn('The distribution supplied is external to the one constructed. Value returned from the internal distribution.')

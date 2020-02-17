@@ -14,3 +14,5 @@ SNOPT_print.out
 SNOPT_summary.out
 .*.swp
 nohup.out
+build/*
+dist/*
