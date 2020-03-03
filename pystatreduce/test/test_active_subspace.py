@@ -1,4 +1,6 @@
 # test_active_subspace.py
+import os
+from os import path
 import unittest
 import numpy as np
 import chaospy as cp
@@ -86,7 +88,69 @@ class ActiveSubspaceTest(unittest.TestCase):
             if np.allclose(arr1, arr2) == False:
                 np.testing.assert_almost_equal(arr1, -arr2)
 
-    def test_hadamard_accuracy(self):
+    def test_gradient_read_active_subspace(self):
+
+        if os.path.exists("rv_arr.txt"):
+            os.remove("rv_arr.txt")
+
+        systemsize = 4
+        eigen_decayrate = 2.0
+
+        # Create Hadmard Quadratic object
+        QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
+
+        # Create the joint distribution
+        jdist = cp.J(cp.Uniform(-1,1),
+                     cp.Uniform(-1,1),
+                     cp.Uniform(-1,1),
+                     cp.Uniform(-1,1))
+
+        n_active_subspace_samples = 10000
+        active_subspace_reference = ActiveSubspace(QoI, n_dominant_dimensions=1,
+                                               n_monte_carlo_samples=n_active_subspace_samples,
+                                               use_svd=False, read_rv_samples=False,
+                                               write_rv_samples=True)
+        active_subspace_reference.getDominantDirections(QoI, jdist)
+
+        rv_arr = np.loadtxt('rv_arr.txt')
+        grad_arr = np.zeros([n_active_subspace_samples, systemsize])
+        pert = np.zeros(systemsize)
+        for i in range(0, n_active_subspace_samples):
+            grad_arr[i,:] = QoI.eval_QoIGradient(rv_arr[:,i], pert)
+
+        active_subspace_read = ActiveSubspace(QoI, n_dominant_dimensions=1,
+                                               n_monte_carlo_samples=n_active_subspace_samples,
+                                               read_gradient_samples=True,
+                                               gradient_array=grad_arr)
+        active_subspace_read.getDominantDirections(QoI, jdist)
+
+        # Check the iso_eigenvals
+        np.testing.assert_almost_equal(active_subspace_read.iso_eigenvals, active_subspace_reference.iso_eigenvals)
+        # check the iso_eigenvecs
+        self.assertTrue(active_subspace_read.iso_eigenvecs.shape, active_subspace_reference.iso_eigenvecs.shape)
+        for i in range(active_subspace_read.iso_eigenvecs.shape[1]):
+            arr1 = active_subspace_read.iso_eigenvecs[:,i]
+            arr2 = active_subspace_reference.iso_eigenvecs[:,i]
+            if np.allclose(arr1, arr2) == False:
+                np.testing.assert_almost_equal(arr1, -arr2)
+
+    def test_multifidelity_active_subspace(self):
+        systemsize = 4
+        eigen_decayrate = 2.0
+
+        # Create Hadmard Quadratic object
+        QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
+
+        # Create the joint distribution
+        jdist = cp.J(cp.Uniform(-1,1),
+                     cp.Uniform(-1,1),
+                     cp.Uniform(-1,1),
+                     cp.Uniform(-1,1))
+
+    def demo_hadamard_accuracy(self):
+        """
+        Demo for how to use active subspace for reduced collocation
+        """
         systemsize = 4
         eigen_decayrate = 2.0
 
@@ -94,8 +158,12 @@ class ActiveSubspaceTest(unittest.TestCase):
         QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
 
         mu = np.zeros(systemsize)
-        std_dev = np.eye(systemsize)
-        jdist = cp.MvNormal(mu, std_dev)
+        std_dev = np.ones(systemsize)
+        jdist = cp.J(cp.Normal(mu[0], std_dev[0]),
+                     cp.Normal(mu[1], std_dev[1]),
+                     cp.Normal(mu[2], std_dev[2]),
+                     cp.Normal(mu[3], std_dev[3]),)
+        # jdist = cp.MvNormal(mu, std_dev)
 
         active_subspace = ActiveSubspace(QoI, n_dominant_dimensions=4,
                                              n_monte_carlo_samples=10000,
@@ -119,69 +187,7 @@ class ActiveSubspaceTest(unittest.TestCase):
 
         mu_j_active = sc_obj_active.mean(of=['Hadamard'])
         var_j_active = sc_obj_active.variance(of=['Hadamard'])
-        # print('\nmu_j_analytical = ', mu_j_analytical)
-        # print('mu_j = ', mu_j_active['Hadamard'])
-        # print('err mean = ', abs(mu_j_analytical - mu_j_active['Hadamard']))
-        # print('var_j_analytical = ', var_j_analytical)
-        # print('var_j = ', var_j_active['Hadamard'])
-        # print('err var = ', abs(var_j_analytical - var_j_active['Hadamard']))
-
-    """
-    def util_func(arb):
-
-        active_dominant_dir = active_subspace.dominant_dir
-        print('Active Subspace')
-        print('iso_eigenvals = ', active_subspace.iso_eigenvals)
-        print('iso_eigenvecs = \n', active_subspace.iso_eigenvecs)
-
-        # Create a dimension_reduction object
-        dominant_space = DimensionReduction(threshold_factor=0.9,
-                                            exact_Hessian=True)
-        dominant_space.getDominantDirections(QoI, jdist)
-        dominant_dir = dominant_space.dominant_dir
-        print('\nDominant Directions.dominant_indices = ', dominant_space.dominant_indices)
-        print('iso_eigenvals = ', dominant_space.iso_eigenvals)
-        print('iso_eigenvecs = \n', dominant_space.iso_eigenvecs)
-
-        # Compute the analytical value of the mean
-        # mu_j_analytical = QoI.eval_analytical_QoI_mean(mu, cp.Cov(jdist))
-
-        # Create the QoI Dictionary
-        QoI_dict = {'Hadamard' : {'QoI_func' : QoI.eval_QoI,
-                                  'output_dimensions' : 1,
-                                  },
-                    'exponential' : {'QoI_func' : QoI.eval_QoI,
-                                              'output_dimensions' : 1,
-                                    },
-                    }
-
-        # Create a stochastic collocation object
-        sc_obj_active = StochasticCollocation2(jdist, 4, 'MvNormal', QoI_dict,
-                                        include_derivs=False,
-                                        reduced_collocation=True,
-                                        dominant_dir=active_dominant_dir)
-        sc_obj_active.evaluateQoIs(jdist)
-
-        sc_obj = StochasticCollocation2(jdist, 4, 'MvNormal', QoI_dict,
-                                        include_derivs=False,
-                                        reduced_collocation=True,
-                                        dominant_dir=dominant_dir)
-        sc_obj.evaluateQoIs(jdist)
-
-        sc_obj_full = StochasticCollocation2(jdist, 4, 'MvNormal', QoI_dict,
-                                             include_derivs=False,
-                                             reduced_collocation=False)
-        sc_obj_full.evaluateQoIs(jdist)
 
 
-
-        mu_j_active = sc_obj_active.mean(of=['exponential'])
-        mu_j = sc_obj.mean(of=['exponential'])
-        mu_j_full = sc_obj_full.mean(of=['exponential'])
-        print('\nmu_j = ', mu_j['exponential'])
-        print('mu_j_active = ', mu_j_active['exponential'])
-        print('mu_j_full = ', mu_j_full['exponential'])
-        # print('mu_j_analytical = ', mu_j_analytical)
-    """
 if __name__ == '__main__':
     unittest.main()
