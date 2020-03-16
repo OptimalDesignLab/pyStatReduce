@@ -9,7 +9,7 @@ from pystatreduce.new_stochastic_collocation import StochasticCollocation2
 from pystatreduce.stochastic_collocation import StochasticCollocation
 from pystatreduce.quantity_of_interest import QuantityOfInterest
 from pystatreduce.dimension_reduction import DimensionReduction
-from pystatreduce.active_subspace import ActiveSubspace
+from pystatreduce.active_subspace import ActiveSubspace, BifidelityActiveSubspace
 from pystatreduce.stochastic_arnoldi.arnoldi_sample import ArnoldiSampling
 import pystatreduce.examples as examples
 # import pystatreduce.optimize.OAS_ScanEagle.oas_scaneagle_opt as scaneagle_opt
@@ -135,8 +135,13 @@ class ActiveSubspaceTest(unittest.TestCase):
                 np.testing.assert_almost_equal(arr1, -arr2)
 
     def test_multifidelity_active_subspace(self):
+
+        if os.path.exists("rv_arr.txt"):
+            os.remove("rv_arr.txt")
+
         systemsize = 4
         eigen_decayrate = 2.0
+        n_active_subspace_samples = [50, 100]
 
         # Create Hadmard Quadratic object
         QoI = examples.HadamardQuadratic(systemsize, eigen_decayrate)
@@ -146,6 +151,36 @@ class ActiveSubspaceTest(unittest.TestCase):
                      cp.Uniform(-1,1),
                      cp.Uniform(-1,1),
                      cp.Uniform(-1,1))
+
+        rv_arr = jdist.sample(np.sum(n_active_subspace_samples))
+        np.savetxt('rv_arr.txt', rv_arr[:,n_active_subspace_samples[0]:])
+
+        # We will compare against a single fidelity active subspace
+        active_subspace_reference = ActiveSubspace(QoI, n_dominant_dimensions=1,
+                                               n_monte_carlo_samples=n_active_subspace_samples[1],
+                                               use_svd=False, read_rv_samples=True,
+                                               write_rv_samples=False)
+        active_subspace_reference.getDominantDirections(QoI, jdist)
+
+        os.remove("rv_arr.txt")
+        np.savetxt('rv_arr.txt', rv_arr)
+
+        QoI_dict = {"high_fidelity" : QoI,
+                    "low_fidelity" : QoI}
+        bifidelity_active_sbspace = BifidelityActiveSubspace(systemsize, n_dominant_dimensions=1,
+                                                             n_monte_carlo_samples=n_active_subspace_samples,
+                                                             read_rv_samples=True, write_rv_samples=False)
+        bifidelity_active_sbspace.getDominantDirections(QoI_dict, jdist)
+
+        # Check the iso_eigenvals
+        np.testing.assert_almost_equal(bifidelity_active_sbspace.iso_eigenvals, active_subspace_reference.iso_eigenvals)
+        # check the iso_eigenvecs
+        self.assertTrue(bifidelity_active_sbspace.iso_eigenvecs.shape, active_subspace_reference.iso_eigenvecs.shape)
+        for i in range(bifidelity_active_sbspace.iso_eigenvecs.shape[1]):
+            arr1 = bifidelity_active_sbspace.iso_eigenvecs[:,i]
+            arr2 = active_subspace_reference.iso_eigenvecs[:,i]
+            if np.allclose(arr1, arr2) == False:
+                np.testing.assert_almost_equal(arr1, -arr2)
 
     def demo_hadamard_accuracy(self):
         """
