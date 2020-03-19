@@ -71,7 +71,7 @@ class AbstractActiveSubspace(object):
         C_tilde = np.zeros([QoI.systemsize, QoI.systemsize])
         if self.read_gradient_samples:
             assert n_samples == gradients.shape[0]
-            for i in range(0, self.n_monte_carlo_samples):
+            for i in range(0, n_samples):
                 C_tilde[:,:] += np.outer(gradients[i,:], gradients[i,:])
         else:
             pert = np.zeros(QoI.systemsize)
@@ -221,6 +221,7 @@ class BifidelityActiveSubspace(AbstractActiveSubspace):
                                         check_std_dev_violation)
 
         self.systemsize = n_rv
+        self.gradient_dict=gradient_dict
         # self.n_dominant_dimensions = n_dominant_dimensions
         # self.n_monte_carlo_samples = n_monte_carlo_samples
         # self.use_iso_transformation = use_iso_transformation
@@ -250,6 +251,7 @@ class BifidelityActiveSubspace(AbstractActiveSubspace):
             lofi_rv = rv_arr[:, self.n_monte_carlo_samples[0]:]
         elif self.read_gradient_samples:
             rv_arr = None # Dont need RV if gradients available
+            lofi_rv = None
         else:
             rv_arr = jdist.sample(sum(self.n_monte_carlo_samples))
             hifi_rv = rv_arr[:,0:self.n_monte_carlo_samples[0]]
@@ -257,11 +259,12 @@ class BifidelityActiveSubspace(AbstractActiveSubspace):
 
         self.C_tilde = np.zeros([self.systemsize, self.systemsize])
         if self.read_gradient_samples:
-            hifi_gradients = gradient_dict['high_fidelity']
-            lofi_gradients = gradient_dict['low_fidelity']
+            hifi_gradients = self.gradient_dict['high_fidelity']
+            all_lofi_gradients = self.gradient_dict['low_fidelity']
             for i in range(self.n_monte_carlo_samples[0]):
                 self.C_tilde[:,:] += np.outer(hifi_gradients[i,:], hifi_gradients[i,:]) - \
-                                     np.outer(lofi_gradients[i,:], lofi_gradients[i,:])
+                                     np.outer(all_lofi_gradients[i,:], all_lofi_gradients[i,:])
+            lofi_gradients = all_lofi_gradients[self.n_monte_carlo_samples[0]:,:]
         else:
             lofi_gradients = None # For compatibility with the API
             pert = np.zeros(self.systemsize)
