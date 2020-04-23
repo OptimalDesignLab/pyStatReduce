@@ -70,7 +70,7 @@ class AbstractActiveSubspace(object):
     def construct_covariance_matrix(self, QoI, rv_arr,  gradients, n_samples):
         C_tilde = np.zeros([QoI.systemsize, QoI.systemsize])
         if self.read_gradient_samples:
-            assert n_samples == gradients.shape[0]
+            assert n_samples <= gradients.shape[0] # There can be more gradient values that are read in
             for i in range(0, n_samples):
                 C_tilde[:,:] += np.outer(gradients[i,:], gradients[i,:])
         else:
@@ -132,7 +132,9 @@ class ActiveSubspace(AbstractActiveSubspace):
         # self.read_gradient_samples = read_gradient_samples
         if read_gradient_samples:
             assert gradient_array is not None
-            assert gradient_array.shape == (self.n_monte_carlo_samples, QoI.systemsize)
+            # assert gradient_array.shape == (self.n_monte_carlo_samples, QoI.systemsize)
+            assert gradient_array.shape[0] >= self.n_monte_carlo_samples
+            assert gradient_array.shape[1] == QoI.systemsize
             self.gradient_array = gradient_array
         else:
             self.gradient_array = gradient_array
