@@ -52,7 +52,8 @@ class NewStochasticCollocationTest(unittest.TestCase):
 
         # Analytical variance
         var_j_analytical = QoI.eval_QoI_analyticalvariance(mu, cp.Cov(jdist))
-        err = abs((var_js['paraboloid'][0,0] - var_j_analytical) / var_j_analytical)
+        err = abs((var_js['paraboloid'][0] - var_j_analytical) / var_j_analytical)
+        # err = abs((var_js['paraboloid'][0,0] - var_j_analytical) / var_j_analytical)
         self.assertTrue(err < 1.e-15)
 
     def test_multipleQoI(self):
@@ -119,7 +120,8 @@ class NewStochasticCollocationTest(unittest.TestCase):
         self.assertTrue(err < 1e-1)
         # Analytical variance
         var_j_analytical = QoI.eval_QoI_analyticalvariance(mu, cp.Cov(jdist))
-        err = abs((var_js['paraboloid'][0,0] - var_j_analytical) / var_j_analytical)
+        # err = abs((var_js['paraboloid'][0,0] - var_j_analytical) / var_j_analytical)
+        err = abs((var_js['paraboloid'][0] - var_j_analytical) / var_j_analytical)
         self.assertTrue(err < 0.01)
 
     def test_derivatives_scalarQoI(self):
@@ -190,7 +192,8 @@ class NewStochasticCollocationTest(unittest.TestCase):
             sc_obj.evaluateQoIs(jdist, include_derivs=False)
             mu_j = sc_obj.mean(of=['PolyRVDV'])
             var_j = sc_obj.variance(of=['PolyRVDV'])
-            std_dev_j = np.sqrt(var_j['PolyRVDV'][0,0])
+            # std_dev_j = np.sqrt(var_j['PolyRVDV'][0,0])
+            std_dev_j = np.sqrt(var_j['PolyRVDV'][0])
             dmu_j_complex[i] = mu_j['PolyRVDV'].imag / pert.imag
             dvar_j_complex[i] = var_j['PolyRVDV'].imag / pert.imag
             dstd_dev_complex[i] = std_dev_j.imag / pert.imag
@@ -250,7 +253,8 @@ class NewStochasticCollocationTest(unittest.TestCase):
             sc_obj.evaluateQoIs(jdist, include_derivs=False)
             mu_j = sc_obj.mean(of=['PolyRVDV'])
             var_j = sc_obj.variance(of=['PolyRVDV'])
-            std_dev_j = np.sqrt(var_j['PolyRVDV'][0,0])
+            # std_dev_j = np.sqrt(var_j['PolyRVDV'][0,0])
+            std_dev_j = np.sqrt(var_j['PolyRVDV'][0])
             dmu_j_complex[i] = mu_j['PolyRVDV'].imag / pert.imag
             dvar_j_complex[i] = var_j['PolyRVDV'].imag / pert.imag
             dstd_dev_complex[i] = std_dev_j.imag / pert.imag

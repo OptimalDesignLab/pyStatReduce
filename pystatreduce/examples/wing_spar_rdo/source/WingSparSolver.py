@@ -75,10 +75,6 @@ class SparSolver(object):
                                                                     self.E, self.force, self.yield_stress)
         return cineq
 
-    # def calc_pert_force(self, pert_arr):
-    #     pert_force = ws.wingspar.calcpertforce(self.force, pert_arr, self.length)
-    #     return pert_force
-
     def factor_linear_system(self, at_design, at_state):
         """
         Build and factor the stiffness matrix (which is conveniently independent of xi here)

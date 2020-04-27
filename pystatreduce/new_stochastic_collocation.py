@@ -130,11 +130,17 @@ class StochasticCollocation2(object):
         for i in of:
             if i in self.QoI_dict:
                 qoi_dim = self.QoI_dict[i]['output_dimensions']
-                variance_val[i] = np.zeros([qoi_dim, qoi_dim], dtype=self.data_type)
+                variance_val[i] = np.zeros(qoi_dim, dtype=self.data_type)
                 for j in range(0, self.n_points):
-                    val = self.QoI_dict[i]['fvals'][j,:] - mu[i]
-                    variance_val[i] += self.quadrature_weights[j]*np.outer(val, val)
-                variance_val[i] = variance_val[i]#  / (np.sqrt(np.pi)**self.n_rv)
+                    # print("ci = \n", self.QoI_dict[i]['fvals'][j,:])
+                    val = self.quadrature_weights[j] * (self.QoI_dict[i]['fvals'][j,:]**2)
+                    variance_val[i] += val
+                variance_val[i] -= mu[i]**2
+                # variance_val[i] = np.zeros([qoi_dim, qoi_dim], dtype=self.data_type)
+                # for j in range(0, self.n_points):
+                #     val = self.QoI_dict[i]['fvals'][j,:] - mu[i]
+                #     variance_val[i] += self.quadrature_weights[j]*np.outer(val, val)
+                # variance_val[i] = variance_val[i]#  / (np.sqrt(np.pi)**self.n_rv)
         return variance_val
 
     def dmean(self, of=None, wrt=None):

@@ -65,14 +65,15 @@ class SparSolver(object):
         r_out = at_design[self.nelem+1:]
 
         Iyy = self.calc_second_moment_annulus(r_in, r_out)
-        # print('Iyy = ', Iyy)
         pertforce = self.calc_pert_force()
-        # print('pertforce = \n', pertforce)
+        # print("pertforce = \n", pertforce)
         M = self.calcBeamMoment(pertforce)
-        # print('M = \n', M)
+        # print("M = \n", M)
 
+        sigma = M *r_out / Iyy
+        cineq = sigma/self.yield_stress
         # cineq = (M * r_out)/self.yield_stress - Iyy
-        cineq = (M * r_out)/(self.yield_stress * Iyy) - 1.0
+        # cineq = (M * r_out)/(self.yield_stress * Iyy) - 1.0
 
         return cineq
 
@@ -85,16 +86,17 @@ class SparSolver(object):
         pertforce[:] = self.force
         y = np.linspace(0,self.length, self.num_nonlin_ineq, dtype=self.data_type)
         for i in range(0, self.xi.size):
-            pertforce += self.xi[i]*np.cos((2*i-1)*np.pi*y/(2*self.length))
+            pertforce += self.xi[i]*np.cos((2*(i+1)-1)*np.pi*y/(2*self.length))
 
         return pertforce
 
     def calcBeamMoment(self, force):
         M = np.zeros(self.num_nonlin_ineq, dtype=self.data_type)
+        # x = np.linspace(0, self.length, self.nelem+1)
+        # M = force[0] * (0.5* x**2 - x**3 / (6*self.length)) - (0.5*force[0]*self.length)*x + (self.force[0]*self.length**2)/6 * np.ones(self.nelem+1)
         for i in range(0, self.num_nonlin_ineq):
             x = i*self.length / self.nelem
             M[i] = force[0] * ((0.5* x**2 - x**3 / (6*self.length)) - 0.5*self.length*x + self.length**2/6)
-
         return M
 
     def eval_dFdX(self, at_design, at_state=None):
@@ -129,7 +131,7 @@ class SparSolver(object):
 
 if __name__ == '__main__':
 
-    spar_solver_obj = SparSolver(20) # 5 is the number of elements
+    spar_solver_obj = SparSolver(40) # 5 is the number of elements
     design_vars = spar_solver_obj.init_design()
     print('design_vars = \n', repr(design_vars))
 
@@ -138,6 +140,7 @@ if __name__ == '__main__':
     stress_con_val = spar_solver_obj.eval_stress_constraint(design_vars)
     print('stress_con_val = \n', repr(stress_con_val))
 
+    """
     matlab_stress_val = np.array([-3.90381453117098e-08,
                                   -2.21033588020043e-07,
                                   -3.84845436978377e-07,
@@ -162,6 +165,7 @@ if __name__ == '__main__':
 
     err = stress_con_val - matlab_stress_val
     print('\nerr = \n', err)
+    """
     # # Evaluate objective function gradient
     # dfdx = spar_solver_obj.eval_dFdX(design_vars)
     # print('dfdx = ', dfdx)

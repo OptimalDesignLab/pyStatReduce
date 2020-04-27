@@ -11,6 +11,8 @@ from mpl_toolkits import mplot3d
 import matplotlib
 import matplotlib.pyplot as plt
 
+np.set_printoptions(linewidth=150)
+
 class UQSparSolver(QuantityOfInterest):
 
     def __init__(self, nelem, length=7.5, rho=1600.0, Young=70e9, Weight=0.5*500*9.8,
@@ -78,15 +80,15 @@ class UQSparSolver(QuantityOfInterest):
         return x0
 
 if __name__ == '__main__':
-      
+
       # Initialize UQSparSolver
-    nelem = 15
+    nelem = 40
     uq_spar_solver_obj = UQSparSolver(nelem)
     design_vars = uq_spar_solver_obj.init_design()
     # print('design_vars = \n', design_vars)
 
     obj_val  = uq_spar_solver_obj.eval_obj(design_vars)
-    # print('obj_val = ', obj_val)
+    print('obj_val = ', obj_val)
 
     # Compute the pert force
     temp_xi = np.array([-163.333333333333,
@@ -96,7 +98,7 @@ if __name__ == '__main__':
     con_val = uq_spar_solver_obj.eval_stress_con_qoi(temp_xi, np.zeros(4))
     print('con_val = ', con_val)
 
-    # Lets compute the standard deviation of the robust constraint at the initial 
+    # Lets compute the standard deviation of the robust constraint at the initial
     # design
     import chaospy as cp
     from pystatreduce.new_stochastic_collocation import StochasticCollocation2
@@ -109,9 +111,57 @@ if __name__ == '__main__':
     sc_obj = StochasticCollocation2(uq_spar_solver_obj.jdist, 2, 'MvNormal', QoI_dict,
                                         include_derivs=False, reduced_collocation=False)
     sc_obj.evaluateQoIs(uq_spar_solver_obj.jdist, include_derivs=False)
-    sc_obj.evaluateQoIs(uq_spar_solver_obj.jdist)
-    
+    # sc_obj.evaluateQoIs(uq_spar_solver_obj.jdist)
+
     mu_j = sc_obj.mean(of=['stress_constraints'])
     var_j = sc_obj.variance(of=['stress_constraints'])
+    """
+    mu_con_matlab = np.array([0.494755932174840,
+                              0.458569174073115,
+                              0.424191367348404,
+                              0.391576128632065,
+                              0.360677074555459,
+                              0.331447821749942,
+                              0.303841986846874,
+                              0.277813186477613,
+                              0.253315037273518,
+                              0.230301155865948,
+                              0.208725158886261,
+                              0.188540662965815,
+                              0.169701284735970,
+                              0.152160640828084,
+                              0.135872347873516,
+                              0.120790022503623,
+                              0.106867281349765,
+                              0.094057741043301,
+                              0.082315018215589,
+                              0.071592729497987,
+                              0.061844491521855,
+                              0.053023920918550,
+                              0.045084634319432,
+                              0.037980248355859,
+                              0.031664379659190,
+                              0.026090644860783,
+                              0.021212660591996,
+                              0.016984043484189,
+                              0.013358410168721,
+                              0.010289377276949,
+                              0.007730561440232,
+                              0.005635579289929,
+                              0.003958047457399,
+                              0.002651582574000,
+                              0.001669801271090,
+                              0.000966320180029,
+                              0.000494755932175,
+                              0.000208725158886,
+                              0.000061844491522,
+                              0.000007730561440,
+                              0.000000000000000])
+    err = abs(mu_j['stress_constraints'] - mu_con_matlab)
+    assert (err < 1.e-10).all()
+    """
+
     print('mu_j = \n', mu_j['stress_constraints'])
-    print('var_j = \n', np.diagonal(var_j['stress_constraints']))
+    print('var_j = \n', var_j['stress_constraints'])
+    robust_con_val = mu_j['stress_constraints'] + 6.0 * np.sqrt(var_j['stress_constraints'])  - np.ones(nelem + 1)
+    print("nonlcon = \n", robust_con_val)

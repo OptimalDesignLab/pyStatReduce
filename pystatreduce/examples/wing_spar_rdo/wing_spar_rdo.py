@@ -23,8 +23,8 @@ def objfunc(xdict):
     sc_obj.evaluateQoIs(uq_spar_solver_obj.jdist)
     mu_j = sc_obj.mean(of=['stress_constraints'])
     var_j = sc_obj.variance(of=['stress_constraints'])
-    std_dev_stress_con = np.sqrt(np.diagonal(var_j['stress_constraints']))
-   
+    std_dev_stress_con = np.sqrt(var_j['stress_constraints'])
+
 
     # Put the values in dictionary
     funcs = {}
@@ -32,7 +32,7 @@ def objfunc(xdict):
     funcs['thickness_con'] = dv[(uq_spar_solver_obj.nelem+1):] - dv[0:(uq_spar_solver_obj.nelem+1)]
 
     # Inequalty constraints
-    funcs['uq_stress_con'] = mu_j['stress_constraints'] + 2*std_dev_stress_con
+    funcs['uq_stress_con'] = mu_j['stress_constraints'] + 6*std_dev_stress_con - np.ones(uq_spar_solver_obj.nelem + 1)
 
     # Outer_radius_con
     outer_rad_val = dv[(uq_spar_solver_obj.nelem+1):] # dv[0:(uq_spar_solver_obj.nelem+1)] + dv[(uq_spar_solver_obj.nelem+1):]
@@ -46,7 +46,7 @@ def objfunc(xdict):
     if ctr < 1:
         print('uq_stress_con = \n', repr(funcs['uq_stress_con']))
         print('mu_j = \n', mu_j['stress_constraints'])
-        print('var_j = \n', np.diagonal(var_j['stress_constraints']))
+        print('var_j = \n', var_j['stress_constraints'])
         ctr += 1
 
     fail = False
@@ -55,7 +55,7 @@ def objfunc(xdict):
 if __name__ == '__main__':
 
     # Initialize UQ WingSpar Solver
-    nelem = 15
+    nelem = 40
     uq_spar_solver_obj = UQSparSolver(nelem)
 
     # Get the initial design variables
@@ -86,9 +86,9 @@ if __name__ == '__main__':
     optProb.addVarGroup('radii', uq_spar_solver_obj.num_design, 'c',
                         value=baseline_design,
                         # value = matlab_dv,
-                        lower=-1.e10, upper=1.e10)
+                        lower=0.001, upper=1.e10)
 
-    optProb.addConGroup('uq_stress_con', uq_spar_solver_obj.num_nonlin_ineq, lower=0., scale=1.)
+    optProb.addConGroup('uq_stress_con', uq_spar_solver_obj.num_nonlin_ineq, upper=0., scale=1.)
     optProb.addConGroup('thickness_con', (uq_spar_solver_obj.nelem+1), lower=0.0025)
     optProb.addConGroup('outer_radius_con', (uq_spar_solver_obj.nelem+1), upper=0.05)
     optProb.addConGroup('inner_rad_con', (uq_spar_solver_obj.nelem+1), lower=0.01)
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     # print(sol)
     # print(repr(sol.__dict__.keys()))
     print('optimal value = ', sol.fStar)
-    print('\n', repr(sol.xStar))
+    print('\n optimal design solution = \n', repr(sol.xStar))
 
     # Get the optimal design variables
     optimal_dv = sol.xStar['radii']
@@ -110,10 +110,9 @@ if __name__ == '__main__':
     length_discretization = np.linspace(0, uq_spar_solver_obj.det_spar_solver_obj.length, nelem+1)
 
     # Plot
-    plotfigure = False
+    plotfigure = True
     if plotfigure:
         fname = "spar_radii.pdf"
-        plt.rc('text', usetex=True)
         matplotlib.rcParams['mathtext.fontset'] = 'cm'
         fig = plt.figure("radius_distribution", figsize=(6,6))
         ax = plt.axes()
