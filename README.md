@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.com/OptimalDesignLab/pyStatReduce.svg?branch=multiple_qoi)](https://travis-ci.com/OptimalDesignLab/pyStatReduce)
-
 # pyStatReduce
 
 Python package for stochastic dimension reduction based on nonlinearity of a
